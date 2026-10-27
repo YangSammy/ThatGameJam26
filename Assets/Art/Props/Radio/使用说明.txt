@@ -1,0 +1,33 @@
+HouseScene 桌面收录机
+
+打开 Assets/Scenes/HouseScene.unity 后运行。
+沿用书房的 WASD 行走和鼠标环视。
+左键桌面磁带：拿起。
+拿着磁带，对准已打开卡槽上方：左键放入，右键或 Esc 取消并归位。
+约3秒装带、关盖、按播放后，开始声音与卷轴循环。
+左键录音机：暂停/继续。右键录音机：停止、取出并归位。
+装带期间禁止重复放入；播放中的磁带需先取出，才能换下一盒。
+空闲时可继续使用 E 检视录音机与桌面磁带。
+
+场景替换位置
+Study - desk and curtained darkroom/Study entry props/Radio - tape chapter/Radio case
+Study - desk and curtained darkroom/Study entry props/Cassettes - tape chapter/Tape 1、2、3
+Replaced whitebox props 是隐藏的原摆件备份。
+
+动画
+Animations/Radio.controller：Ready_Open → LoadCassette → PlaybackLoop。
+Ready_Open 保持卡槽打开；LoadCassette 为一次性装带；PlaybackLoop 为2秒卷轴循环。
+HouseRadioDeck 负责拿取状态、所选磁带、声音启动、暂停和归位。
+WBMain.SharedHouse 仍是书房输入的唯一入口。
+磁带外壳保持独立，实际选择的磁带在装入时绑定到 Tape_LOAD_MOTION。
+Unity 轴向和FBX单位已处理，勿把导入模型的根缩放100直接改成1。
+
+声音
+Audio/TestTape1、2、3.wav 是三段18秒的合成测试音乐，仅用于验证流程，不是最终剧情录音。
+在 Radio - tape chapter 的 HouseRadioDeck 组件中，替换 Tapes 列表每项的 Audio 即可更换内容。
+声音只在进入播放阶段启动一次，不随2秒卷轴动画重新开始。
+
+验证
+MemoryWhitebox.Editor.HouseRadioChecks.Begin() 可在 HouseScene 运行模式下启动三盒磁带的流程检查。
+检查结果保存在 output/boombox-reference/unity-checks/flow-checks.txt。
+进入其他书房章节时，本收录机停止并归位，不干扰原有章节系统。

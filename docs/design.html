@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>留在手里的事｜全3D无文字回忆解谜策划案</title>
+<style>
+@page{size:A4;margin:0}*{box-sizing:border-box}html{background:#e8e8e6}body{margin:0;color:#232629;font-family:"Microsoft YaHei","Noto Sans CJK SC","Segoe UI",sans-serif;font-size:9.4pt;line-height:1.54}main{max-width:210mm;margin:auto}.page{width:210mm;min-height:297mm;padding:15mm 16mm 13mm;background:#fff;position:relative;break-after:page;page-break-after:always;overflow:hidden}.page:last-child{break-after:auto;page-break-after:auto}.eyebrow{font-size:8pt;letter-spacing:1.7px;color:#8c4d42;text-transform:uppercase}.rule{height:2px;background:#8c4d42;margin:7mm 0 5mm}.pagehead{display:flex;justify-content:space-between;align-items:center;color:#777;font-size:7.3pt;letter-spacing:.7px;border-bottom:1px solid #ddd;padding-bottom:2.5mm;margin-bottom:5mm}.foot{position:absolute;bottom:7mm;left:16mm;right:16mm;display:flex;justify-content:space-between;font-size:7pt;color:#888;border-top:1px solid #ddd;padding-top:2mm}h1{font-size:34pt;line-height:1.35;font-weight:600;margin:17mm 0 5mm;letter-spacing:2px}h2{font-size:20pt;font-weight:600;margin:0 0 4mm;line-height:1.35}h3{font-size:11pt;margin:4.5mm 0 2mm;color:#603c35}h4{font-size:9.5pt;margin:3mm 0 1mm}p{margin:0 0 2.8mm}strong{font-weight:650}ul,ol{margin:1.5mm 0 3mm;padding-left:5mm}li{margin:0 0 1.2mm}table{width:100%;border-collapse:collapse;margin:2.5mm 0 4mm;table-layout:fixed;font-size:8.1pt;line-height:1.45}th,td{vertical-align:top;border:1px solid #d8d8d6;padding:2mm 2.2mm;overflow-wrap:anywhere}th{background:#f1f1ef;font-weight:600;text-align:left}thead{display:table-header-group}tr{break-inside:avoid}a{color:#7a443b;text-decoration:none}code,pre{font-family:Consolas,"Microsoft YaHei",monospace;font-size:7.7pt}pre{white-space:pre-wrap;word-break:break-word;background:#f4f4f2;border-left:2px solid #986052;padding:3mm;line-height:1.4;margin:2mm 0 3mm}.lead{font-size:13.5pt;line-height:1.65;max-width:165mm}.muted{color:#666}.small{font-size:8pt;line-height:1.5}.tiny{font-size:7.3pt}.box{border:1px solid #d6d6d3;padding:3.2mm;margin:3mm 0;background:#fafaf8}.accent{border-left:3px solid #935347;padding-left:3mm}.grid{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.tag{display:inline-block;font-size:7.2pt;border:1px solid #b3b3ad;padding:.4mm 1.5mm;margin-right:1mm;color:#666}.flow{padding:3mm;background:#f0f0ed;font-size:8.2pt;line-height:1.7;margin:3mm 0}.meta{font-size:8.5pt;line-height:1.8}.kpi{font-size:19pt;color:#84483c;margin-bottom:0}.nowrap{white-space:nowrap}.toc td{border-left:none;border-right:none}.callout{font-size:11pt;line-height:1.65;background:#f4f2ee;padding:4mm;border-left:3px solid #925447}.tight p{margin-bottom:2mm}.tight table{margin-bottom:3mm}.signature{font-size:8pt;color:#666;margin-top:8mm}@media screen{.page{margin:10mm auto;box-shadow:0 3px 20px #0001}}@media print{html,body{background:white}.page{margin:0;box-shadow:none;height:297mm}a{color:inherit}.page{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+#acceptance table{font-size:7.6pt;line-height:1.32}#acceptance th,#acceptance td{padding:1.5mm 2mm}#acceptance h3{margin-top:2.8mm}#milestones table{font-size:7.7pt;line-height:1.35}#milestones th,#milestones td{padding:1.6mm 2mm}#milestones ol{font-size:7.2pt;line-height:1.35}#milestones ol li{margin-bottom:1.1mm}#contracts pre{font-size:7.3pt;line-height:1.3}#solutions h3{margin-top:3.5mm}#controls th,#controls td{padding:1.7mm 2mm}
+</style>
+</head>
+<body><main>
+
+<section class="page" id="overview">
+<div class="eyebrow">GAME DESIGN DOCUMENT / CONCEPT + PLAYABLE WHITEBOX</div>
+<h1>留在手里的事</h1>
+<p class="lead">一款尽量无文字的第一人称全 3D 步行解谜游戏：在旧屋中行走，以录音、摄影、写作、绘画与系围巾的真实动作，找回一段普通而亲密的陪伴。</p>
+<div class="rule"></div>
+<div class="grid">
+<div><p class="kpi">45-60 分钟</p><p class="small muted">正式版单周目体验目标，需通过试玩验证</p></div>
+<div><p class="kpi">8-15 分钟</p><p class="small muted">当前白盒全章节串联体验目标，需实测</p></div>
+</div>
+<h3>一句话设计支柱</h3>
+<p class="callout">媒介的真实操作承载推理；玩家双手做出的动作，成为理解人物回忆的过程。</p>
+<table>
+<tr><th style="width:23%">定位</th><td>单人、第一人称全 3D 步行与物件解谜；Windows PC；鼠标＋键盘；Unity 2022.3.62f3 原生 C#。首轮目标用户为愿意观察和尝试的叙事解谜玩家。</td></tr>
+<tr><th>表现约束</th><td>正式剧情不依赖可读文字、对白、字幕或数字答案；主要依靠物件、空间、人物动作、声音与操作反馈。纸上笔迹允许存在，但不要求识读。</td></tr>
+<tr><th>章节顺序</th><td>磁带 → 胶片 → 写作 → 绘画 → 尾声。前四章以媒介大致出现顺序倒推，尾声回到身体记忆；不将尾声包装为技术史节点。</td></tr>
+<tr><th>叙事载体</th><td>同一间旧屋、同一对亲近的人、一条旧围巾。录音中的衣料声、照片里的围巾、信中的送别、画中的双手，逐章形成联系。</td></tr>
+<tr><th>情感基调</th><td>安静、日常、略带迟疑。通过照顾与回应建立关系；不依赖突然死亡、病症标签或惊吓来制造结尾。</td></tr>
+</table>
+<h3>版本与文档边界</h3>
+<p><span class="tag">版本 0.3.1</span><span class="tag">2026-10-25</span><span class="tag">工作名，可调整</span></p>
+<p class="small">白盒采用 Unity 2022.3.62f3 与原生 C#：旧屋及全部解谜均由真实网格、透视相机、碰撞体与世界坐标操作构成。卡座、纸笔、相机、暗房、双手和围巾先用几何体。旧规则类只存状态，运行时不调用其Draw。HTML仅为文档载体。</p>
+<div class="box small"><strong>阅读顺序：</strong>第 2 页整体系统；第 3-7 页五章规格；第 8 页数据接口；第 9-11 页范围、验收、来源；第 12 页含答案攻略；第 13 页操作表；第 14 页白盒与正式版差异。0.3.1已用Unity2022.3.62f3构建，65项检查通过（38规则＋27原生3D）；独立D3D11重跑27项通过，含同机位虚焦/清晰GPU像素验证。真人全程输入通关及耗时待测。</div>
+<div class="foot"><span>留在手里的事 · 可执行设计规格</span><span>01 / 14</span></div>
+</section>
+
+<section class="page tight" id="systems">
+<div class="pagehead"><span>DESIGN SYSTEM</span><span>体验结构与 3C</span></div>
+<h2>让玩家身处回忆</h2>
+<p>旧屋物件是记忆入口。靠近按E后，白盒镜头用约1.05秒靠近实物并柔和转入立体记忆；正式版继续打磨手与视角的动作接续。章节不是操作面板，而是有透视、遮挡与身体的空间。</p>
+<h3>《艾迪芬奇的记忆》如何落实</h3>
+<table><tr><th style="width:25%">原则</th><th>本案执行</th></tr>
+<tr><td>旧屋连接短篇</td><td>旧屋负责发现关系、回到现实；不叠加繁琐钥匙谜题。触摸物件进入相应记忆，完成后原物件改变。</td></tr>
+<tr><td>视角与身体连续</td><td>可操作物具有厚度、世界位置和手部响应；限制行走仍是身处真实空间的近距离动作。</td></tr>
+<tr><td>每章输入语法</td><td>键鼠依次成为转轴、相机、运笔与回忆、视线、双手整理。先示范一种简单动作，再让动作获得新的含义。</td></tr>
+<tr><td>Lewis双手分心</td><td>写作右手建立低负担重复节奏，左手在记忆中照顾他人；两侧同时运行。减少书法、搬运等额外负担，不轮流暂停解题。</td></tr></table>
+<h3>逐章3C</h3>
+<table><tr><th style="width:12%">章节</th><th style="width:21%">Character</th><th style="width:32%">Camera</th><th>Control</th></tr>
+<tr><td>旧屋</td><td>回屋的主角。</td><td>第一人称透视，视高约1.65m。</td><td>WASD行走，鼠标转头，E触摸入口。</td></tr>
+<tr><td>磁带</td><td>检查、录制的人。</td><td>桌边立体卡座、带体与双手。</td><td>左右键＋滚轮转轴，SFJL'持续压键。</td></tr>
+<tr><td>胶片</td><td>复拍的人。</td><td>真实站位、持机、目镜；相纸显示场景捕获。</td><td>WASD站位，右键环视；鼠标装片、调盘、冲洗。</td></tr>
+<tr><td>写作</td><td>现在与回忆中的自己。</td><td>两台同时工作的透视3D相机，桌面与回忆。</td><td>右鼠标运笔，左WASD＋E扶门、送围巾。</td></tr>
+<tr><td>绘画</td><td>以注视取舍的画者。</td><td>第一人称环视；松键虚焦，按住渐清晰。</td><td>鼠标转头；按住左键，让中央视线稳定落在真实接点。</td></tr>
+<tr><td>尾声</td><td>亲手回应的人。</td><td>有厚度布形和两手的3D近景。</td><td>鼠标拖布，末步键盘固定＋鼠标拉紧。</td></tr></table>
+<h3>三层核心循环</h3>
+<div class="flow"><strong>秒级：</strong>观察空间 → 操作物件 → 形体/声音响应 → 修正动作。<br><strong>分钟级：</strong>触摸记录 → 学会媒介 → 理解失败 → 改变操作 → 一段关系显现。<br><strong>全局：</strong>探索旧屋 → 进入更早记忆 → 带着新认识回屋 → 完成无需记录的身体动作。</div>
+<p class="small">正式目标45-60分钟，白盒8-15分钟，均须真人实测校准。剧情无文字；设备刻度和H开发帮助为操作例外。关键声音配合空间动作或节奏灯点，正式版提供减弱镜头运动。</p>
+<div class="foot"><span>输入原则：低精度、可观察、可逆</span><span>02 / 14</span></div>
+</section>
+
+<section class="page tight" id="tape">
+<div class="pagehead"><span>CHAPTER 01 / TAPE</span><span>磁带 · 先检查，再录制</span></div>
+<h2>检查带体，保住已有的声音</h2>
+<p><strong>玩法目标：</strong>从三盒候选带中找出可完整转动的一盒，再利用真实的持续录放操作，把 A 源带补录进 B 目标带；写入按实际时间发生，错误覆盖会留下损坏。</p>
+<p class="small">桌前的三盒带、中央导轨槽、后方卡座都是真实物件；两手随抓盒、握轴、压键改变位置，断点露出独立断头网格。</p>
+<h3>第一段：纯鼠标检查</h3>
+<table>
+<tr><th style="width:24%">输入</th><td>选择候选盒；按住鼠标左键＋滚轮转左轴，按住右键＋滚轮转右轴。两轴转动和带面位移对应同一带位；不使用键盘 transport。</td></tr>
+<tr><th>推理</th><td>三盒中两盒有断点，一盒完整。遇断点时转动受阻，带面出现松带/断裂反馈；换盒再从头检查。不是拼接三盒磁带。</td></tr>
+<tr><th>成功</th><td>同一完整候选带经过从头到尾的有效检查才解锁录放；只快速反复转一小段不算完成。轮轴随带位实际旋转，带面不再出现断头。</td></tr>
+</table>
+<h3>第二段：键盘持续压住录放键</h3>
+<table>
+<tr><th style="width:24%">机身从左到右</th><td><strong>S / F / J / L / ' </strong> → <strong>REC / PLAY / REW / FF / STOP</strong>。按住持续生效，松开停止；不再用鼠标点亮锁存式 transport。</td></tr>
+<tr><th>真实覆盖</th><td>五键控制 B；按 F 时 A 自动从头启动，B 从当前带位播放供试听；F 期间加 S 才录入当时 A 信号，S 单按不走带。Quote 停止优先；J / L 仅移动 B。A 自动启动是白盒简化。</td></tr>
+<tr><th>观察</th><td>音型、卷轴、实体电平针和记忆灯点共同反馈；实际键帽随键下压复位。停止后试听损坏，重新倒带修复。</td></tr>
+</table>
+<div class="flow">SELECT → INSPECT（双轴检查）→ BROKEN / CHANGE；完整从头转到尾 → LOAD → SEEK → HOLD_PLAY / HOLD_RECORD → REVIEW → COMPLETE</div>
+<h3>参数、判定与失败</h3>
+<table>
+<tr><th style="width:24%">新版录音内容</th><td>8 秒、400 格、8 段合成音型，各段带细微频率变化以识别时间错位；目标 34%-66% 为空。整体时间轴须与本轮空间输入一起复验。</td></tr>
+<tr><th>新版内容阈值</th><td>全部格匹配比例 ≥99.5%，真实累计写格 ≥20，且 SourceVerified 为真。必须包含后续段比对；不能只因中间填上就通过。旧版94%阈值已废止。</td></tr>
+<tr><th>失败反馈</th><td>断带：转动受阻、带面断开，换盒；错位录制：节奏与电平不齐；误覆盖后段：真实缺音并降低匹配率；松键：机械键复位、带位停止。</td></tr>
+</table>
+<p class="small"><strong>实现：</strong>新输入状态以当前按键集合与左右鼠标键、滚轮增量驱动；禁止沿用单击锁存。TapeChapter 保存候选带检查区间、断点及录放时间轴，画面和声音共享数据。TapeWorld3D驱动盒带拖放、断头、轮轴、实体键帽、电平与双手；本轮须复验真实节点射线与持续键，不能沿用旧版成绩。</p>
+<div class="foot"><span>验证重点：鼠标双轴检查；五键持续输入；真实覆盖</span><span>03 / 14</span></div>
+</section>
+
+<section class="page tight" id="photo">
+<div class="pagehead"><span>CHAPTER 02 / FILM</span><span>胶片 · 测光、装片与复拍</span></div>
+<h2>先读光，再决定怎样曝光</h2>
+<p><strong>玩法目标：</strong>测光后选择 ISO100 / 200 / 400 胶卷，按 X-700 手动相机装片逻辑的简化链操作；匹配旧照的站位、视角和曝光，最后在暗袋与冲洗罐中处理胶片。</p>
+<div class="flow">OPEN → SELECT_FILM → LOAD → LEADER_ENGAGED → CLOSED → ADVANCED → VIEW / METER → EXPOSED → REWOUND → DARK_BAG / SPOOL → TANK → CHEMISTRY → WASH → DEVELOPED<br>暗袋为独立步骤：左键按住袋体＋正滚10格卷片，负滚可退；进度满才入罐。曝光帧不可变。</div>
+<table>
+<tr><th style="width:17%">操作段</th><th style="width:39%">玩家输入与反馈</th><th>真实关系与判定</th></tr>
+<tr><td>选卷 / 装片</td><td>鼠标从三种 ISO 选卷，开后盖、装卷、引片咬合、关盖、过片；M 档。白盒自动同步 ASA。</td><td>ISO 由胶卷决定；ASA 只告知测光片速，不改变胶卷感光度。换 ISO 须换卷。</td></tr>
+<tr><td>独立测光</td><td>鼠标操作独立测光表，读指针/刻度 EV100；本场景约为 13。</td><td>先得到场景光，再用胶卷 ISO、光圈和快门选择等效曝光；不是照抄相片上的答案。</td></tr>
+<tr><td>取景 / 调参</td><td>拿机后WASD真实行走、右键按住环视；目镜内禁走；中心滚轮焦距、右侧快门、下侧光圈、向上退出。</td><td>鼠标位置选择正在操作的实体盘；目镜保持恒亮，景深预览为正式目标，白盒仅做规则判定；自动合焦是白盒辅助。</td></tr>
+<tr><td>曝光</td><td>取景时左键拍摄；三要素为 ISO / 快门 / 光圈，焦距独立。成片冲洗后查看。</td><td>曝光、构图、CoC与拖影分别判定；白盒像素实际应用曝光亮度，漏光以实体相纸泛白反馈；清晰度仅规则判定，等效EV不保证合格。原X-700不被描述为自动对焦机。</td></tr>
+<tr><td>冲洗</td><td>倒片后拖卷进不透光黑袋，左键＋滚轮卷入片轴；满进度入罐，再倒液、翻罐、水洗。</td><td>袋内不裸露胶片；三药剂各轻摇再计时，错序不推进，未倒片开盖会漏光。</td></tr>
+</table>
+<h3>模型、合法组合与阈值</h3>
+<p class="small"><strong>曝光：</strong><code>EV100 = log₂(N²/t) - log₂(ISO/100)</code>，与测光值 13 比较。ISO200＋f/8＋1/250、ISO100＋f/8＋1/125 均为有效等效组合；ISO400＋更快快门也可成立。玩家未被指定只能选一卷。</p>
+<p class="small"><strong>构图与清晰：</strong>PhotoWorld3D使用真实透视摄像机捕获立体前中后景，纹理显示在桌上实体相纸。WASD实际移动身体，焦距改变视角；构图、曝光、CoC与拖影判定仍为可解释近似。参数和曝光姿态冻结，不能用冲洗后调参重算照片。</p>
+<table>
+<tr><th style="width:25%">白盒基线参数</th><td>焦距约 28-70 mm；f/2.8-f/16；快门至少覆盖 1/30-1/500；ISO100/200/400 需换卷。具体档位以新版脚本为准。</td></tr>
+<tr><th>判定基线</th><td>4 锚点平均误差 &lt;21 像素，曝光误差 &lt;0.38 EV，CoC &lt;1.4，拖影 &lt;3.5，未漏光；像素误差是内部投影度量，不是屏幕热点；本轮空间路径与真人输入须重新验收。</td></tr>
+<tr><th>冲洗压缩</th><td>显影 / 停显 / 定影 / 水洗约 3 / 0.8 / 2 / 1 秒；前三步倒液后按住实体罐拖动轻摇，水洗不需摇；不做温度浓度仿真。</td></tr>
+</table>
+<p class="small"><strong>失败：</strong>当前成片显示站位视差与曝光亮度，漏光用实体相纸泛白反馈；CoC和慢门拖影仅由规则及夹子失败反馈，未实现模糊图像后期。正式版须让失败原因直接可见；当前坏片可回看后重装。取景器不直接展示最终照片。正式版扩展逐张递进、完整手部与暗房演出；本轮已是立体相机、胶卷、后盖、片头、拨盘、黑袋与罐；光学和化学仍为白盒近似。</p>
+<div class="foot"><span>验证重点：独立测光；ISO换卷；等效曝光≠相同成片</span><span>04 / 14</span></div>
+</section>
+
+<section class="page tight" id="writing">
+<div class="pagehead"><span>CHAPTER 03 / WRITING</span><span>写作 · 手继续写，思绪继续走</span></div>
+<h2>同时运笔，同时走进回忆</h2>
+<p><strong>玩法目标：</strong>右手持续写信，左手在回忆中完成被遗漏的照顾。写作让记忆能够行动，记忆中的行为让信可以继续；两侧输入必须存在真实联系。</p>
+<table>
+<tr><th style="width:19%">右侧 / 右手</th><td>鼠标左键按住，在纸面由左向右移动；射线落在纸面，低精度路径生成世界墨迹。到行末回到下一行起点再写。静止按住、抖动或在纸外移动不算运笔。</td></tr>
+<tr><th>左侧 / 左手</th><td>WASD 移动小人，靠近物件产生动作；靠近真实门洞与把手按住E扶门，携带围巾后靠近窗边人物。动作范围宽，避免精细走位。</td></tr>
+<tr><th>双侧联动</th><td>左侧关键进度只在有效书写窗口内增加；停笔后左侧可停留和观察，关键事件暂停。已写笔迹、已完成动作和交接进度保留。</td></tr>
+</table>
+<p class="small">两个透视空间同时更新：右侧为厚纸、笔尖与纸篓，左侧为门洞、家具和人物。画面并置不改变真实空间来源，不是两块平面路线图。</p>
+<h3>两稿的完整流程</h3>
+<table>
+<tr><th style="width:12%">阶段</th><th style="width:29%">无文字线索</th><th>玩家推理 / 成功结果</th></tr>
+<tr><td>第一稿</td><td>搬箱者走向门口，被门挡住；门把手区域脉动。右侧停笔超过宽限后，人物停止。</td><td>小人到门把手附近按 E 扶门，同时右手运笔；搬箱者完整通过。正式版扩成送别场景，白盒仅验证扶门。</td></tr>
+<tr><td>写不下去</td><td>行李已经过去，笔尖却悬停；纸边收紧，废纸篓进入视野。窗边残留空缺的围巾轮廓。</td><td>此停顿是剧情节点。玩家把纸揉起并拖向/抛入宽容纸篓，进入第二稿；无掷物力度谜题。</td></tr>
+<tr><td>第二稿</td><td>门已打开；左侧椅上围巾局部脉动；人物随有效写作走向窗边。靠近围巾自动拿起。</td><td>左手带围巾到窗边，右手持续运笔，使交接累计 0.7 秒。停笔后保留累计值。缩肩等细腻演出留给正式版。</td></tr>
+<tr><td>完成</td><td>围巾转移到人物代理身上，动作与光线稳定；纸上保留玩家实际写出的笔迹。</td><td>扶门事件与交接事件均完成。白盒不要求写满固定字数；正式版再补信末尾的手部演出。</td></tr>
+</table>
+<h3>状态、参数与技术实现</h3>
+<div class="flow">DRAFT_1 / HOLD_DOOR → BLOCKED → CRUMPLE → DRAFT_2 / FIND_SCARF → HANDOVER → COMPLETE<br>有效运笔：纸内、按住、主要向右位移超过门限；用最近有效输入的短宽限窗平滑鼠标采样。</div>
+<p class="small"><strong>白盒参数：</strong>回忆移动约1.98m/s；扶门/拾取/交接范围约0.84/0.52/0.74m；有效运笔宽限2秒、交接0.7秒。纸面有效向右位移约2mm，满行需回左。内部模型保留逻辑单位，实际命中与墨迹均在空间中；回笔、纸外移动与静止不算写。</p>
+<p class="small"><strong>实现：</strong>WritingWorld3D用两台同时工作的透视相机拍摄桌面和立体回忆；笔与手随空间命中移动，纸团实际进纸篓。WritingChapter 用最近有效运笔时间判断 InkFresh；关键记忆仅在 InkFresh 且动作成立时推进。笔迹是不可读的自动曲线，字形不判对错；停笔保留累计值。卡稿后拖纸入宽容纸篓才切第二稿。本白盒保留扶门、卡稿、取围巾三项，正式送别场景与手部表演另行制作。</p>
+<div class="foot"><span>验证重点：仅写/仅走均不能通过关键事件</span><span>05 / 14</span></div>
+</section>
+
+<section class="page tight" id="painting">
+<div class="pagehead"><span>CHAPTER 04 / PAINTING</span><span>绘画 · 注视发生的关系</span></div>
+<h2>看清相处中的一个动作</h2>
+<p><strong>玩法目标：</strong>根据底稿中未完成的轮廓，观察人物动作；按住鼠标左键，在关系成立时稳定注视，逐步留下杯口与手、围巾和相接双手的笔触。</p>
+<p>鼠标转动角色头部。松键时三维世界适度虚焦，仍能辨认轮廓与动作；按住左键约0.30秒渐清晰。画架、画布与静物同处一室，中央视线射线判断真实接点，笔触生长在画布表面。准心与帮助保持清晰。</p>
+<h3>三段观察任务</h3>
+<table>
+<tr><th style="width:14%">阶段</th><th style="width:28%">底稿 / 场景线索</th><th style="width:30%">有效条件</th><th>完成后</th></tr>
+<tr><td>1 围巾</td><td>白盒底稿先强调围巾弯折，桌上实物有相同关系。正式版补展开、披到肩上的动作。</td><td>按住左键，稳定注视围巾弯折处1.25秒；这一段为无时机限制的基础教学。</td><td>围巾上色，底稿下一段杯与手的轮廓变深。</td></tr>
+<tr><td>2 杯与手</td><td>底稿手指与杯沿相连；空间中的手会靠近或离开杯子。</td><td>按住左键，在接触窗口内稳定注视接点累计1.25秒；每 5 秒前 2.7 秒有效。</td><td>杯与手落笔，底稿强调两只相接的手。</td></tr>
+<tr><td>3 两手</td><td>底稿两条手臂在中央断开；两侧手部相接、分开并重复。</td><td>按住左键，在相接窗口注视接点累计1.25秒；每 6 秒前 3.8 秒有效。</td><td>最后连线出现，等待 2.4 秒完成；以画中围巾方向引向尾声实物。</td></tr>
+</table>
+<h3>状态机与可逆反馈</h3>
+<div class="flow">白盒：Phase 0 围巾 → Phase 1 杯/手 → Phase 2 两手 → Phase 3 SETTLE → COMPLETE<br>各阶段：SEARCH（虚焦）→ HOLD（渐清晰）→ ACCUMULATE（关系成立＋视线稳定）→ COMMIT。</div>
+<p><strong>可逆反馈：</strong>按住左键时整个3D画面渐清晰，视场由64°收至58°；松开约0.25秒恢复虚焦，视场恢复原值。看错也会变清晰，未成立接触仍不落笔。松开或移开停止推进，当前累积缓慢衰减，已画笔触保留。动作重复，不因错过窗口锁死。</p>
+<h3>参数与实现</h3>
+<table>
+<tr><th style="width:26%">参数</th><th>初值与约束</th></tr>
+<tr><td>白盒聚焦区域</td><td>左键按住且中央射线命中围巾网格、杯口/手接点、双手接点；碰撞体随动作更新，无固定屏幕区域。</td></tr>
+<tr><td>白盒停留</td><td>按住左键且有效注视时累计1.25秒；松开或无效时按每秒0.8衰减，已画笔触保留。</td></tr>
+<tr><td>白盒虚焦</td><td>松键中等柔化全景；按住0.30秒渐清晰，松开0.25秒渐虚焦；准心/帮助不受影响。退出本章移除效果。</td></tr>
+<tr><td>白盒窗口</td><td>围巾始终有效；杯手为 2.7 / 5 秒；两手为 3.8 / 6 秒，窗口宽于所需停留。</td></tr>
+<tr><td>正式扩展</td><td>关系状态和热点随人物关键帧移动；增加手持围巾与肩颈关联的动作。</td></tr>
+</table>
+<p class="small"><strong>技术实现：</strong>PaintingWorld3D绑定视线、持续左键与真实接点；同一时钟驱动手部接触和笔触。PaintingDefocus在本章相机OnRenderImage执行半分辨率双向9采样柔化，半分辨率半径1.7像素；不需外部后处理包。它是艺术虚焦，不做物理景深或自动选答案；退出清理相机效果。</p>
+<div class="foot"><span>验证重点：对象关系＋动作时机＋稳定视线</span><span>06 / 14</span></div>
+</section>
+
+<section class="page tight" id="ending">
+<div class="pagehead"><span>CHAPTER 05 / BODY MEMORY</span><span>尾声 · 手已经记得</span></div>
+<h2>把围巾系好</h2>
+<p><strong>玩法目标：</strong>回到旧屋中真实的围巾，以抚平、交叠和双手配合完成熟悉动作。玩家从“修复记录”走到“亲手回应”，结尾通过动作完成。</p>
+<table>
+<tr><th style="width:14%">步骤</th><th style="width:30%">操作与观察</th><th style="width:30%">成功条件</th><th>失败 / 重试</th></tr>
+<tr><td>抚平</td><td>鼠标按住沿布纹移动；经过区域的褶皱减轻，布料摩擦声同步。</td><td>主要褶皱区域均被抚过，覆盖率达阈值；不要求按固定绘制轨迹。</td><td>悬停不增加进度；离开布面停止。已抚平区域保留。</td></tr>
+<tr><td>交叠</td><td>抓住围巾一端拖到另一端上；前后遮挡与阴影表达上下关系。</td><td>端点进入宽容交叠区，方向与前后顺序成立。</td><td>放在错误侧自然落回近处；已完成抚平保留。</td></tr>
+<tr><td>系好</td><td>左手按住键维持一端，右手鼠标引导另一端绕过并收紧；双手图形示范一次。</td><td>固定端处于有效状态时，移动端完成关键路径段；松紧稳定后完成。</td><td>松开固定端暂停或轻微回松，不清空；允许再次扶住继续。</td></tr>
+</table>
+<div class="flow">WRINKLED → SMOOTH → OVERLAP → HOLD_AND_WRAP → SETTLE → COMPLETE<br>每个状态只解锁当前所需的手部动作；无倒计时、无勒紧失误惩罚、无像素级描线。</div>
+<h3>白盒与正式版的边界</h3>
+<p>上表为正式动作目标。当前 EndingChapter 用三次宽松拖动验证：褶角拖到平整位置 → 右端拖到交叠处 → 左手按住 WASD 任一键并把结端向下拖。三步世界平面容差约0.09 / 0.20 / 0.14m，完成后停留 2.8 秒。前两步不检测布面覆盖率，第三步不做真实打结拓扑。</p>
+<p class="small"><strong>正式版扩展：</strong>抚平覆盖率约 70%-80%、完整交叠顺序与宽松绕结路径；清晰手部和布料动画。EndingWorld3D用有厚度闭合网格、动态中心线与两手代理表达布形，端点由射线和桌面平面驱动；不声称有覆盖率、真实布料碰撞或打结拓扑。复验路线见开发附录。</p>
+<h3>贯穿物件与叙事交接</h3>
+<table>
+<tr><th style="width:15%">章节</th><th style="width:40%">本章新信息</th><th>自然转场</th></tr>
+<tr><td>磁带</td><td>布料摩擦、屋中走动与笑声建立陪伴的存在。</td><td>录音机旁的一张旧照片进入视野。</td></tr>
+<tr><td>胶片</td><td>围巾在人物肩上，照片外还有伸来的手。</td><td>照片背面与桌上纸张的形状衔接，不要求读背面字。</td></tr>
+<tr><td>写作</td><td>送别时送出围巾，补全被忽略的照顾。</td><td>手写线条过渡为画上的底稿线。</td></tr>
+<tr><td>绘画</td><td>两只手与围巾形成完整动作关系。</td><td>画中布纹贴合实物布纹，镜头落到真实围巾。</td></tr>
+<tr><td>尾声</td><td>主角能以同样的动作照顾对方。</td><td>手离开、围巾稳定、人物轻微回应；留出安静停留。</td></tr>
+</table>
+<p class="small">人物关系在立项时确定，但不以称谓文本解释；服装、体态、物件比例和重复手势提供身份线索。故事允许玩家对亲情或亲密关系作不同理解，操作目标始终明确。</p>
+<div class="foot"><span>验证重点：动作承载结尾，完成感来自双方回应</span><span>07 / 14</span></div>
+</section>
+
+<section class="page tight" id="contracts">
+<div class="pagehead"><span>ENGINEERING CONTRACT</span><span>空间接口与事件数据</span></div>
+<h2>规则与空间表现分开</h2>
+<p>Unity内置渲染管线、原生C#，无需外部包。WBMain路由探索与WorldChapter3D实例；旧Chapter.Draw在运行中不被调用。物件使用网格、碰撞体、透视相机和世界平面拖动。</p>
+<table><tr><th style="width:29%">层 / 文件</th><th>职责与不变量</th></tr>
+<tr><td>WBMain / RoomWorld</td><td>旧屋行走、入口与靠近转场、当前章输入和完成集合；退出恢复旧屋姿态，切换/失焦释放持续输入。</td></tr>
+<tr><td>WorldChapter3D</td><td>Root、Origin、Eye/Look、透视View与Nodes；WorldHotspot保存稳定ID。Pick按射线距离找本章碰撞体，Point求桌面世界交点。</td></tr>
+<tr><td>TapeWorld3D / EndingWorld3D</td><td>盒带、轮轴、键帽、电平、两手及围巾闭合网格。模型坐标只作规则适配，不绘制关卡。</td></tr>
+<tr><td>PhotoWorld3D</td><td>立体摄影、持机、装片、转盘与暗房；拍摄摄像机捕获纹理到实体相纸，曝光参数和姿态冻结。</td></tr>
+<tr><td>WritingWorld3D</td><td>两台同时工作的透视相机；纸面命中生成世界墨迹，人物通过立体门洞，纸团放入实际纸篓。</td></tr>
+<tr><td>PaintingWorld3D / PaintingDefocus</td><td>头部视线与持续左键判断真实接点和接触；笔触在画布表面。本章相机虚焦随左键渐变，GUI不受影响；退出清理，无滤镜残留。</td></tr>
+<tr><td>Chapter规则模型</td><td>录音、曝光、双线、聚焦与完成状态可独立测试；但直接赋值模型不能证明3D输入链已通过。</td></tr></table>
+<h3>统一交互契约</h3>
+<pre>Press(nodeId, pointerRay, button) // 抓取、压住、进入
+Move(pointerRay)                // 世界平面拖动、运笔
+Release(overId, pointerRay)      // 放置、空间范围判定
+Scroll(nodeId, delta, ray)       // 轮轴、拨盘、暗袋卷片
+Tick(dt, heldKeys)               // 持续键、动画与规则
+Pick(ray)                       // WorldHotspot.Id
+Point(ray, localY)               // 射线与桌面平面交点</pre>
+<p class="small">鼠标射线来自当前相机；绘画用相机中央视线与左键持续状态；写作须按右侧相机Viewport取射线。装饰物不能抢命中。纸与相纸本身可以是平面道具，但来源、位置、碰撞、手部和环境必须处于真实空间。</p>
+<h3>事件与保存建议</h3>
+<pre>{ "chapter":"tape", "action":"release", "node":"tape.tray",
+  "localPoint":[0,0.865,-0.06], "phase":"inspect",
+  "result":"candidate_loaded", "elapsed":12.4 }</pre>
+<p class="small">日志记录事件、相对位置、耗时和失败类别。正式存档保存各章关键阶段，恢复时释放输入；白盒只保证本次运行实例。回归须覆盖“碰撞命中→事件路由→规则改变→网格/声音响应”，不能只复用旧状态测试。</p>
+<div class="foot"><span>设计参数应配置化；判定语义优先于字段名称</span><span>08 / 14</span></div>
+</section>
+
+<section class="page tight" id="scope">
+<div class="pagehead"><span>SCOPE &amp; RESOURCES</span><span>白盒范围与资源估算</span></div>
+<h2>先验证空间手感，再扩内容</h2>
+<p>全3D增加近看道具、遮挡、手部接触、双相机、相片捕获、光照和碰撞调校。以下为本项目估算区间，单位人日，不是行业统计或固定承诺；可并行，人日不等于自然工期。</p>
+<table><tr><th style="width:23%">工作包</th><th style="width:47%">可交接产物</th><th>白盒 / 正式估算</th></tr>
+<tr><td>设计与用户测试</td><td>空间布局、状态图、物件示范、新人测试与反馈修正。</td><td>3-5 / 18-25</td></tr>
+<tr><td>底层/旧屋/镜头</td><td>行走、射线、世界拖动、输入释放、转场、存档设置。</td><td>4-7 / 22-32</td></tr>
+<tr><td>磁带</td><td>三盒、双卡座、断头、键帽、两手、声音覆盖反馈。</td><td>2-4 / 18-26</td></tr>
+<tr><td>摄影与暗房</td><td>立体景别、活动机身、卷片头、测光、暗袋药瓶与捕获相纸。</td><td>5-8 / 32-46</td></tr>
+<tr><td>写作双线</td><td>纸笔墨迹、纸团纸篓、双相机、回忆房间、扶门交接。</td><td>3-5 / 24-35</td></tr>
+<tr><td>绘画</td><td>静物画架、真实接触、画布笔触、头部与持笔手。</td><td>2-4 / 20-28</td></tr>
+<tr><td>尾声</td><td>布形、双手姿态、接触修正与结尾镜头。</td><td>2-3 / 17-24</td></tr>
+<tr><td>资产声音整合</td><td>旧屋近看物件、材质光照、拟音与空间声音。</td><td>2-4 / 28-40</td></tr>
+<tr><td>QA/性能/辅助</td><td>空间回归、目标机帧时、静音替代、辅助控制、打包。</td><td>3-5 / 20-30</td></tr>
+<tr><th>基础合计</th><td>垂直切片后按真实返工率修正。</td><th>26-45 / 199-286</th></tr>
+<tr><th>含20%调优</th><td>45-60分钟正式版目标；不含宣发、移植、演员及外包等待。</td><th>约31-54 / 239-343</th></tr></table>
+<h3>资产拆分标准</h3>
+<ul class="small"><li>带壳、相机、杯口、纸边和围巾有厚度与合理接触尺度；细节首先服务动作判断。</li>
+<li>可抓取、转动、铰链部件有独立碰撞体和稳定ID；身体阻挡与操作射线分别验证。</li>
+<li>白盒手和人物是代理几何；正式版需骨骼、工具握点、手指姿态和接触修正。优先作者控制的动画与局部布形。</li>
+<li>手不能挡住关键接点；摄影捕获与写作双相机单测帧时。先保障形体线索，再统一光色。</li></ul>
+<div class="box small"><strong>冻结范围：</strong>每章先做一条完整因果链，不做开放世界、战斗、复杂库存、专业DAW、真实化学计时、可读长信、完整胶片光学或通用打结求解。核心验收未过前不扩重复题量。</div>
+<div class="foot"><span>先过机制验收，再投入正式资产</span><span>09 / 14</span></div>
+</section>
+
+<section class="page tight" id="acceptance">
+<div class="pagehead"><span>VALIDATION &amp; ACCESSIBILITY</span><span>验收、无文字引导与风险</span></div>
+<h2>让失败结果能够被理解</h2>
+<p class="small accent"><strong>结果口径：</strong>Unity2022.3.62f3下0.3.1构建完成，65项检查通过：38规则＋27原生3D。独立D3D11重跑27项通过，含同机位虚焦/清晰GPU像素验证；已检查6张默认及11张中间状态画面。真人全程输入通关与时长待测。</p>
+<h3>可复现的验收用例</h3>
+<table>
+<tr><th style="width:12%">编号</th><th style="width:49%">操作</th><th>通过标准</th></tr>
+<tr><td>T01</td><td>磁带：把 B 快进偏移后按 S＋F 覆盖，检查后段；再倒回 0 正确重录。</td><td>错位覆盖不能通关，后续段也比对；从 0 同步覆盖可以修复，真实改写数据。</td></tr>
+<tr><td>T02</td><td>磁带：逐盒检查，绕过断点只转小段；再完整查好带；持续按新五键并松开。</td><td>坏带/局部转动不通过；完整好带解锁；各键仅保持时生效，松开立即停止。</td></tr>
+<tr><td>P01</td><td>摄影：保持站位，改变焦距；再改变站位，尝试同构图。</td><td>前后景比例随站位变化，不能全部由缩放替代。</td></tr>
+<tr><td>P02</td><td>摄影：ISO100＋f/8＋1/125 与 ISO200＋f/8＋1/250；再试慢快门等效组合。</td><td>前两种可通过，ISO须换卷；慢快门即使EV正确仍可能拖影失败。测光EV100保持13。</td></tr>
+<tr><td>W01</td><td>写作：只操作左侧；再只运笔；再同时扶门并运笔。</td><td>前两种不能完成通过事件；双侧有效时才推进。</td></tr>
+<tr><td>W02</td><td>写作：交接围巾到一半停笔 5 秒，再继续。</td><td>停笔宽限后暂停；已写与已交接进度不清零，恢复后续接。</td></tr>
+<tr><td>A01</td><td>绘画：松键看正确目标；按住左键看错处/错时，再看有效接点；松开后Esc退出并切章。</td><td>松键虚焦，按住0.30秒渐清晰、松开0.25秒渐虚焦；GUI清晰。仅有效注视1.25秒落笔；已画保留；退出无滤镜残留。</td></tr>
+<tr><td>E01</td><td>尾声：只拖一端；再固定一端并拖另一端。</td><td>仅拖动不完成最后步骤；双手配合有效，可中断续接。</td></tr>
+<tr><td>G01</td><td>Unity / exe 从3D旧屋出发，WASD碰撞与look；E进台，Esc返回，反复切换并失焦。</td><td>真实3D步行且不穿墙；全部解谜保持真实空间；摄影可行走、绘画可转头；退出保留进度且无卡键，exe可启动。</td></tr>
+</table>
+<h3>无文字引导与声音替代</h3>
+<p class="small">统一顺序为“物件示范一次 → 模仿 → 变化要求推理”。3D准心靠近可交互台改变形状，E属输入提示；近景可用鼠标双键/滚轮图形。磁带五键字母和相机EV/ISO单位属于设备/输入刻度，允许存在；叙事仍不依赖文字。关键声音均有可见反馈。</p>
+<p class="small"><strong>可访问性正式目标：</strong>关键音频线索提供节奏光点、振幅图形或空间动作替代；颜色配合形状/纹理；可缩短聚焦时长、放宽交互半径。正式设置提供按住/切换聚焦、减弱镜头运动与虚焦强度；白盒默认持续按住左键。双手章节的单手辅助可锁存一侧动作并保留因果，须显式开启。白盒至少支持静音后完成；未实现辅助不记作已支持。</p>
+<h3>优先风险与停止条件</h3>
+<table>
+<tr><th style="width:22%">风险</th><th>处理与门槛</th></tr>
+<tr><td>摄影参数过载</td><td>分次引入，首题仅构图；若 5 名新玩家有 2 名以上无法解释失败原因，先重做反馈，不增新题。</td></tr>
+<tr><td>双手配合变忙乱</td><td>动作低速、状态保留、采样宽限；若首轮成功率低于 60%，先增容差与示范，再评估辅助。</td></tr>
+<tr><td>无文字导致盲试</td><td>测“第一次有效行动”与“失败原因解释”；若中位卡顿超过 90 秒，补物件反馈与重复示范。</td></tr>
+<tr><td>五套机制成本高</td><td>先逐章完成一条链；核心验收未通过前冻结资产扩量，砍重复题量，不删因果。</td></tr>
+</table>
+<div class="foot"><span>阈值为首轮测试目标；测试后按证据调整</span><span>10 / 14</span></div>
+</section>
+
+<section class="page tight" id="milestones">
+<div class="pagehead"><span>PRODUCTION &amp; REFERENCES</span><span>里程碑、交接与参考来源</span></div>
+<h2>每个阶段都有可验收产物</h2>
+<table>
+<tr><th style="width:15%">阶段</th><th style="width:45%">产物与退出条件</th><th>建议投入 / 依赖</th></tr>
+<tr><td>M0 机制立项</td><td>确定两个人物的关系、媒介顺序与围巾线索；画出 5 章关键画面和状态图。</td><td>2-3 人日；以本文为起点，保持剧情无文字可理解。</td></tr>
+<tr><td>M1 白盒串联</td><td>旧屋及五章全3D串联；射线、双透视相机、摄影捕获与布形；T01-G01重新验收。</td><td>全3D白盒整体约31-54人日含调优，可并行；旧版结果不可抵替。</td></tr>
+<tr><td>M2 新人测试</td><td>至少 5 名未接触设计的玩家；记录完成时长、首次有效行动、误判与提示次数。</td><td>2-4 人日；需具备完整白盒与本地事件记录。</td></tr>
+<tr><td>M3 垂直切片</td><td>选磁带或写作一章完成正式视听与过场；确认设备/角色/镜头的制作成本。</td><td>以资源表再估算；验收后才能锁定正式美术规模。</td></tr>
+<tr><td>M4 内容生产</td><td>复制已验证规则制作递进谜题、原画、动画、声音；每章独立回归。</td><td>依据 M2/M3 更新排期；内容量服从真实时长数据。</td></tr>
+<tr><td>M5 完整验收</td><td>全流程 45-60 分钟目标实测；无文字、静音替代、辅助控制、存档和目标设备验收。</td><td>保留至少 20% 调优余量；未满足核心因果不得用演出掩盖。</td></tr>
+</table>
+<h3>白盒工程交接</h3>
+<ul class="small">
+<li>以 <code>Unity 2022.3.62f3</code> 打开工程，进入 <code>Assets/Scenes/Whitebox.unity</code> 并 Play；Windows exe 构建须另行验证，未成功构建不得记为已交付。</li>
+<li><code>Assets/Scripts/</code>：WorldChapter3D空间接口与五个*World3D为运行表现，旧*Chapter只保存规则；WBMain负责切换与输入。</li>
+<li><code>Assets/Editor/WhiteboxBuild.cs</code>：生成场景、构建 Windows 与状态自测。旧屋与全部解谜都为真实3D网格、碰撞和透视相机；运行时不调旧Draw。Windows须单独验收空间节点与实际相片捕获。</li>
+<li>交付须附实际验收记录：Unity 版本、构建环境、通过/未通过项目、已知问题。策划案建议参数不替代日志与截图。</li>
+</ul>
+<h3>参考与使用边界</h3>
+<ol class="small">
+<li><a href="https://blog.playstation.com/?p=189932">PlayStation.Blog · What’s the Story with What Remains of Edith Finch?（Ian Dallas访谈）</a>：创作者谈旧屋连接故事与Lewis重复动作的注意力分配；本案转译为物件入口、身体连续与写作双线。</li>
+<li><a href="https://news.ubisoft.com/en-us/article/P8R9SX3LGlQrlXuTuwAfQ/games-explained-from-game-engines-to-going-gold">Ubisoft · Games Explained: From Game Engines to Going Gold</a>：参考 Character / Camera / Control 的 3C 术语及制作分工表达；本案的逐章矩阵为针对项目重新编写。</li>
+<li><a href="https://www.gamedeveloper.com/design/the-anatomy-of-a-design-document-part-1-documentation-guidelines-for-the-game-concept-and-proposal">Tim Ryan · The Anatomy of a Design Document, Part 1</a>：参考概念、目标、玩法与生产信息的分层组织。</li>
+<li><a href="https://grimfandango.network/media/Grim_Fandango_Puzzle_Document.pdf">Tim Schafer / LucasArts · Grim Fandango Puzzle Document（1996 原稿）</a>：真实商业项目原始策划；已查看原稿第 3 / 5 页的物件、谜题流程和玩家动作写法，借鉴可执行的“问题-解法”组织，不复制谜题内容。<a href="https://grimfandango.network/downloads/puzzle-document">原稿镜像说明页</a>。不存在本文声称的统一“大厂内部模板”。</li>
+<li><a href="https://www.gamedeveloper.com/design/creating-the-30-different-control-schemes-of-i-edith-finch-i-">Giant Sparrow · Creating the 30 Different Control Schemes of Edith Finch</a>：参考章节机制与叙事动作的结合，以及双手分工的可理解性；不复刻原作章节、美术、人物或具体谜题。</li>
+<li><a href="https://annapurnainteractive.com/games/what-remains-of-edith-finch">What Remains of Edith Finch · 官方作品介绍</a>：作为多种短篇交互共同构成家族记忆体验的参考。媒介修复、围巾串联与本案状态规则为本项目方案。</li>
+<li><a href="https://www.ilfordphoto.com/beginners-guide-processing-film/">ILFORD · Beginner's Guide to Processing Film</a>：核对完全黑暗装片及显影、停显、定影、水洗顺序；白盒压缩时间，不颠倒关键处理关系。</li>
+<li><a href="https://tascam.jp/downloads/products/tascam/202mkvii/202MK7_OM_EFS_vB.pdf">TASCAM 202MKVII · Owner's Manual</a>：核对双卡座播放、录制待机和覆盖录音的设备语义。白盒为可读的操作抽象，不声称逐键复制该型号。</li>
+<li><a href="https://www.cameramanuals.org/minolta_pdf/minolta_x-700.pdf">Minolta X-700 原始说明书扫描件</a>：非官网托管的原说明书扫描；参考手动装片、引片、过片、片速与M档操作。白盒使用可变焦镜头和辅助合焦，不声称原机自带自动对焦。</li>
+</ol>
+<div class="box small"><strong>来源口径：</strong>参考公开材料建立文档结构与设计讨论；技术模型为本白盒的可解释近似，阈值为待试玩验证的初值。正式量产前应进一步核对设备操作、相机示例与人物动作。未提供来源的数字属于项目估算，不作为行业统计。</div>
+<p class="signature">工作名：留在手里的事　｜　设计基线：0.3.1　｜　用途：团队讨论、程序白盒、资产拆分与验收</p>
+<div class="foot"><span>下一决策：通过机制测试后锁定正式表现成本</span><span>11 / 14</span></div>
+</section>
+
+<section class="page tight" id="solutions">
+<div class="pagehead"><span>DEVELOPMENT APPENDIX / SPOILERS</span><span>新版白盒答案与复验路线</span></div>
+<h2>用物件位置描述答案</h2>
+<p>本页只供复验，不在游戏默认展示。答案不依赖固定屏幕像素。新版本实际结果见本轮QA记录，测试捷径不替代新人引导。</p>
+<div class="box small">旧屋WASD行走、鼠标转头，对准近处物件E进入；镜头靠近设备后进入3D记忆。Esc返回，1-5开发选章，R重置，H帮助。</div>
+<h3>1 磁带</h3>
+<ol class="small"><li>桌前第三盒蓝灰带完整；把盒体拖入中央槽，按右键正滚约29格至末尾。左键正滚倒带，反滚反转。前两盒用于观察断头。</li>
+<li>好带移至后方源卡座。J倒B到头，持续S＋F约8秒；也可F试听至缺口加S。观察实体键帽与电平，松键停止，Quote(')优先。</li></ol>
+<h3>2 摄影</h3>
+<ol class="small"><li>桌上测光表约EV100=13。ISO200卷拖入机身左仓，片头拖到右收片轴，合后盖、拨过片杆。旧照在桌后支架。</li>
+<li>点目镜拿机，WASD走动、右键按住环视；对照前景椅背、中景围巾人物与后景窗视差。目标约本章局部X=0.55m、Z=0.40m，水平朝向，50mm。</li>
+<li>再次点目镜进取景；中心滚轮50mm，右移设1/250，下移设f/8；回中心调焦距，上移退目镜，左键曝光。ISO100 f/8 1/125或ISO400 f/8 1/500也可。</li>
+<li>按倒片钮正滚约8格，点击后盖打开，从左仓取已曝光卷拖进右侧黑袋；按袋口正滚约10格装片，负滚可退。</li>
+<li>三瓶依次拖到罐口，每步拖动实体罐轻摇后等钟针3/0.8/2秒，最后水洗1秒。成片在真实夹子；坏片点夹子重装。</li></ol>
+<h3>3 写作</h3>
+<p class="small">右侧纸面按左键向右运笔，满行回左。左侧WASD到把手旁按住E扶门，同时写；搬箱者通过后卡稿。抓厚纸揉团，拖进右下真实纸篓。第二稿到椅子取围巾，穿门洞到窗边人物旁，同时运笔交接约0.7秒。停笔超宽限暂停；静止按住不算写。</p>
+<h3>4 绘画</h3>
+<p class="small">松键时全景虚焦；看左侧底稿，鼠标转头并按住左键，约0.30秒变清晰。中央视线依次稳定看红围巾、手/杯口接点、两手相接处，各约1.25秒；后两步须等实际接触。松开约0.25秒渐虚焦，停止推进，已画保留；清晰本身不代表选对。</p>
+<h3>5 尾声</h3>
+<p class="small">抓左折角拖到压痕，抓右端交叠到中央；最后按WASD任一键扶住左端，同时把结端向自己拉。两手和有厚度布形同时变化，完成后停留约2.8秒。</p>
+<div class="foot"><span>测试答案；不进入正式剧情</span><span>12 / 14</span></div>
+</section>
+
+<section class="page tight" id="controls">
+<div class="pagehead"><span>CONTROL REFERENCE</span><span>操作表 · 按场景切换输入</span></div>
+<h2>同一双手，在不同物件上工作</h2>
+<p>键盘作用随场景切换，旧屋与解谜均为原生3D；坐姿限制步行，摄影记忆允许WASD站位，绘画允许转头。Esc 始终退出工作台回旧屋，取景器向上退出只回相机近景。</p>
+<table>
+<tr><th style="width:16%">场景</th><th style="width:35%">输入</th><th>动作 / 持续语义</th></tr>
+<tr><td>3D 旧屋</td><td>WASD；鼠标移动；E</td><td>行走、转头、看向近处工作台后进入；没有跳跃和战斗。</td></tr>
+<tr><td>近景通用</td><td>Esc；R；H；M</td><td>返回旧屋并保留进度；重置本章；开发帮助；静音。只有R清除本章。</td></tr>
+<tr><td>磁带检查</td><td>左键拖盒；左键＋滚轮；右键＋滚轮</td><td>候选带放机芯；左轴/右轴分别转动。正滚左轴倒带，正滚右轴放带，反滚反转；必须实际查完。</td></tr>
+<tr><td>磁带录放</td><td><strong>S / F / J / L / '</strong></td><td>从左到右 REC / PLAY / REW / FF / STOP；持续按住，松开即停；Quote最高优先。</td></tr>
+<tr><td>磁带组合</td><td>F；S＋F；J / L</td><td>F试听B，A自动从0启动；加S真实录入；J/L只移B。S单按不推进，G无映射。</td></tr>
+<tr><td>相机机身</td><td>鼠标选择/拖拽/点击；取景前WASD</td><td>选ISO卷、开后盖、装卷、引片、合盖、过片；拿机后WASD实际行走、右键按住环视，目镜内禁走。换ISO须换卷。</td></tr>
+<tr><td>独立测光</td><td>鼠标拿起/触发测光表</td><td>读 EV100 指针刻度，按胶卷ISO换算组合。白盒装卷同步ASA，ASA不改变胶片感光度。</td></tr>
+<tr><td>取景中心</td><td>鼠标滚轮</td><td>可变焦镜头焦距；自动合焦仅为白盒辅助，焦距与曝光三要素分开。</td></tr>
+<tr><td>取景边缘</td><td>向右＋滚轮；向下＋滚轮；向上</td><td>切快门；切光圈；退出取景。回中心重选焦距，实体拨盘和镜头环旋转；景深预览待正式版。</td></tr>
+<tr><td>冲洗台</td><td>倒片钮＋滚轮8格后开盖取卷；黑袋左键＋滚轮10格；拖药瓶/罐</td><td>袋内卷片到满才入罐；三种药剂后各拖动实体罐轻摇再计时，最后水洗；无温度浓度操作。</td></tr>
+<tr><td>写作</td><td>左手WASD＋E；右手鼠标左键拖动</td><td>左侧移动、扶门、送围巾；右侧真实持续运笔并换行。卡稿时拖揉纸至纸篓。</td></tr>
+<tr><td>绘画</td><td>鼠标转头；按住左键＋稳定注视</td><td>松键全景虚焦，按住0.30秒渐清晰；有效接点1.25秒落笔。松开0.25秒渐虚焦并停推进，已画保留。</td></tr>
+<tr><td>尾声</td><td>鼠标拖动；最后同时按WASD任一键</td><td>抚角、交叠、系好三步；末步需另一只手固定，右手单独不能完成。</td></tr>
+<tr><td>开发捷径</td><td>1-5；H；完成后Enter</td><td>快速选工作台、打开帮助、结束近景回屋；不是剧情中的章节传送能力。</td></tr>
+</table>
+<div class="box small"><strong>设备反馈原则：</strong>录放键帽显示真实键位字母；相机刻度随实体拨盘和镜头环转动。输入提示可以出现字母与单位，剧情叙述仍不用文字。切入工作台和失焦必须清除上一场景的持续键状态。</div>
+<div class="foot"><span>键位最新基线：S / F / J / L / Quote</span><span>13 / 14</span></div>
+</section>
+
+<section class="page tight" id="differences">
+<div class="pagehead"><span>DELIVERY BOUNDARY</span><span>白盒 / 正式差异与验收边界</span></div>
+<h2>全3D关卡，几何白盒表现</h2>
+<p class="callout">本轮覆盖旧屋与全部五章：网格、碰撞、透视相机与世界操作。简化的是资产、动画精度和物理模型，解谜不再由平面界面替代。</p>
+<table><tr><th style="width:17%">系统</th><th style="width:43%">本轮空间范围</th><th>限制与正式扩展</th></tr>
+<tr><td>旧屋/入口</td><td>行走、碰撞、五物件入口；E镜头靠近并柔和转场，Esc恢复旧屋姿态。</td><td>正式家具、环境叙事、手部连续转场和持久存档待做。</td></tr>
+<tr><td>磁带</td><td>拖盒、双轴、断头、卡座、五键下压、电平/灯点与两手。</td><td>程序声音、代理手；A从头启动为明确简化。</td></tr>
+<tr><td>摄影</td><td>立体前中后景、持机站位、后盖/卷/片头/拨盘与真实场景捕获相纸。</td><td>辅助合焦；像素实际处理曝光亮度，漏光呈白纸。景深/拖影仅规则判定，模糊后期待做，非完整胶片光学。</td></tr>
+<tr><td>暗房</td><td>黑袋、罐、药瓶、钟针、水龙头，鼠标实际回卷/装片/倒液/摇罐。</td><td>时间压缩，无温度浓度；内部卷片由袋口和手代理。</td></tr>
+<tr><td>写作</td><td>两台同时工作的透视相机；纸笔墨迹、纸团纸篓、立体门洞家具与人物代理。</td><td>最终手指、送别表演、动态画面占比待磨；笔迹不识读。</td></tr>
+<tr><td>绘画</td><td>左键持续聚焦、松键虚焦/按住渐清晰；真实接触、桌与画架、画布笔触。</td><td>全景艺术柔化，非物理景深；GUI清晰。材质、身体绑定待打磨，正式可设虚焦强度。</td></tr>
+<tr><td>尾声</td><td>有厚度动态闭合布条网格、端点、压痕、双手与固定/牵引条件。</td><td>不是实时布料碰撞或打结求解，无肩颈穿戴与完整骨架。</td></tr>
+<tr><td>开发外壳</td><td>默认仅准心；H可选说明，键盘选章/重置用于测试；无旧Draw运行调用。</td><td>正式设置、重绑、单手辅助和减弱运动未做部分保留待办。</td></tr></table>
+<h3>验收报告方式</h3>
+<ul class="small"><li>0.3.1已在Unity2022.3.62f3完成Windows构建；65项检查通过（38规则＋27原生3D），独立D3D11重跑27项通过；6张默认＋11张中间状态已检查。真人输入通关与时长待测。</li><li>绘画实际相机同机位GPU读回验证松键虚焦、按住清晰；退出不残留。道具可达、无平面关卡回退、双相机、相片姿态、持续左键与围巾网格纳入回归。</li><li>真人通关与时长未测时明确待测；截图证明空间呈现，不能证明新人理解。</li></ul>
+<div class="box small"><strong>参考边界：</strong>《艾迪芬奇的记忆》的物件入口、身体操作、动作改变理解、短篇回屋结构落实在本案控制与空间中。几何白盒不宣称达到原作最终美术、动画和叙事完成度，不复制其资产。</div>
+<div class="foot"><span>输入、架构与测试结果必须对应同一版本</span><span>14 / 14</span></div>
+</section>
+
+</main></body></html>

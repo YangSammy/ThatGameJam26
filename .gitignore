@@ -73,3 +73,20 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Project-local backups and generated/reference outputs
+/QA/
+/output/
+/Dist/
+/tmp/
+/ThatGameJam26/
+
+# Local secrets and signing credentials
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.pfx
+*.p12
+
