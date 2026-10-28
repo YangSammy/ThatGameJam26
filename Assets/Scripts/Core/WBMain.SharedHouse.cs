@@ -89,7 +89,13 @@ namespace MemoryWhitebox
             if(index==0 || DirectTapeHandling)return false;
             if(deskStudy && index==5 && !InStation && transition<=0){var curtainEntry=StudyEntry.Pick(Room.Camera);if(curtainEntry==null || curtainEntry.chapter!=5)return false;Curtain.Toggle();return true;}
             if(!houseReady || InStation || transition>0 || index<0 || index>=5)return false;
-            if(!CanEnterDay(index))return false;
+            if(!CanEnterDay(index))
+            {
+#if UNITY_EDITOR
+                Debug.LogWarning("Chapter entry blocked: "+ChapterEntryBlockReason(index),this);
+#endif
+                return false;
+            }
             if(deskStudy){var entry=StudyEntry.Pick(Room.Camera);if(entry==null || entry.chapter!=index)return false;EnterHouseStation(index);return true;}
             Vector3 delta=HouseLayout.Targets[index]-Room.Camera.transform.position;
             if(delta.magnitude>2.5f || Vector3.Dot(Room.Camera.transform.forward,delta.normalized)<.9f)return false;

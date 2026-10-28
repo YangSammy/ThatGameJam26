@@ -21,12 +21,42 @@ namespace MemoryWhitebox
 #if UNITY_EDITOR
             if(unlockAllChaptersInEditor)return true;
 #endif
-            return story.CanEnter(index);
+            return index<=(int)story.Day && story.CanEnter(index);
         }
+        public string ChapterEntryBlockReason(int index)
+        {
+            if(index<0 || index>=5)return "Unknown chapter";
+            if(!houseReady)return "House initialization incomplete";
+            if(story==null || !story.Available)return "Chapter save unavailable: "+(story!=null?story.Error:"not loaded");
+            if(!CanEnterDay(index))return "Previous chapter is incomplete";
+            if(InStation)return "Exit the current chapter first";
+            if(transition>0)return "Camera transition is active";
+            if(DirectTapeHandling)return "Release the dragged tape first";
+            if(safeInspection!=null && safeInspection.BlocksInput)return "Exit inspection first";
+            if(index==0 && radioDeck!=null && radioDeck.RecordingError!="")return radioDeck.RecordingError;
+            return "";
+        }
+#if UNITY_EDITOR
+        [ContextMenu("Development/Log current entry blockers")]
+        void LogEntryBlockers()
+        {
+            for(int i=0;i<5;i++){var reason=ChapterEntryBlockReason(i);Debug.Log("Chapter "+i+": "+(reason==""?"Entry state ready":reason),this);}
+            if(playerCamera==null)return;
+            var ray=playerCamera.ViewportPointToRay(new Vector3(.5f,.5f));
+            var hit=StudyEntry.PickVisible(ray);
+            Debug.Log("Visible interaction hit: "+(hit!=null?hit.name:"none (range, layer or occlusion)"),this);
+            foreach(var block in Physics.RaycastAll(ray,2.5f,~0,QueryTriggerInteraction.Collide))
+                Debug.Log("Ray hit: "+block.collider.name+" layer="+block.collider.gameObject.layer+" distance="+block.distance.ToString("0.00"),block.collider);
+        }
+#endif
         // Existing chapter completions are scaffold adapters, not v3 gameplay certification.
         void LoadStoryProgress()
         {
+            #if UNITY_EDITOR
+            story=FiveDayProgress.Load(unlockAllChaptersInEditor);
+#else
             story=FiveDayProgress.Load();
+#endif
             if(!story.Available)return;
             try
             {
@@ -37,6 +67,7 @@ namespace MemoryWhitebox
                     Done[i]=story.IsComplete(i);
                 }
                 radioDeck.AdvanceInspection(1);
+                radioDeck.SynchronizeCommission();
             }
             catch(System.Exception e){story.BlockRestore(e);}
         }

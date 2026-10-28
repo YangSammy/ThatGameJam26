@@ -93,6 +93,7 @@ namespace MemoryWhitebox
         public void Resume(){SetPhotographyMode(PhotographyMode.Exploration);Paused=false;inputGate=true;moveVelocity=Vector3.zero;handoff.Arm();SetCursor(false);}
         void PauseControls()
         {
+            SavePhotoSettings();
             SetPhotographyMode(PhotographyMode.Exploration);Paused=true;Aiming=false;moveVelocity=Vector3.zero;verticalSpeed=0;handoff.Arm();inputGate=true;
             if(companion!=null)companion.Paused=true;
             if(focusEffect!=null)focusEffect.activeFocus=false;SetCursor(true);
@@ -252,7 +253,7 @@ namespace MemoryWhitebox
             PhotoTaken?.Invoke(record);
             if(roll.Remaining==0)FilmFilled?.Invoke(roll.id);
         }
-        void OnDisable(){if(companion!=null)companion.Paused=true;if(focusEffect!=null)focusEffect.activeFocus=false;SetCursor(true);}
+        void OnDisable(){SavePhotoSettings();if(companion!=null)companion.Paused=true;if(focusEffect!=null)focusEffect.activeFocus=false;SetCursor(true);}
         void OnDestroy(){DisposePhotographyModes();if(bridgeReference!=null)Destroy(bridgeReference);if(font!=null)Destroy(font);}
         void OnGUI()
         {

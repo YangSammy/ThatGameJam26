@@ -6,6 +6,9 @@ namespace MemoryWhitebox
     {
         [Header("Authored recording parts")]
         public AudioClip commissionClip;
+        [Tooltip("按顺序：音乐一、音乐二、生日录音。未配置时暂用现有磁带音频。")]
+        public AudioClip[] commissionClips=new AudioClip[3];
+        int loadedCommission=-1;
         public Transform recordingPanel;
         public TapeSampleTransport transport;
         [Tooltip("A play / stop / rewind; B record / play / rewind / fast / stop; rewind-to-start / clear / submit.")]
@@ -16,13 +19,19 @@ namespace MemoryWhitebox
         readonly Vector3[] keyHomes=new Vector3[11];
         Quaternion sourceWheelHome,targetWheelHome;
         bool recordingReady;
+        public string RecordingError {get;private set;}="";
         public bool RecordingMode {get;private set;}
         bool stopLatch,recordingLeft,wasWriting;
         readonly PlayerInputReleaseGate recordingGate=new PlayerInputReleaseGate();
         bool recordingWait;
         int mouseKey=-1;
+        int handKey=-1;
+        public bool HandPressing=>RecordingMode && !recordingWait && handKey>=0;
+        public Transform HandContactTarget=>HandPressing?keys3d[handKey]:
+            StationActive && !waitingForRelease && focused && draggingTape && Selected>=0?tapes[Selected].root:null;
         public void InitializeRecording()
         {
+            recordingReady=false;RecordingError="";
             try
             {
                 if(transport==null || recordingPanel==null || sourceWheel==null || targetWheel==null || keys3d.Length!=11 || controlHits.Length!=11)
@@ -33,25 +42,45 @@ namespace MemoryWhitebox
                     keyHomes[i]=keys3d[i].localPosition;
                 }
                 sourceWheelHome=sourceWheel.localRotation;targetWheelHome=targetWheel.localRotation;
-                transport.Initialize(TapeCommissionSource.Build(commissionClip!=null?commissionClip:tapes[2].audio,AudioSettings.outputSampleRate),AudioSettings.outputSampleRate);
+                int index=Mathf.Min(Chapter.CommissionIndex,RadioTapeChapter.CommissionCount-1);
+                var clip=commissionClips!=null && index<commissionClips.Length?commissionClips[index]:null;
+                if(clip==null)clip=index==0 && commissionClip!=null?commissionClip:tapes[index==0?2:index-1].audio;
+                transport.Initialize(TapeCommissionSource.Build(clip,AudioSettings.outputSampleRate),AudioSettings.outputSampleRate,index);
+                loadedCommission=index;
                 recordingReady=transport.SaveError=="";
             }
-            catch(System.Exception e){Debug.LogError("Tape commission unavailable: "+e.Message,this);}
+            catch(System.Exception e){RecordingError=e.Message;Debug.LogError("Tape commission unavailable: "+e.Message,this);}
         }
         public bool RecordingHit(Collider hit){foreach(var c in controlHits)if(c!=null && c==hit)return true;return false;}
+        public void SynchronizeCommission()
+        {if(Chapter!=null && loadedCommission!=Mathf.Min(Chapter.CommissionIndex,RadioTapeChapter.CommissionCount-1))InitializeRecording();}
         public void OpenRecording()
         {
-            if(!recordingReady || transport==null || transport.SaveError!="" || house==null)return;
+            SynchronizeCommission();
+            if(!recordingReady)InitializeRecording();
+            if(!recordingReady || transport==null || transport.SaveError!="" || house==null)
+            {
+                Notice="Recording unavailable";
+                Debug.LogWarning("Recording entry blocked: "+(RecordingError!=""?RecordingError:transport!=null?transport.SaveError:"Missing transport"),this);return;
+            }
             RecordingMode=true;recordingWait=true;recordingGate.Arm();recordingLeft=false;mouseKey=-1;stopLatch=true;
             house.Room.StopMotion();PlayerInputPolicy.SetCursor(true);
         }
         public void CloseRecording()
         {
+            handKey=-1;
             transport?.StopAll();RecordingMode=false;wasWriting=false;stopLatch=true;recordingWait=true;
+            RestoreRecordingControls();
             house?.SaveStableProgress();house?.SuspendHouseInput();
         }
+        void RestoreRecordingControls()
+        {
+            if(!recordingReady)return;
+            for(int i=0;i<keys3d.Length;i++)if(keys3d[i]!=null)keys3d[i].localPosition=keyHomes[i];
+            sourceWheel.localRotation=sourceWheelHome;targetWheel.localRotation=targetWheelHome;
+        }
         void StopRecordingInput()
-        {transport?.StopAll();wasWriting=false;mouseKey=-1;stopLatch=true;recordingWait=true;recordingGate.Arm();}
+        {transport?.StopAll();RestoreRecordingControls();wasWriting=false;mouseKey=-1;handKey=-1;stopLatch=true;recordingWait=true;recordingGate.Arm();}
         public void TickRecording()
         {
             if(!RecordingMode || transport==null)return;
@@ -72,13 +101,14 @@ namespace MemoryWhitebox
                         transport.StopAll();if(!transport.Save())return;
                         bool accepted=TapeCommissionSource.Accept(transport.SnapshotMapping(),transport.Rate);
                         Chapter.SubmitRecording(accepted);WBMain.Tone(accepted?660:95,.2f);
-                        if(accepted){CloseRecording();return;}
+                        if(accepted){CloseRecording();SynchronizeCommission();return;}
                     }
                 }
             }
             recordingLeft=left;
             if(!left)mouseKey=-1;
             bool f=Input.GetKey(KeyCode.F)||mouseKey==4,s=Input.GetKey(KeyCode.S)||mouseKey==3,j=Input.GetKey(KeyCode.J)||mouseKey==5,l=Input.GetKey(KeyCode.L)||mouseKey==6,stop=Input.GetKey(KeyCode.Quote)||mouseKey==7;
+            handKey=mouseKey>=0?mouseKey:stop?7:s?3:f?4:j?5:l?6:-1;
             if(stop)stopLatch=true;else if(!f)stopLatch=false;
             bool ready=Selected>=0 && Chapter.Tape.Candidates[Selected].Prepared && State==Phase.Paused;
             bool play=ready && f && !stopLatch && !stop;

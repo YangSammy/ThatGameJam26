@@ -53,6 +53,7 @@ namespace MemoryWhitebox
         public string ProgressHint {
             get {
                 if(saveNotice!="")return saveNotice;
+                if(Printing)return PrintHint;
                 if(Photo.Completed)return "Photo saved  /  Esc  Back";
                 switch(Photo.Phase){
                     case PhotoChapter.FilmPhase.Empty:return "Drag film into the left chamber";

@@ -9,6 +9,11 @@ namespace MemoryWhitebox
         public static float[] Build(AudioClip clip,int rate)
         {
             if(clip==null)throw new System.InvalidOperationException("Source tape has no audio clip.");
+            if(clip.loadState!=AudioDataLoadState.Loaded)
+            {
+                clip.LoadAudioData();
+                if(clip.loadState!=AudioDataLoadState.Loaded)throw new System.InvalidOperationException("Source audio is still loading; retry recording after loading completes.");
+            }
             var pcm=new float[clip.samples*clip.channels];
             if(!clip.GetData(pcm,0))throw new System.InvalidOperationException("Source clip must support PCM GetData.");
             var samples=new float[rate*14];var random=new System.Random(861);

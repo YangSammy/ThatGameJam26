@@ -8,6 +8,7 @@ namespace MemoryWhitebox
         public bool hasReference,aligned,captured,handJoined;
         public Vector3 position,euler,subjectPoint;
         public float fov=48,ev100=13;
+        public float savedFocus,savedAperture,savedShutter;
     }
     public sealed partial class ParkPhotoPrototype
     {
@@ -26,12 +27,37 @@ namespace MemoryWhitebox
         public bool HoldingPhotoHand=>BridgePending && CurrentTaskId=="meadow" && CurrentTask!=null && CurrentTask.handJoined && companion.AtPhotoNode && Vector3.Distance(view.transform.position,PhotoHandPosition)<=2f;
         public Vector3 PhotoHandPosition=>bridgeNode!=null && bridgeNode.handContact!=null?bridgeNode.handContact.position:companion.chest.position+companion.transform.forward*.38f-companion.transform.right*.15f-Vector3.up*.18f;
         bool taskRoutingReady;
+        public string PhotoRouteError {get;private set;}="";
+        int FindTaskIndex(ParkPhotoWaypoint.PhotoTask task)
+        {
+            var route=companion!=null?companion.route:null;if(route==null)return -1;
+            for(int i=0;i<route.Length;i++)if(route[i]!=null && route[i].photoTask==task)return i;
+            int bridge=-1;for(int i=0;i<route.Length;i++)if(route[i]!=null && route[i].watersideMoment){bridge=i;break;}
+            if(bridge<0)return -1;
+            if(task==ParkPhotoWaypoint.PhotoTask.Bridge)return bridge;
+            if(task==ParkPhotoWaypoint.PhotoTask.Entrance){for(int i=0;i<bridge;i++)if(route[i]!=null)return i;}
+            else {for(int i=route.Length-1;i>bridge;i--)if(route[i]!=null)return i;}
+            return -1;
+        }
+        public string CheckPhotographyRoute()
+        {
+            if(companion==null || companion.chest==null)return "Companion/chest reference is missing";
+            int entrance=FindTaskIndex(ParkPhotoWaypoint.PhotoTask.Entrance),bridge=FindTaskIndex(ParkPhotoWaypoint.PhotoTask.Bridge),meadow=FindTaskIndex(ParkPhotoWaypoint.PhotoTask.Meadow);
+            if(entrance<0 || bridge<0 || meadow<0)return "Assign entrance, bridge and meadow route points";
+            if(!(entrance<bridge && bridge<meadow))return "Photography route must visit entrance, bridge, then meadow";
+            var node=companion.route[meadow];
+            if(node.referenceView!=null && node.handContact!=null && Vector3.Distance(node.referenceView.position,node.handContact.position)>2f)
+                return "Meadow reference camera is beyond hand contact reach (2 metres)";
+            return "";
+        }
 
         void InitializeBridge()
         {
             bridgeNode=null;taskRoutingReady=false;alignedFor=referenceRetry=0;
             companion.photoLookBack=false;companion.photoOfferHand=false;
             if(bridgeReference!=null){Destroy(bridgeReference);bridgeReference=null;}
+            PhotoRouteError=roll!=null && roll.version>=3?CheckPhotographyRoute():"";
+            if(PhotoRouteError!=""){Debug.LogWarning(PhotoRouteError,this);companion.photoHoldNode=null;return;}
             var route=companion.route;
             if(route!=null)
             {
@@ -49,10 +75,22 @@ namespace MemoryWhitebox
             taskRoutingReady=true;
             if(CurrentTask!=null && CurrentTask.hasReference)
             {
+                if(CurrentTask.savedFocus>0)focusDistance=Mathf.Clamp(CurrentTask.savedFocus,minimumFocus,maximumFocus);
+                int aperture=Array.IndexOf(apertures,CurrentTask.savedAperture),speed=Array.IndexOf(speeds,CurrentTask.savedShutter);
+                if(aperture>=0)apertureIndex=aperture;if(speed>=0)speedIndex=speed;
                 try{bridgeReference=new Texture2D(2,2);if(!bridgeReference.LoadImage(ParkFilmStore.ReadTaskReference(roll.id,CurrentTaskId)))throw new InvalidOperationException("Invalid reference image.");}
                 catch(Exception e){filmError="Reference unavailable";Debug.LogWarning(e.Message);}
             }
             companion.photoHoldNode=BridgePending?bridgeNode:null;
+        }
+        void SavePhotoSettings()
+        {
+            if(roll==null || roll.state!=ParkFilmState.Loaded || CurrentTask==null || CurrentTask.captured || filmError!="")return;
+            if(CurrentTask.savedFocus==focusDistance && CurrentTask.savedAperture==Aperture && CurrentTask.savedShutter==ShutterSeconds)return;
+            var next=JsonUtility.FromJson<BridgePhotoCheckpoint>(JsonUtility.ToJson(CurrentTask));
+            next.savedFocus=focusDistance;next.savedAperture=Aperture;next.savedShutter=ShutterSeconds;
+            try{roll=ParkFilmStore.SaveTask(roll.id,CurrentTaskId,next);}
+            catch(Exception e){Debug.LogWarning("Camera settings not saved: "+e.Message);}
         }
         void TickBridge(float dt)
         {

@@ -11,7 +11,17 @@ namespace MemoryWhitebox
         bool parkLoading;
         int darkroomWorkflow;
         bool tankSealed,needsDrain;
-        bool ManualTank=>ParkMode && darkroomWorkflow==1;
+        bool ManualTank=>ParkMode && darkroomWorkflow>=1;
+        ParkPrintStage printStage;
+        float printRemaining;
+        bool printProcessing,printHeld;
+        bool Printing=>ParkMode && darkroomWorkflow>=2 && printStage!=ParkPrintStage.None && printStage!=ParkPrintStage.Complete;
+        public ParkPrintStage CurrentPrintStage=>printStage;
+        string PrintHint=>printProcessing?(printStage==ParkPrintStage.Exposing?"Hold LMB  Expose":"Processing"):
+            printStage==ParkPrintStage.NegativeDrying?"LMB tank  Hang negative":
+            printStage==ParkPrintStage.ContactReady?"Hold LMB on paper  Expose":
+            printStage==ParkPrintStage.PaperWash?"LMB tap  Wash paper":
+            printStage==ParkPrintStage.PaperDrying?"LMB paper  Hang print":"Drag bottle "+((int)printStage-(int)ParkPrintStage.PaperDeveloper+1)+" to paper";
         bool parkFilmUnavailable,parkGallery;
         int parkFrame=1;
         string frameNotice="";
@@ -41,8 +51,11 @@ namespace MemoryWhitebox
                 }
                 parkFilm=active;
                 var d=active.darkroom ?? (active.version>=3 && active.state!=ParkFilmState.Developed?
-                    new ParkDarkroomProgress{workflowVersion=1,phase=PhotoChapter.FilmPhase.Exposed}:new ParkDarkroomProgress());
+                    new ParkDarkroomProgress{workflowVersion=2,phase=PhotoChapter.FilmPhase.Exposed}:new ParkDarkroomProgress());
+                if(d.workflowVersion==1 && active.state!=ParkFilmState.Developed)d.workflowVersion=2;
                 darkroomWorkflow=d.workflowVersion;tankSealed=d.tankSealed;needsDrain=d.needsDrain;
+                printStage=d.printStage;printRemaining=d.printRemaining;printProcessing=d.printProcessing;
+                if(printStage==ParkPrintStage.Exposing){printStage=ParkPrintStage.ContactReady;printRemaining=0;printProcessing=false;}
                 RewindTurns=d.rewindTurns;RewoundBackOpen=d.backOpen;
                 if(active.state==ParkFilmState.Developed){d.phase=PhotoChapter.FilmPhase.Developed;d.chemistry=4;}
                 Photo.Phase=d.phase;Photo.Chemistry=d.chemistry;Photo.ProcessingTime=d.remaining;
@@ -91,7 +104,10 @@ namespace MemoryWhitebox
                 remaining=Mathf.Max(0,Photo.ProcessingTime),bagTurns=Photo.BagTurns,
                 agitated=Photo.Agitated,clockDuration=clockDuration,selectedFrame=parkFrame,
                 workflowVersion=darkroomWorkflow,tankSealed=tankSealed,needsDrain=needsDrain,
-                rewindTurns=RewindTurns,backOpen=RewoundBackOpen};
+                rewindTurns=RewindTurns,backOpen=RewoundBackOpen,
+                printStage=printStage==ParkPrintStage.Exposing?ParkPrintStage.ContactReady:printStage,
+                printRemaining=printStage==ParkPrintStage.Exposing?0:printRemaining,
+                printProcessing=printStage!=ParkPrintStage.Exposing && printProcessing};
             string state=JsonUtility.ToJson(d);if(state==lastSavedState)return;
             try
             {
@@ -111,6 +127,55 @@ namespace MemoryWhitebox
             }
         }
 
+        void BeginPrintWorkflow()
+        {
+            // The model's legacy rinse finishes the negative, not the paper print.
+            Photo.Phase=PhotoChapter.FilmPhase.Tank;Photo.Chemistry=3;Photo.ProcessingTime=0;
+            Photo.RestoreCompleted(false);needsDrain=false;
+            printStage=ParkPrintStage.NegativeDrying;printRemaining=3;printProcessing=false;
+            SaveProgress();
+        }
+        bool PressPrintWorkflow(string id,Ray ray)
+        {
+            if(!Printing)return false;
+            if(printProcessing)return true;
+            if(printStage==ParkPrintStage.NegativeDrying && (id=="tank" || id=="tank-lid"))printProcessing=true;
+            else if(printStage==ParkPrintStage.ContactReady && id=="developed-photo")
+            {printStage=ParkPrintStage.Exposing;printRemaining=2;printProcessing=true;printHeld=true;}
+            else if(printStage>=ParkPrintStage.PaperDeveloper && printStage<=ParkPrintStage.PaperFixer && id.StartsWith("chemical-"))BeginDrag(id,ray);
+            else if(printStage==ParkPrintStage.PaperWash && id=="water")
+            {printRemaining=2;printProcessing=true;}
+            else if(printStage==ParkPrintStage.PaperDrying && id=="developed-photo")
+            {printRemaining=3;printProcessing=true;}
+            SaveProgress();return true;
+        }
+        void CancelPrintExposure()
+        {
+            printHeld=false;
+            if(printStage!=ParkPrintStage.Exposing)return;
+            printStage=ParkPrintStage.ContactReady;printRemaining=0;printProcessing=false;
+        }
+        void PourPrintChemical(int index)
+        {
+            if(!Printing || printProcessing || index!=(int)printStage-(int)ParkPrintStage.PaperDeveloper || index<0 || index>2)return;
+            printRemaining=index==0?3:index==1?1:2;printProcessing=true;
+        }
+        void TickPrintWorkflow(float dt)
+        {
+            if(!Printing || !printProcessing || (printStage==ParkPrintStage.Exposing && !printHeld))return;
+            printRemaining=Mathf.Max(0,printRemaining-Mathf.Max(0,dt));
+            clockHand.localRotation=Quaternion.Euler(0,0,-printRemaining*120);
+            if(printRemaining>0)return;
+            printProcessing=false;
+            if(printStage==ParkPrintStage.NegativeDrying)printStage=ParkPrintStage.ContactReady;
+            else if(printStage==ParkPrintStage.Exposing){printStage=ParkPrintStage.PaperDeveloper;printHeld=false;}
+            else if(printStage==ParkPrintStage.PaperDrying)
+            {
+                printStage=ParkPrintStage.Complete;Photo.Phase=PhotoChapter.FilmPhase.Developed;Photo.Chemistry=4;
+            }
+            else printStage=(ParkPrintStage)((int)printStage+1);
+            SaveProgress();SyncProps();
+        }
         void LoadParkFrame()
         {
             if(parkReferenceTexture!=null){ReleaseObject(parkReferenceTexture);parkReferenceTexture=null;}

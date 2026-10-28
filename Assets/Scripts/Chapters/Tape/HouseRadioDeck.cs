@@ -142,6 +142,7 @@ namespace MemoryWhitebox
             if(State==Phase.Returning)return string.IsNullOrEmpty(Notice)?"Returning tape...":Notice;
             if(hit==radioHit || hit==slotHit)
             {
+                if(RecordingError!="")return "Recording unavailable  /  LMB  Retry";
                 if(State==Phase.Playing)return "LMB  Pause   /   RMB  Eject";
                 if(State==Phase.Paused)return "LMB  Play   /   RMB  Eject";
                 return "Drag tape to slot   /   E  Inspect radio";

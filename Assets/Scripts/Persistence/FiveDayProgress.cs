@@ -26,23 +26,24 @@ namespace MemoryWhitebox
     {
         FiveDaySave data=new FiveDaySave();
         bool blocked;
+        bool development;
         public StoryDay Day=>(StoryDay)data.currentDay;
         public bool Finished=>data.finished;
         public bool Available=>!blocked;
         public string Error {get;private set;}="";
-        static string FilePath=>Path.Combine(GameSavePaths.Root,"five-day-progress-v1.json");
-        public bool CanEnter(int index)=>!blocked && index>=0 && index<5 && index<=data.currentDay;
+        string FilePath=>Path.Combine(GameSavePaths.Root,development?"five-day-development-v1.json":"five-day-progress-v1.json");
+        public bool CanEnter(int index)=>!blocked && index>=0 && index<5 && (development || index<=data.currentDay);
         public bool IsComplete(int index)=>data.completed[index];
         public string Checkpoint(int index)=>data.checkpoints[index];
 
-        static FiveDaySave Parse(string text)
+        FiveDaySave Parse(string text)
         {
             var save=JsonUtility.FromJson<FiveDaySave>(text);
             if(save==null || save.version!=1 || save.currentDay<0 || save.currentDay>4 ||
                save.completed==null || save.completed.Length!=5 || save.checkpoints==null || save.checkpoints.Length!=5)
                 throw new InvalidDataException("Unsupported or damaged five-day save.");
             for(int i=0;i<5;i++)
-                if(save.completed[i]!=(i<save.currentDay || (i==4 && save.finished)))
+                if(!development && save.completed[i]!=(i<save.currentDay || (i==4 && save.finished)))
                     throw new InvalidDataException("Non-sequential chapter progress.");
             if(save.finished && save.currentDay!=4)throw new InvalidDataException("Invalid ending state.");
             if(save.returnFromPark && (!Finite(save.housePosition.x) || !Finite(save.housePosition.y) || !Finite(save.housePosition.z) ||
@@ -53,16 +54,17 @@ namespace MemoryWhitebox
             return save;
         }
         static bool Finite(float v)=>!float.IsNaN(v) && !float.IsInfinity(v);
-        public static FiveDayProgress Load()
+        public static FiveDayProgress Load(bool development=false)
         {
-            var progress=new FiveDayProgress();
+            var progress=new FiveDayProgress{development=development};
+            string FilePath=progress.FilePath;
             if(!File.Exists(FilePath) && !File.Exists(FilePath+".bak"))return progress;
-            try{progress.data=Parse(File.ReadAllText(FilePath));}
+            try{progress.data=progress.Parse(File.ReadAllText(FilePath));}
             catch(Exception first)
             {
                 try
                 {
-                    progress.data=Parse(File.ReadAllText(FilePath+".bak"));
+                    progress.data=progress.Parse(File.ReadAllText(FilePath+".bak"));
                     // Preserve the damaged primary and the valid backup before any later write.
                     if(File.Exists(FilePath))File.Move(FilePath,FilePath+".damaged-"+Guid.NewGuid().ToString("N"));
                     Debug.LogWarning("Recovered five-day progress from backup: "+first.Message);
@@ -99,9 +101,14 @@ namespace MemoryWhitebox
         {
             if(!CanEnter(index))return false;
             if(data.completed[index])return true;
-            if(index!=data.currentDay)return false;
+            if(!development && index!=data.currentDay)return false;
             var next=Copy();next.checkpoints[index]=snapshot;next.completed[index]=true;
-            if(index==4)next.finished=true;else next.currentDay++;
+            if(development)
+            {
+                next.currentDay=0;while(next.currentDay<4 && next.completed[next.currentDay])next.currentDay++;
+                next.finished=System.Array.TrueForAll(next.completed,value=>value);
+            }
+            else if(index==4)next.finished=true;else next.currentDay++;
             return Commit(next);
         }
         public bool RememberReturn(Vector3 position,Quaternion rotation,float fov)

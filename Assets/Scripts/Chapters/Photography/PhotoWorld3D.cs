@@ -249,6 +249,7 @@ namespace MemoryWhitebox
         }
         public void CancelInteraction()
         {
+            CancelPrintExposure();
             looking=Rewinding=bagHeld=tankHeld=false;
             if(dragged!=null && Nodes.ContainsKey(dragged) && homes.ContainsKey(dragged))
             {Nodes[dragged].transform.localPosition=homes[dragged];Nodes[dragged].transform.localRotation=homeRotations[dragged];SetColliders(Nodes[dragged],true);}
@@ -268,7 +269,9 @@ namespace MemoryWhitebox
             var previousPhase=Photo.Phase;
             if (Photo.Phase == PhotoChapter.FilmPhase.Processing)
                 Photo.Tick(dt, new WBInput());
-            if(ManualTank && previousPhase==PhotoChapter.FilmPhase.Processing && Photo.Phase==PhotoChapter.FilmPhase.Tank)needsDrain=true;
+            if(ParkMode && darkroomWorkflow>=2 && previousPhase==PhotoChapter.FilmPhase.Processing && Photo.Phase==PhotoChapter.FilmPhase.Developed)BeginPrintWorkflow();
+            TickPrintWorkflow(dt);
+            if(ManualTank && !Printing && previousPhase==PhotoChapter.FilmPhase.Processing && Photo.Phase==PhotoChapter.FilmPhase.Tank)needsDrain=true;
             if(ParkMode && Photo.Phase!=previousPhase)SaveProgress();
             if (feedbackTime > 0) feedbackTime -= dt;
             if (liftTime > 0)
@@ -359,6 +362,7 @@ namespace MemoryWhitebox
             lastRay = ray;
             if (button == 1) { if (!Photo.InViewfinder) { looking = true; lastLookViewport = View.WorldToViewportPoint(ray.GetPoint(2)); } return; }
             if (button != 0) return;
+            if(PressPrintWorkflow(id,ray))return;
             if(parkLoading && !id.StartsWith("film-") && id!="leader" && id!="back" && id!="advance")return;
             if(ParkMode)
             {
@@ -444,9 +448,10 @@ namespace MemoryWhitebox
                     }
                     else if (dragged.StartsWith("chemical-"))
                     {
-                        bool over = Vector3.Distance(new Vector3(point.x, tankAt.y, point.z), World(tankAt)) < .42f;
+                        Vector3 receiver=Printing?developedPrint.transform.position:World(tankAt);
+                        bool over = new Vector2(point.x-receiver.x,point.z-receiver.z).magnitude < .42f;
                         Nodes[dragged].transform.rotation = Quaternion.Euler(over ? 60 : 0, 0, over ? -35 : 0);
-                        pour.gameObject.SetActive(over); if (over) { pour.SetPosition(0, point); pour.SetPosition(1, World(tankAt + Vector3.up * .2f)); }
+                        pour.gameObject.SetActive(over); if (over) { pour.SetPosition(0, point); pour.SetPosition(1, receiver+Vector3.up*.03f); }
                     }
                 }
             }
@@ -465,6 +470,7 @@ namespace MemoryWhitebox
         {
             if(parkGallery || parkFilmUnavailable)return;
             looking = false; Rewinding = false; bagHeld = false; tankHeld = false;
+            CancelPrintExposure();
             if (dragged == null) return;
             NativeActionCount++;
             string target = Pick(ray);
@@ -489,7 +495,9 @@ namespace MemoryWhitebox
             {
                 Photo.Phase = PhotoChapter.FilmPhase.DarkBag; Photo.BagTurns = 0; Photo.Chemistry = 0;
             }
-            else if (item.StartsWith("chemical-") && Photo.Phase == PhotoChapter.FilmPhase.Tank && target == "tank")
+            else if(Printing && item.StartsWith("chemical-") && target=="developed-photo")
+                PourPrintChemical(int.Parse(item.Substring(9)));
+            else if (!Printing && item.StartsWith("chemical-") && Photo.Phase == PhotoChapter.FilmPhase.Tank && target == "tank")
             {
                 int index = int.Parse(item.Substring(9));
                 if (index == Photo.Chemistry && (!ManualTank || (tankSealed && !needsDrain))) { Photo.ProcessingTime = clockDuration = index == 0 ? 3 : index == 1 ? .8f : 2; Photo.Agitated = false; Photo.Phase = PhotoChapter.FilmPhase.Processing; WBMain.Tone(240, .08f); }
@@ -592,7 +600,12 @@ namespace MemoryWhitebox
             looseFilm.SetActive(Photo.Phase == PhotoChapter.FilmPhase.Rewound && RewoundBackOpen);
             if (looseFilm.activeSelf && dragged != "exposed-film") looseFilm.transform.position = cameraBody.TransformPoint(new Vector3(-.23f, 0, -.205f));
             referencePrint.SetActive(!ParkMode && !parkLoading && !parkFilmUnavailable);
-            developedPrint.SetActive(Photo.Phase == PhotoChapter.FilmPhase.Developed && (!ParkMode || (ParkPrintsReady && exposedTexture!=null)));
+            developedPrint.SetActive((Printing && printStage>=ParkPrintStage.ContactReady) || (Photo.Phase == PhotoChapter.FilmPhase.Developed && (!ParkMode || (ParkPrintsReady && exposedTexture!=null))));
+            if(Printing)
+            {
+                var paper=developedPrint.GetComponent<Renderer>().sharedMaterial;paper.mainTexture=Texture2D.whiteTexture;
+                paper.color=printStage>=ParkPrintStage.PaperFixer?new Color(.65f,.65f,.62f):new Color(.93f,.9f,.82f);
+            }
             if (developedPrint.activeSelf && exposedTexture != null)
             {
                 var material = developedPrint.GetComponent<Renderer>().sharedMaterial; material.mainTexture = exposedTexture; material.color = Color.white;

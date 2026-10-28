@@ -12,6 +12,8 @@ namespace MemoryWhitebox
         [Min(1)] public float virtualCursorSpeed=20;
         [Range(0,20)] public float sceneEv100=13;
         public PhotographyMode PhotoMode=>photoMode;
+        public bool HandPresentationBlocked=>inputGate || !focused || changingScene || Paused;
+        public Transform HandContactTarget=>dragPart!=null && instrumentParts.ContainsKey(dragPart)?instrumentParts[dragPart]:null;
         public int FilmIso=>roll!=null && roll.cameraLoading!=null?roll.cameraLoading.iso:100;
         public float Aperture=>apertures[apertureIndex];
         public float ShutterSeconds=>speeds[speedIndex];

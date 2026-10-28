@@ -6,6 +6,7 @@ using UnityEngine;
 namespace MemoryWhitebox
 {
     public enum ParkFilmState { Loaded, AwaitingDevelopment, Developed }
+    public enum ParkPrintStage { None, NegativeDrying, ContactReady, Exposing, PaperDeveloper, PaperStop, PaperFixer, PaperWash, PaperDrying, Complete }
 
     [Serializable] public sealed class ParkCameraLoading
     {
@@ -20,6 +21,9 @@ namespace MemoryWhitebox
         public int workflowVersion;
         public bool tankSealed,needsDrain,backOpen;
         public float rewindTurns;
+        public ParkPrintStage printStage;
+        public float printRemaining;
+        public bool printProcessing;
         public PhotoChapter.FilmPhase phase=PhotoChapter.FilmPhase.DarkBag;
         public int chemistry;
         public float remaining,bagTurns,clockDuration;
@@ -70,6 +74,7 @@ namespace MemoryWhitebox
                    !FiniteRange(b.subjectPoint.x,-100000,100000) || !FiniteRange(b.subjectPoint.y,-100000,100000) || !FiniteRange(b.subjectPoint.z,-100000,100000) ||
                    ((b.aligned || b.captured) && !b.hasReference) || (b.handJoined && (!b.aligned || taskId!="meadow")) || (b.captured && !b.aligned))throw new InvalidDataException("Invalid photography checkpoint.");
                 if(b.hasReference && !File.Exists(Path.Combine(RollFolder(roll.id),taskId+"-reference.png")))throw new InvalidDataException("Photography reference is missing.");
+                if(!FiniteRange(b.savedFocus,0,10000) || !FiniteRange(b.savedAperture,0,64) || !FiniteRange(b.savedShutter,0,30))throw new InvalidDataException("Invalid saved camera settings.");
                 if(roll.version>=3 && b.captured!=roll.frames.Exists(f=>f!=null && f.taskId==taskId))throw new InvalidDataException("Photography checkpoint does not match exposures.");
             }
             if(roll.cameraLoading!=null)
@@ -84,17 +89,26 @@ namespace MemoryWhitebox
             if(roll.darkroom!=null)
             {
                 var d=roll.darkroom;
-                if(d.workflowVersion<0 || d.workflowVersion>1 ||
-                   d.phase<(d.workflowVersion==1?PhotoChapter.FilmPhase.Exposed:PhotoChapter.FilmPhase.DarkBag) || d.phase>PhotoChapter.FilmPhase.Developed ||
+                if(d.workflowVersion<0 || d.workflowVersion>2 ||
+                   d.phase<(d.workflowVersion>=1?PhotoChapter.FilmPhase.Exposed:PhotoChapter.FilmPhase.DarkBag) || d.phase>PhotoChapter.FilmPhase.Developed ||
                    d.chemistry<0 || d.chemistry>4 || !FiniteRange(d.remaining,0,3) || !FiniteRange(d.bagTurns,0,1) ||
                    !FiniteRange(d.clockDuration,0,3) || d.selectedFrame<1 || d.selectedFrame>roll.Capacity ||
                    (d.phase==PhotoChapter.FilmPhase.Developed)!=(roll.state==ParkFilmState.Developed) ||
                    (d.phase==PhotoChapter.FilmPhase.Developed && d.chemistry!=4) ||
                    (d.phase!=PhotoChapter.FilmPhase.Developed && d.chemistry==4))throw new InvalidDataException("Invalid darkroom progress.");
-                if(d.workflowVersion==1 && (!FiniteRange(d.rewindTurns,0,1) ||
+                if(d.workflowVersion>=1 && (!FiniteRange(d.rewindTurns,0,1) ||
                    (d.phase>=PhotoChapter.FilmPhase.Rewound && d.rewindTurns<.999f) ||
                    (d.phase>=PhotoChapter.FilmPhase.Processing && !d.tankSealed) ||
                    (d.needsDrain && (d.phase!=PhotoChapter.FilmPhase.Tank || d.chemistry<1 || !d.tankSealed))))throw new InvalidDataException("Invalid tank checkpoint.");
+                if(d.workflowVersion>=2)
+                {
+                    if(!Enum.IsDefined(typeof(ParkPrintStage),d.printStage) || !FiniteRange(d.printRemaining,0,10) ||
+                       (d.printStage==ParkPrintStage.Complete)!=(d.phase==PhotoChapter.FilmPhase.Developed) ||
+                       (d.printStage!=ParkPrintStage.None && (!d.tankSealed || d.needsDrain)) ||
+                       (d.printStage!=ParkPrintStage.None && d.printStage!=ParkPrintStage.Complete && (d.phase!=PhotoChapter.FilmPhase.Tank || d.chemistry!=3)) ||
+                       (d.printProcessing && (d.printStage==ParkPrintStage.None || d.printStage==ParkPrintStage.ContactReady || d.printStage==ParkPrintStage.Complete)))
+                        throw new InvalidDataException("Invalid contact print checkpoint.");
+                }
             }
             var ids=new HashSet<string>();
             for(int i=0;i<roll.frames.Count;i++)

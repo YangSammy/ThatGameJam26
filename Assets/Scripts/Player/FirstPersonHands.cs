@@ -6,7 +6,7 @@ namespace MemoryWhitebox
 {
     // Chapter transforms remain invisible animation targets. All player hand meshes live under the camera.
     [DefaultExecutionOrder(1000),RequireComponent(typeof(Camera))]
-    public sealed class FirstPersonHands : MonoBehaviour
+    public sealed partial class FirstPersonHands : MonoBehaviour
     {
         public const int HandLayer=27;
         public Transform authoredRoot;
@@ -33,6 +33,21 @@ namespace MemoryWhitebox
         public void Register(int index,WorldChapter3D world)
         {
             if(sets.ContainsKey(index))return;
+            if(skeletalRig!=null)
+            {
+                PrepareSkeletalRig();
+                var skeletalSet=new Set{world=world,targets=world.PlayerHandTargets};
+                for(int side=0;side<skeletalSet.targets.Length;side++)
+                {
+                    var target=skeletalSet.targets[side];
+                    // These authored groups also own the real pen/brush. Hide only hand and sleeve.
+                    if(target!=null && side==1 && (world is WritingWorld3D || world is PaintingWorld3D))
+                    {for(int child=0;child<Mathf.Min(2,target.childCount);child++)Hide(target.GetChild(child));}
+                    else Hide(target);
+                }
+                foreach(var target in world.PlayerArmTargets)Hide(target);
+                sets.Add(index,skeletalSet);return;
+            }
             if(rig==null){rig=authoredRoot;if(rig==null){rig=new GameObject("Player first-person hands").transform;rig.SetParent(transform,false);}}
             var set=new Set{world=world,targets=world.PlayerHandTargets};
             bool authored=index==0 && authoredHands.Length==2 && authoredHands[0]!=null && authoredHands[1]!=null;
@@ -70,6 +85,7 @@ namespace MemoryWhitebox
         void LateUpdate(){Advance(Time.unscaledDeltaTime);}
         public void Advance(float dt)
         {
+            if(skeletalRig!=null){AdvanceSkeletal(dt);return;}
             if(park!=null){AdvancePark(dt);return;}
             if(rig==null || house==null)return;
             int index=house!=null && house.HouseInputReady?house.ChapterIndex:0;
@@ -131,6 +147,6 @@ namespace MemoryWhitebox
             }
         }
         void OnDestroy(){foreach(var r in hidden)if(r!=null)r.forceRenderingOff=false;}
-        public void PosePhotoHandForShutter(){if(park!=null && park.HoldingPhotoHand)AdvancePark(1);}
+        public void PosePhotoHandForShutter(){if(park!=null && park.HoldingPhotoHand){if(skeletalRig!=null)AdvanceSkeletal(0,true);else AdvancePark(1);}}
     }
 }
