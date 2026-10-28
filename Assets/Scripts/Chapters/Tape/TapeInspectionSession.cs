@@ -14,9 +14,11 @@ namespace MemoryWhitebox
         public bool Preparing=>preparation.Busy;
         public bool Handle(EventType type,int button,Ray ray,Camera camera)=>preparation.Handle(type,button,ray,camera);
         public void Cancel()=>preparation.Cancel();
+        public string ActionHint=>preparation.Hint;
+        public void DrawPreparationHints(Camera camera,GUIStyle style)=>preparation.DrawHints(camera,style);
         TapeInspectionState.Candidate Data=>deck.Chapter.Tape.Candidates[index];
         public string Status=>Data.Broken?"BREAK FOUND - Reel stopped. Try another tape.":
-            Data.Prepared?"Tape ready":Data.Intact?"Tape intact":
+            Data.Prepared?"Ready to insert":Data.Intact?"Seal holes "+((Data.HoleA?1:0)+(Data.HoleB?1:0))+"/2  /  Drag adhesive to hole":
             "Checked "+Mathf.RoundToInt(100f*Data.Scanned/TapeInspectionState.Samples)+"%  /  Hold LMB on reel + Scroll";
         public static TapeInspectionSession Create(SafeInspectionSubject subject)
         {

@@ -27,8 +27,10 @@ namespace MemoryWhitebox.Editor
             {
                 var root=new GameObject("TapeRecording").transform;
                 SceneManager.MoveGameObjectToScene(root.gameObject,scene);
-                root.SetPositionAndRotation(deck.transform.position+deck.transform.rotation*new Vector3(-.32f,.12f,0),deck.transform.rotation);
-                root.SetParent(deck.transform,true);deck.recordingPanel=root;
+                root.SetParent(deck.transform,false);
+                root.localPosition=new Vector3(-.05f,.49f,-.36f);
+                root.localRotation=Quaternion.Euler(0,180,0);
+                root.localScale=Vector3.one*.85f;deck.recordingPanel=root;
                 var source=Group(root,"SourceDeck_A");
                 Cube(source,"CassetteWindow",new Vector3(0,.02f,0),new Vector3(.24f,.035f,.14f),dark);
                 deck.sourceWheel=Cube(source,"SourceSpool",new Vector3(-.06f,.045f,0),new Vector3(.045f,.008f,.045f),key);
@@ -57,17 +59,17 @@ namespace MemoryWhitebox.Editor
                 var subject=subjects.Single(s=>s.source==cassette.root);
                 if(cassette.preparation==null)
                 {
-                    subject.RefreshFraming();float size=Mathf.Max(.02f,subject.diameter);
                     var root=new GameObject("TapePreparation").transform;
                     SceneManager.MoveGameObjectToScene(root.gameObject,scene);
-                    root.SetPositionAndRotation(cassette.root.position+cassette.root.rotation*subject.localCenter,cassette.root.rotation);
-                    root.SetParent(cassette.root,true);
+                    root.SetParent(cassette.root,false);
                     var binding=root.gameObject.AddComponent<TapePreparationBindings>();cassette.preparation=binding;
-                    binding.socketMaterial=hole;binding.adhesiveMaterial=adhesive;binding.tearDistance=size*.18f;
+                    binding.socketMaterial=hole;binding.adhesiveMaterial=adhesive;binding.tearDistance=.02f;
                     string[] names={"ProtectionSocket_A","ProtectionSocket_B","AdhesiveDispenser","AdhesiveStrip"};
                     for(int i=0;i<4;i++)
                     {
-                        var part=Cube(root,names[i],new Vector3(i==0?-.28f:i==1?.28f:-.65f,.32f,-.09f)*size,new Vector3(i==2?.18f:.15f,.065f,.025f)*size,i<2?hole:adhesive);
+                        var position=i==0?new Vector3(-.028f,.022f,-.012f):i==1?new Vector3(.028f,.022f,.012f):new Vector3(-.073f,-.012f,-.014f);
+                        var scale=i==2?new Vector3(.018f,.015f,.01f):new Vector3(.014f,.009f,.003f);
+                        var part=Cube(root,names[i],position,scale,i<2?hole:adhesive);
                         binding.pieces[i]=part.gameObject;
                     }
                     binding.pieces[3].SetActive(false);

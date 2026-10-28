@@ -92,7 +92,7 @@ namespace MemoryWhitebox
                 targetEye=center+direction*Mathf.Clamp(subject.diameter*Mathf.Max(.1f,fixedDeviceDistanceScale),near,Mathf.Max(near,fixedDeviceMaximumDistance));
                 targetRotation=Quaternion.LookRotation(center-targetEye);
             }
-            subject.Begin();tapeSession=TapeInspectionSession.Create(subject);view.cullingMask&=~((1<<DisplayLayer)|(1<<FirstPersonHands.HandLayer));
+            subject.Begin();tapeSession=null;view.cullingMask&=~((1<<DisplayLayer)|(1<<FirstPersonHands.HandLayer));
             EnableBackdrop();displayCamera.enabled=true;inspectionLight.enabled=true;
             PlayerInputPolicy.ApplyCursor(PlayerControlState.Inspection);entryGate=true;handoff.Arm();
             leftHeld=rightHeld=false;gesture=Gesture.None;pendingPart=null;pendingDelta=Vector2.zero;Advance(0);return true;
@@ -137,7 +137,7 @@ namespace MemoryWhitebox
         public void DragPart(Vector2 delta)
         {
             if(HeldPart==null)return;
-            if(tapeSession!=null)return; // Tape reels accept wheel input only; shell drag rotates the shell.
+            if(tapeSession!=null)return; // Tape reels accept wheel input only; whole-object rotation requires the two-button chord.
             if(HeldPart.Drag(delta.x-delta.y))Sound(HeldPart);
         }
         public void ReleasePart(){if(HeldPart==null)return;var part=HeldPart;part.Release();HeldPart=null;Sound(part);}
@@ -210,11 +210,11 @@ namespace MemoryWhitebox
                 if(leftHeld && rightHeld)
                 {gesture=Gesture.Rotate;pendingPart=null;pendingDelta=Vector2.zero;SetHover(null);return;}
                 if(button==0)
-                {gesture=Gesture.PendingPart;pendingSeconds=0;pendingDelta=Vector2.zero;pendingPart=Current.Pick(displayCamera.ScreenPointToRay(screenPoint));if(tapeSession!=null && pendingPart==null)gesture=Gesture.Rotate;}
+                {gesture=Gesture.PendingPart;pendingSeconds=0;pendingDelta=Vector2.zero;pendingPart=Current.Pick(displayCamera.ScreenPointToRay(screenPoint));}
             }
             else if(type==EventType.MouseDrag)
             {
-                if(gesture==Gesture.Rotate && leftHeld && (rightHeld || tapeSession!=null))Rotate(delta);
+                if(gesture==Gesture.Rotate && leftHeld && rightHeld)Rotate(delta);
                 else if(gesture==Gesture.Part && leftHeld && button==0)DragPart(delta);
                 else if(gesture==Gesture.PendingPart && leftHeld && button==0)pendingDelta+=delta;
             }
@@ -315,20 +315,18 @@ namespace MemoryWhitebox
             text.normal.textColor=new Color(.82f,.82f,.8f);
             var heading=new GUIStyle(text){fontSize=size-2,alignment=TextAnchor.MiddleLeft};
             heading.normal.textColor=new Color(.64f,.64f,.62f);
+            GUI.Label(new Rect(32,24,180,24),"INSPECT",heading);
             if(tapeSession!=null)
             {
-                if(DrawInspectionButton(ResetButtonRect,"↺",text))ResetView();
-                if(DrawInspectionButton(ExitButtonRect,"×",text))Close();
-                return;
+                InteractionUI.Label(new Rect(32,54,Screen.width-64,44),tapeSession.Status);
+                tapeSession.DrawPreparationHints(displayCamera,text);
             }
-            GUI.Label(new Rect(32,24,180,24),"INSPECT",heading);
-            if(tapeSession!=null)InteractionUI.Label(new Rect(32,54,Screen.width-64,44),tapeSession.Status);
             var button=new GUIStyle(GUIStyle.none){font=font,fontSize=size,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(14,10,0,0)};
             button.normal.textColor=new Color(.88f,.88f,.85f);
             button.hover.textColor=button.active.textColor=Color.white;
             if(DrawInspectionButton(ResetButtonRect,"Reset View   R",button))ResetView();
             if(DrawInspectionButton(ExitButtonRect,"Exit     E / Esc",button)){Close();return;}
-            string hint=Resetting?"Resetting...":hovered==null?"":
+            string hint=Resetting?"Resetting...":tapeSession!=null?tapeSession.ActionHint:hovered==null?"":
                 hovered.motion==SafeInspectionPart.Motion.Button?"Hold LMB to press":
                 hovered.motion==SafeInspectionPart.Motion.Dial?"LMB drag / Hold LMB + Scroll to turn":"LMB drag to move";
             GUI.Label(new Rect(24,Screen.height-76,Screen.width-48,26),hint,text);

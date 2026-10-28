@@ -19,7 +19,7 @@ namespace MemoryWhitebox
         readonly float[] visualTapePositions=new float[3];
         public bool IsEntryHit(Collider hit)
         {
-            if(hit==null)return false;if(RecordingHit(hit))return true;if(hit==radioHit || hit==slotHit)return true;
+            if(hit==null)return false;if(SourceHit(hit))return true;if(BenchHit(hit))return true;if(RecordingHit(hit))return true;if(hit==radioHit || hit==slotHit)return true;
             foreach(var t in tapes)if(hit==t.hit || hit==t.leftSpindleHit || hit==t.rightSpindleHit)return true;
             return false;
         }
@@ -55,6 +55,7 @@ namespace MemoryWhitebox
         {if(waitingForRelease && released && focused && StationActive && (house==null || (!house.ShowHelp && !house.safeInspection.BlocksInput))){waitingForRelease=false;leftWasDown=rightWasDown=false;if(State==Phase.Loading)animator.speed=1;}}
         public void SuspendInput()
         {
+            if(WorkbenchMode)CloseWorkbench();
             StopRecordingInput();
             if(State==Phase.Dragging)PutBack();
             CancelTapeDrag();ReleaseSpindle();waitingForRelease=true;leftWasDown=rightWasDown=false;
@@ -106,13 +107,15 @@ namespace MemoryWhitebox
             var hit=Pick(ray);
             if(draggingTape)
             {
-                dragRay=ray;dropReady=hit==slotHit && Chapter.Tape.Candidates[Selected].Prepared;
+                dragRay=ray;dropReady=hit==slotHit || hit==workMat;
                 if(right && !rightWasDown){CancelTapeDrag();PutBack();waitingForRelease=true;}
-                else if(!left)EndTapeDrag(hit==slotHit);
+                else if(!left){if(hit==workMat)PlaceOnWorkbench(Selected);else EndTapeDrag(hit==slotHit);}
                 leftWasDown=left;rightWasDown=right;AdvanceInspection(dt);return;
             }
             if(left && !leftWasDown)
             {
+                if(TryBeginOriginalInteraction(ray)){leftWasDown=left;return;}
+                if(TryBeginWorkbenchInteraction(ray)){leftWasDown=left;return;}
                 if(State!=Phase.Loading && State!=Phase.Returning)
                 {
                     if(hit==radioHit || hit==slotHit || RecordingHit(hit))TogglePlayback();
@@ -171,6 +174,7 @@ namespace MemoryWhitebox
         }
         public void DrawStation(GUIStyle style)
         {
+            if(RecordingMode || WorkbenchMode)return;
             if(!StationActive)return;
             string status=draggingTape?(dropReady?"Release LMB to insert   /   RMB  Return":"Drag to slot; release to insert."):
                 State==Phase.Dragging?"Drag to slot; release outside to return.":

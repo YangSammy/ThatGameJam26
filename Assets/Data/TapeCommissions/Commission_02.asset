@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19b12b5516608ad48894473ff226f516, type: 3}
+  m_Name: Commission_02
+  m_EditorClassIdentifier: 
+  title: Music 2
+  sourceAudio: {fileID: 8300000, guid: aca27d4e47a6f1341a73a8a4cd052e79, type: 3}
+  cleanDuration: 12
+  noiseSeed: 861
+  noise:
+  - atCleanSecond: 3.6000001
+    duration: 1.2
+    amplitude: 0.22
+  - atCleanSecond: 8.4
+    duration: 2.4
+    amplitude: 0.22
+  acceptance: {fileID: 11400000, guid: 712acf50a6163234680b07eb37d733c5, type: 2}

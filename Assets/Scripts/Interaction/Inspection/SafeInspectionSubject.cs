@@ -87,6 +87,7 @@ namespace MemoryWhitebox
             }
             foreach(var part in parts)part.Capture();
             displayRoot.gameObject.SetActive(true);
+            if(tapePreparation!=null && tapePreparation.toolRoot!=null)tapePreparation.toolRoot.gameObject.SetActive(false);
         }
         public void End()
         {

@@ -68,12 +68,15 @@ namespace MemoryWhitebox
                 }
                 radioDeck.AdvanceInspection(1);
                 radioDeck.SynchronizeCommission();
+                radioDeck.RestoreWorkingTape();
+                radioDeck.RestoreWorkbench();
             }
             catch(System.Exception e){story.BlockRestore(e);}
         }
         public void SaveStableProgress()
         {
             if(!houseReady || story==null || !story.Available)return;
+            radioDeck.SaveRecordingProgress();
             for(int i=0;i<chapters.Length;i++)
             {
                 if(!story.CanEnter(i) || story.IsComplete(i))continue;

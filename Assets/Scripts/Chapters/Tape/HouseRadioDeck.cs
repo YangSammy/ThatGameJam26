@@ -50,7 +50,7 @@ namespace MemoryWhitebox
                 t.modelPosition=t.model.localPosition;t.modelRotation=t.model.localRotation;t.modelScale=t.model.localScale;
             }
             animator.keepAnimatorStateOnDisable=true;
-            initialized=true;Chapter=new RadioTapeChapter();ResetDeck();InitializeRecording();
+            initialized=true;Chapter=new RadioTapeChapter();ResetDeck();InitializeRecording();RestoreSource();
         }
         void OnEnable()
         {
@@ -66,6 +66,7 @@ namespace MemoryWhitebox
         bool SelectForDrag(int index)
         {
             if(!initialized || State!=Phase.Empty || index<0 || index>=tapes.Length)return false;
+            if(!Chapter.AuditionComplete)return false;
             Selected=index;State=Phase.Dragging;tapes[index].hit.enabled=true;Notice="";
             Chapter.Tape.Selected=index;Chapter.Tape.SourceVerified=Chapter.Tape.Candidates[index].Intact;
             return true;
@@ -73,7 +74,8 @@ namespace MemoryWhitebox
         public bool InsertDragged()
         {
             if(State!=Phase.Dragging || Selected<0)return false;
-            if(!Chapter.Tape.Candidates[Selected].Prepared){Notice="";WBMain.Tone(95,.15f);return false;}
+            Chapter.WorkingTapeIndex=Selected;
+            if(Chapter.WorkbenchTapeIndex==Selected)Chapter.WorkbenchTapeIndex=-1;
             CancelTapeDrag();ReleaseSpindle();
             var t=tapes[Selected];t.root.SetParent(carrier,false);t.root.localPosition=Vector3.zero;t.root.localRotation=Quaternion.identity;t.root.localScale=Vector3.one;
             // The imported FBX wrapper holds axis conversion and centimeters. Under the
@@ -96,7 +98,7 @@ namespace MemoryWhitebox
                 if(t.leftReel!=null)t.leftReel.localRotation=Quaternion.identity;
                 if(t.rightReel!=null)t.rightReel.localRotation=Quaternion.identity;
             }
-            Selected=-1;State=Phase.Empty;Chapter.Tape.Selected=-1;
+            Selected=-1;State=Phase.Empty;Chapter.Tape.Selected=-1;Chapter.WorkingTapeIndex=-1;
             if(animator.isActiveAndEnabled){animator.Play("Ready_Open",0,0);animator.Update(0);}
         }
         void Update()
@@ -108,6 +110,7 @@ namespace MemoryWhitebox
                 speaker.Stop();animator.speed=0;State=Phase.Paused;
                 tapes[Selected].hit.enabled=true;
                 Chapter.VerifyPlayback();
+                OpenRecording();
             }
             if(State==Phase.Playing && !speaker.isPlaying && speaker.clip!=null){animator.speed=0;State=Phase.Paused;}
         }
@@ -136,6 +139,7 @@ namespace MemoryWhitebox
         public string GetHint(Ray ray)
         {
             var hit=Pick(ray);
+            var sourceHint=SourceHint(hit);if(sourceHint!=null)return sourceHint;
             if(!StationActive)return IsEntryHit(hit)?"LMB  Interact   /   E  Inspect":null;
             if(State==Phase.Dragging)return draggingTape?(hit==slotHit?"Release LMB to insert   /   RMB  Return":"LMB drag to slot. Release to insert."):"LMB drag shell to slot   /   RMB  Return";
             if(State==Phase.Loading)return "Loading tape...";
@@ -147,7 +151,8 @@ namespace MemoryWhitebox
                 if(State==Phase.Paused)return "LMB  Play   /   RMB  Eject";
                 return "Drag tape to slot   /   E  Inspect radio";
             }
-            for(int i=0;i<tapes.Length;i++)if(hit==tapes[i].hit)return State==Phase.Empty?"LMB drag  Tape "+(i+1)+"  /  E  Inspect":"Eject the loaded tape first";
+            for(int i=0;i<tapes.Length;i++)if(hit==tapes[i].hit || hit==tapes[i].leftSpindleHit || hit==tapes[i].rightSpindleHit)
+                return Selected<0 || Selected==i?"LMB  Check tape   /   E  Inspect":"Eject the loaded tape first";
             return null;
         }
         // Called by the existing house input owner; no second competing input loop.

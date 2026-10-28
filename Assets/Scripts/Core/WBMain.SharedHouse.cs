@@ -30,7 +30,7 @@ namespace MemoryWhitebox
             safeInspection!=null && safeInspection.Active?PlayerControlState.Inspection:
             transition>0 || awaitRelease?PlayerControlState.Transition:ShowHelp?PlayerControlState.Paused:
             InStation && CurrentWorld is PhotoWorld3D && ((PhotoWorld3D)CurrentWorld).ParkGalleryOpen?PlayerControlState.Gallery:
-            InStation || DirectTapeHandling || (radioDeck!=null && radioDeck.RecordingMode)?PlayerControlState.Operation:PlayerControlState.Exploration;
+            InStation || DirectTapeHandling || (radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode))?PlayerControlState.Operation:PlayerControlState.Exploration;
         public void SuspendHouseInput()
         {
             houseReturnGate=true;houseHandoff.Arm();Room?.StopMotion();
@@ -258,6 +258,7 @@ namespace MemoryWhitebox
             if(safeInspection!=null && safeInspection.BlocksInput){Room.StopMotion();return;}
             if(houseReturnGate){Room.StopMotion();ReleaseHouseReturnInput(houseHandoff.Ready);return;}
             if(radioDeck.RecordingMode){radioDeck.TickRecording();return;}
+            if(radioDeck.WorkbenchMode){radioDeck.TickWorkbench();return;}
             if(Input.GetKeyDown(KeyCode.Escape))
             {
                 var gallery=InStation?CurrentWorld as PhotoWorld3D:null;
@@ -332,7 +333,7 @@ namespace MemoryWhitebox
         }
         void SyncTapePointer()
         {
-            bool free=DirectTapeHandling;
+            bool free=DirectTapeHandling || radioDeck.WorkbenchMode;
             if(free!=tapePointerWasFree){Room.EnableLook(!free);tapePointerWasFree=free;PlayerInputPolicy.SuppressLook();}
             PlayerInputPolicy.ApplyCursor(ControlState,InStation && CurrentWorld!=null && CurrentWorld.WantsMouseLook);
         }
@@ -350,7 +351,7 @@ namespace MemoryWhitebox
                 InteractionUI.Label(new Rect(28,60,Screen.width-56,60),cameraRouteNotice,style);
             if(!InStation && transition<=0)
             {
-                if(DirectTapeHandling || radioDeck.RecordingMode)return;
+                if(DirectTapeHandling || radioDeck.RecordingMode || radioDeck.WorkbenchMode)return;
                 InteractionUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"·",style);
                 string hint=Room.AimedStation>=0?"LMB  "+InteractionUI.ChapterName(Room.AimedStation)+(safeInspection!=null && Room.AimedStation!=5?"  /  E  Inspect":""):"WASD  Move   /   Mouse  Look   /   LMB  Interact   /   E  Inspect";
                 if(radioDeck!=null)hint=radioDeck.GetHint(Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f)))??hint;
@@ -366,6 +367,7 @@ namespace MemoryWhitebox
             }
             else if(InStation)
             {
+                if(ChapterIndex==0 && radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode))return;
                 if(ChapterIndex==0 && radioDeck!=null){radioDeck.DrawStation(style);if(ShowHelp){InteractionUI.Label(new Rect(32,140,Mathf.Min(826,Screen.width-64),170),CurrentWorld.Help,style);}}
                 InteractionUI.Label(new Rect(Screen.width-230,12,220,30),"Esc  Back",style);
                 if(awaitRelease && transition<=0)InteractionUI.Label(new Rect(20,70,600,40),"Release controls to continue",style);
