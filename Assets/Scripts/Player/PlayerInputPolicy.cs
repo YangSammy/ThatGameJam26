@@ -6,10 +6,11 @@ namespace MemoryWhitebox
 
     public static class PlayerInputPolicy
     {
-        // Movement never holds an input handoff hostage. The gate remembers only
-        // interaction buttons held when the context changed, not future presses.
+        // A key may mean movement in one context and recording in another.
+        // Require release only for keys held at handoff, not later presses.
         internal static readonly KeyCode[] Actions={KeyCode.Mouse0,KeyCode.Mouse1,KeyCode.Mouse2,
-            KeyCode.Escape,KeyCode.E,KeyCode.H,KeyCode.R,KeyCode.F,KeyCode.J,KeyCode.L,KeyCode.Quote,KeyCode.Return,KeyCode.Space};
+            KeyCode.Escape,KeyCode.E,KeyCode.H,KeyCode.R,KeyCode.F,KeyCode.J,KeyCode.L,KeyCode.Quote,KeyCode.Return,KeyCode.Space,
+            KeyCode.W,KeyCode.A,KeyCode.S,KeyCode.D,KeyCode.LeftArrow,KeyCode.RightArrow,KeyCode.UpArrow,KeyCode.DownArrow};
         static int ignoreLookThrough=-1;
         public static bool ActionsReleased
         {get{foreach(var key in Actions)if(Input.GetKey(key))return false;return true;}}

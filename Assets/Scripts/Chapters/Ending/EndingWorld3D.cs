@@ -159,7 +159,7 @@ namespace MemoryWhitebox
         // The scarf rests on the cushion in the centre and rises over the chair arms.
         static float ChairDrape(float x)=>.15f*(1-Mathf.SmoothStep(0,1,Mathf.Abs(x)/.48f));
         public override void Dispose() { if(ScarfMesh!=null)ReleaseObject(ScarfMesh);base.Dispose(); }
-        public override string Help => "用鼠标左键拖动围巾折角，抚平至折痕标记，再把另一端交叠到中央。最后按住 WASD 任一键让左手扶住围巾，同时用鼠标把右端向自己拉紧。\n松手后可以继续。";
+        public override string Help => "LMB drag  Smooth corner > Fold end\nHold WASD + LMB drag  Tighten";
     }
 }
 

@@ -22,6 +22,20 @@ namespace MemoryWhitebox
         readonly List<float> rows = new List<float> { 0 };
         float clock, lastInk = -100, handover, flash;
         bool pressed, havePointer, dragging;
+        [System.Serializable] sealed class Checkpoint { public int version=1; public int draft; public bool crumple; }
+        public override string CaptureCheckpoint()=>JsonUtility.ToJson(new Checkpoint{draft=Draft,crumple=Phase=="crumple"});
+        public override void RestoreCheckpoint(string json)
+        {
+            if(string.IsNullOrEmpty(json))return;
+            var node=JsonUtility.FromJson<Checkpoint>(json);
+            if(node==null || node.version!=1 || node.draft<1 || node.draft>2)throw new System.IO.InvalidDataException("Invalid writing checkpoint.");
+            Draft=node.draft;Phase=Draft==2?"return":node.crumple?"crumple":"door";
+            DoorOpen=Draft==2 || node.crumple;DoorHeld=false;Carried=false;
+            Player=Draft==2?new Vector2(145,510):new Vector2(160,505);
+            Npc=Draft==2 || node.crumple?new Vector2(472,395):new Vector2(185,395);
+            rows.Clear();rows.Add(0);Row=0;WritingProgress=0;AwaitingReturn=false;
+            clock=handover=0;lastInk=-100;pressed=havePointer=dragging=false;
+        }
         Vector2 pointer, dragPoint;
 
         [System.Serializable]

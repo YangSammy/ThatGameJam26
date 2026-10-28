@@ -36,6 +36,7 @@ namespace MemoryWhitebox
         public SafeInspectionPart[] parts;
         public Collider[] surfaces;
         public StudyEntry entry;
+        public TapePreparationBindings tapePreparation;
         bool[] sourceHidden;
 
         public void RefreshFraming()

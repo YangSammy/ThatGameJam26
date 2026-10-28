@@ -73,7 +73,7 @@ namespace MemoryWhitebox
             if(park!=null){AdvancePark(dt);return;}
             if(rig==null || house==null)return;
             int index=house!=null && house.HouseInputReady?house.ChapterIndex:0;
-            bool operating=house.HouseInputReady;
+            bool operating=house.HouseInputReady || house.DirectRadioReady;
             Set set;if(!sets.TryGetValue(index,out set))return;
             foreach(var pair in sets)pair.Value.root.gameObject.SetActive(pair.Key==index);
             VisibleSet=index;
@@ -88,12 +88,6 @@ namespace MemoryWhitebox
                 // Never place the visible hand behind the near plane.
                 target.z=Mathf.Max(.16f,target.z);
                 Quaternion rotation=engaged && source!=null?Quaternion.Inverse(transform.rotation)*source.rotation:Quaternion.Euler(15,0,0);
-                if(index==0 && operating && house!=null && house.radioDeck!=null && house.radioDeck.State==HouseRadioDeck.Phase.Holding)
-                {
-                    var deck=house.radioDeck;var cassette=deck.tapes[deck.Selected];
-                    if(i==1){target=transform.InverseTransformPoint(cassette.root.position)+new Vector3(.045f,-.065f,-.015f);rotation=Quaternion.Euler(10,-12,0);}
-                    if(deck.HeldSpindle==0 && i==0)target=transform.InverseTransformPoint(cassette.leftReel.position)+new Vector3(-.035f,-.025f,-.02f);
-                }
                 visual.localPosition=Vector3.Lerp(visual.localPosition,target,blend);
                 visual.localRotation=Quaternion.Slerp(visual.localRotation,rotation,blend);
                 Vector3 shoulder=new Vector3(i==0?-.27f:.27f,-.48f,-.12f);
@@ -119,6 +113,11 @@ namespace MemoryWhitebox
                 var target=targets!=null && targets.Length>i?targets[i]:null;
                 Vector3 position=target!=null?transform.InverseTransformPoint(target.position):Rest(i);
                 var rotation=target!=null?Quaternion.Inverse(transform.rotation)*target.rotation:Quaternion.Euler(15,0,0);
+                if(i==0 && park.HoldingPhotoHand)
+                {
+                    position=transform.InverseTransformPoint(park.PhotoHandPosition);
+                    rotation=Quaternion.Inverse(transform.rotation)*Quaternion.LookRotation(park.companion.transform.forward,Vector3.up);
+                }
                 position+=new Vector3(Mathf.Sin(step*.5f)*sway,Mathf.Sin(step)*sway,park.ShutterPulse*.008f);
                 position.z=Mathf.Max(.16f,position.z);
                 // Poses are camera-local even when the hand set has an authored parent transform.
@@ -132,5 +131,6 @@ namespace MemoryWhitebox
             }
         }
         void OnDestroy(){foreach(var r in hidden)if(r!=null)r.forceRenderingOff=false;}
+        public void PosePhotoHandForShutter(){if(park!=null && park.HoldingPhotoHand)AdvancePark(1);}
     }
 }

@@ -39,7 +39,7 @@ namespace MemoryWhitebox
         LineRenderer currentStroke;
         Light memoryLight;
 
-        public override string Help { get { return "右手：在真实纸面按住左键向右书写，写满一行后把笔移回纸张左侧。左手：WASD 控制左侧立体回忆中的自己，靠近门把手按住 E 扶门，同时保持书写。写不下去时，把整张纸抓起，拖入右下方的纸篓。第二稿拾起椅子上的红围巾，穿过门洞，交给窗边的人；写字与回忆始终同时进行。"; } }
+        public override string Help { get { return "LMB drag right  Write  /  Return pen left for next line\nWASD  Move memory  /  E  Hold door\nDiscard draft in bin; carry scarf to the person by the window."; } }
 
         public WritingWorld3D(WBMain host, WritingChapter model) : base(host, model, 2)
         {
@@ -152,6 +152,19 @@ namespace MemoryWhitebox
         public override void Activate()
         {
             base.Activate();
+            if(State.WritingProgress==0)
+            {
+                foreach(var stroke in ink)ReleaseObject(stroke.gameObject);
+                ink.Clear();strokeRows.Clear();activeStroke.Clear();currentStroke=null;
+                lineExtent=0;previousRow=-1;previousDraft=State.Draft;previousPhase=State.Phase;
+                writingHeld=draggingPaper=false;sheet.SetActive(true);paperBall.gameObject.SetActive(false);
+                penPoint=new Vector3(-.44f,1.02f,.38f);
+                if(!State.Carried)
+                {
+                    scarf.SetParent(memory,false);scarf.localPosition=new Vector3(1.3f,.61f,1.50f);
+                    scarf.localRotation=Quaternion.identity;
+                }
+            }
             if (View != null) { originalRect = View.rect; originalMask = View.cullingMask; View.rect = new Rect(.5f, 0, .5f, 1); View.cullingMask = originalMask & ~(1 << MemoryLayer); }
             MemoryCamera.enabled = true;
         }

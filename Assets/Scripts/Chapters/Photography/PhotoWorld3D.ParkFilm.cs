@@ -5,20 +5,24 @@ namespace MemoryWhitebox
 {
     public sealed partial class PhotoWorld3D
     {
+        Texture2D parkReferenceTexture;
         ParkFilmRoll parkFilm;
         ParkFilmRoll loadingFilm;
         bool parkLoading;
+        int darkroomWorkflow;
+        bool tankSealed,needsDrain;
+        bool ManualTank=>ParkMode && darkroomWorkflow==1;
         bool parkFilmUnavailable,parkGallery;
         int parkFrame=1;
         string frameNotice="";
         public bool ParkGalleryOpen=>parkGallery;
-        public string HouseCameraEntryHint=>parkFilmUnavailable?"胶卷记录暂不可用":ParkMode?
-            (ParkPrintsReady?"左键进入暗室查看成片":"左键进入暗室继续冲洗"):"左键操作相机 · 装卷后前往公园";
+        public string HouseCameraEntryHint=>parkFilmUnavailable?"Film unavailable":ParkMode?
+            (ParkPrintsReady?"LMB  View prints":"LMB  Continue developing"):"LMB  Load camera";
         bool ParkMode=>parkFilm!=null;
         bool ParkPrintsReady=>ParkMode && parkFilm.state==ParkFilmState.Developed;
-        const string ParkHelp="公园胶卷共 8 张，已经封存并放入暗袋。按住暗袋并滚轮装片；依次把 1、2、3 号药瓶拖到罐口，每次按住罐子拖动摇晃，再等计时结束；最后点击水龙头。整卷处理完成后点击“逐张查看成片”，用按钮或左右方向键翻页。Esc 先收起照片，再按 Esc 返回书房。离开会保存进度并暂停计时。";
+        const string ParkHelp="Hold rewind + Scroll / Bag + Scroll / Seal tank / Pour > Agitate > Drain / Rinse";
 
-        const string LoadingHelp="将胶卷拖入相机左仓 → 将片头拖到右侧收片轴 → 点击后盖合上 → 点击过片杆。装卷完成后，点击屏幕下方“前往公园拍摄”。中途 Esc 返回书房，下次从已保存的装卷步骤继续；公园已曝光的胶卷无需重新装载。";
+        const string LoadingHelp="Drag film > Thread leader > Close back > Advance / Go to park";
         // Loading and development belong to the park roll. The old single-shot
         // photography save remains untouched and cannot bypass camera preparation.
         bool LoadParkFilm()
@@ -36,7 +40,10 @@ namespace MemoryWhitebox
                     Photo.RestoreCompleted(false);return true;
                 }
                 parkFilm=active;
-                var d=active.darkroom ?? new ParkDarkroomProgress();
+                var d=active.darkroom ?? (active.version>=3 && active.state!=ParkFilmState.Developed?
+                    new ParkDarkroomProgress{workflowVersion=1,phase=PhotoChapter.FilmPhase.Exposed}:new ParkDarkroomProgress());
+                darkroomWorkflow=d.workflowVersion;tankSealed=d.tankSealed;needsDrain=d.needsDrain;
+                RewindTurns=d.rewindTurns;RewoundBackOpen=d.backOpen;
                 if(active.state==ParkFilmState.Developed){d.phase=PhotoChapter.FilmPhase.Developed;d.chemistry=4;}
                 Photo.Phase=d.phase;Photo.Chemistry=d.chemistry;Photo.ProcessingTime=d.remaining;
                 Photo.BagTurns=d.bagTurns;Photo.Agitated=d.agitated;clockDuration=d.clockDuration;
@@ -49,7 +56,7 @@ namespace MemoryWhitebox
             catch(Exception e)
             {
                 parkFilmUnavailable=true;saveBlocked=true;
-                saveNotice="公园胶卷暂时无法读取，原记录已保留；请恢复胶卷文件后重新进入场景。";
+                saveNotice="Film unavailable. Records kept; restore files and re-enter.";
                 Debug.LogWarning("Darkroom film load: "+e.Message);return true;
             }
         }
@@ -66,16 +73,15 @@ namespace MemoryWhitebox
             }
             catch(Exception e)
             {
-                saveNotice="装卷进度暂未保存，暂不能进入公园；请检查磁盘空间后重试。";
+                saveNotice="Loading not saved. Check storage and retry.";
                 nextSave=Time.unscaledTime+5;Debug.LogWarning("Camera loading save: "+e.Message);
             }
         }
         void DrawParkLoading(GUIStyle style)
         {
-            GUI.Box(new Rect(16,Screen.height-108,Screen.width-32,92),"");
-            GUI.Label(new Rect(28,Screen.height-100,Screen.width-56,42),ProgressHint,style);
-            if(Photo.Phase==PhotoChapter.FilmPhase.Ready &&
-               GUI.Button(new Rect(28,Screen.height-51,260,28),"装卷完成 · 前往公园拍摄"))
+
+            InteractionUI.Label(new Rect(28,Screen.height-100,Screen.width-56,42),ProgressHint,style);
+            if(InteractionUI.Button(ProgressActionRect,"Go to park"))
             {CancelInteraction();SaveProgress();Host.TryStartParkPhotography();}
         }
 
@@ -83,7 +89,9 @@ namespace MemoryWhitebox
         {
             var d=new ParkDarkroomProgress{phase=Photo.Phase,chemistry=Photo.Chemistry,
                 remaining=Mathf.Max(0,Photo.ProcessingTime),bagTurns=Photo.BagTurns,
-                agitated=Photo.Agitated,clockDuration=clockDuration,selectedFrame=parkFrame};
+                agitated=Photo.Agitated,clockDuration=clockDuration,selectedFrame=parkFrame,
+                workflowVersion=darkroomWorkflow,tankSealed=tankSealed,needsDrain=needsDrain,
+                rewindTurns=RewindTurns,backOpen=RewoundBackOpen};
             string state=JsonUtility.ToJson(d);if(state==lastSavedState)return;
             try
             {
@@ -98,13 +106,20 @@ namespace MemoryWhitebox
             }
             catch(Exception e)
             {
-                saveNotice="胶卷进度暂未保存，请检查磁盘空间；系统会重试，成片须保存成功后才能查看。";
+                saveNotice="Film not saved. Check storage; retrying.";
                 Debug.LogWarning("Darkroom film save: "+e.Message);nextSave=Time.unscaledTime+5;
             }
         }
 
         void LoadParkFrame()
         {
+            if(parkReferenceTexture!=null){ReleaseObject(parkReferenceTexture);parkReferenceTexture=null;}
+            if(parkFilm!=null && parkFilm.state==ParkFilmState.Developed && parkFrame<=parkFilm.frames.Count && !string.IsNullOrEmpty(parkFilm.frames[parkFrame-1].taskId))
+            {
+                Texture2D reference=null;
+                try{reference=new Texture2D(2,2);if(!reference.LoadImage(ParkFilmStore.ReadTaskReference(parkFilm.id,parkFilm.frames[parkFrame-1].taskId)))throw new InvalidOperationException("Reference image invalid.");parkReferenceTexture=reference;}
+                catch(Exception e){if(reference!=null)ReleaseObject(reference);Debug.LogWarning("Reference comparison unavailable: "+e.Message);}
+            }
             if(exposedTexture!=null){ReleaseObject(exposedTexture);exposedTexture=null;}
             byte[] bytes;
             if(!ParkFilmStore.TryReadDevelopedFrame(parkFilm.id,parkFrame,out bytes,out frameNotice))return;
@@ -114,7 +129,7 @@ namespace MemoryWhitebox
                 if(!texture.LoadImage(bytes))throw new InvalidOperationException("Invalid image data.");
                 texture.name="Developed park frame "+parkFrame;exposedTexture=texture;frameNotice="";
             }
-            catch(Exception){ReleaseObject(texture);frameNotice="这一张成片暂时无法读取，原底片已保留。";}
+            catch(Exception){ReleaseObject(texture);frameNotice="Print unavailable. Negative kept.";}
             SyncProps();
         }
         void OpenParkGallery()
@@ -129,7 +144,7 @@ namespace MemoryWhitebox
         }
         void TurnParkFrame(int delta)
         {
-            int next=Mathf.Clamp(parkFrame+delta,1,ParkFilmRoll.FrameCapacity);
+            int next=Mathf.Clamp(parkFrame+delta,1,parkFilm.Capacity);
             if(next==parkFrame)return;
             parkFrame=next;LoadParkFrame();SaveProgress();
         }
@@ -137,25 +152,34 @@ namespace MemoryWhitebox
         {
             if(!parkGallery)
             {
-                GUI.Box(new Rect(16,Screen.height-108,Screen.width-32,92),"");
+
                 string hint=ProgressHint;
-                if(ParkPrintsReady && saveNotice=="")hint="整卷 8 张已显影并保存，可以逐张查看；Esc 返回书房。";
-                GUI.Label(new Rect(28,Screen.height-100,Screen.width-56,42),"公园胶卷 · 8 / 8 张\n"+hint,style);
-                if(ParkPrintsReady && GUI.Button(new Rect(28,Screen.height-51,200,28),"逐张查看成片"))OpenParkGallery();
+                if(ParkPrintsReady && saveNotice=="")hint="Roll: " + parkFilm.Capacity + " frames developed  /  Esc  Back";
+                InteractionUI.Label(new Rect(28,Screen.height-100,Screen.width-56,42),"Film  " + parkFilm.Capacity + " / " + parkFilm.Capacity + " frames\n"+hint,style);
+                if(ParkPrintsReady && InteractionUI.Button(ProgressActionRect,"View prints"))OpenParkGallery();
                 return;
             }
-            GUI.Box(new Rect(12,56,Screen.width-24,Screen.height-68),"");
+
             var bounds=new Rect(36,91,Screen.width-72,Mathf.Max(1,Screen.height-184));
             // ScaleToFit preserves the actual viewfinder aspect ratio; no second blur
             // or quality scoring is applied to the immutable park exposures.
-            if(exposedTexture!=null)GUI.DrawTexture(bounds,exposedTexture,ScaleMode.ScaleToFit);
-            else GUI.Label(bounds,frameNotice,style);
-            GUI.Label(new Rect(36,61,Screen.width-72,30),"公园成片 · 第 "+parkFrame+" / 8 张",style);
+            if(exposedTexture!=null)
+            {
+                if(parkReferenceTexture!=null)
+                {
+                    float half=(bounds.width-24)*.5f;
+                    GUI.DrawTexture(new Rect(bounds.x,bounds.y,half,bounds.height),parkReferenceTexture,ScaleMode.ScaleToFit);
+                    GUI.DrawTexture(new Rect(bounds.x+half+24,bounds.y,half,bounds.height),exposedTexture,ScaleMode.ScaleToFit);
+                }
+                else GUI.DrawTexture(bounds,exposedTexture,ScaleMode.ScaleToFit);
+            }
+            else InteractionUI.Label(bounds,frameNotice,style);
+            InteractionUI.Label(new Rect(36,61,Screen.width-72,30),"Print  "+parkFrame+" / " + parkFilm.Capacity + " frames",style);
             bool enabled=GUI.enabled;
-            GUI.enabled=parkFrame>1;if(GUI.Button(new Rect(36,Screen.height-70,140,36),"← 上一张"))TurnParkFrame(-1);
-            GUI.enabled=parkFrame<8;if(GUI.Button(new Rect(188,Screen.height-70,140,36),"下一张 →"))TurnParkFrame(1);
+            GUI.enabled=parkFrame>1;if(InteractionUI.Button(new Rect(36,Screen.height-70,140,36),"< Previous"))TurnParkFrame(-1);
+            GUI.enabled=parkFrame<parkFilm.Capacity;if(InteractionUI.Button(new Rect(188,Screen.height-70,140,36),"Next >"))TurnParkFrame(1);
             GUI.enabled=enabled;
-            if(GUI.Button(new Rect(Screen.width-204,Screen.height-70,168,36),"收起照片 [Esc]"))CloseParkGallery();
+            if(InteractionUI.Button(new Rect(Screen.width-204,Screen.height-70,168,36),"Close  /  Esc"))CloseParkGallery();
         }
     }
 }

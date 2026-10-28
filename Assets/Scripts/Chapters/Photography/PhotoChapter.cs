@@ -30,7 +30,7 @@ namespace MemoryWhitebox
         readonly Rect view=new Rect(500,130,730,400),tank=new Rect(970,575,115,115);
         static readonly float[] apertures={2.8f,4,5.6f,8,11,16};
         static readonly float[] shutters={1f/4,1f/8,1f/15,1f/30,1f/60,1f/125,1f/250,1f/500,1f/1000};
-        public override string Help=>"先WASD找拍摄位置。选择ISO100/200/400胶卷拖入后盖→拖片头到右侧收片轴→点后盖→点过片杆。测光表在左侧，读数后记忆换算。点右侧画面进取景器：中心滚轮调焦距，向右后滚轮调快门，向下后调光圈，向上离开；回中心重选焦距，左键拍摄。拍完倒片回卷，卷拖黑袋，按住左键滚轮把胶片绕入片轴，再按1→2→3倒药，每次拖罐轻摇后计时，最后点水滴。Esc返回旧屋。";
+        public override string Help=>"先WASD找拍摄位置。选择ISO100/200/400胶卷拖入后盖→拖片头到右侧收片轴→点后盖→点过片杆。测光表在左侧，读数后记忆换算。点右侧画面进取景器：中心滚轮调焦距，向右后滚轮调快门，向下后调光圈，向上离开; 回中心重选焦距，左键拍摄。拍完倒片回卷，卷拖黑袋，按住左键滚轮把胶片绕入片轴，再按1→2→3倒药，每次拖罐轻摇后计时，最后点水滴。Esc返回旧屋。";
         public static Vector2 Project(Vector3 p,CameraSettings s,Rect frame)
         {
             float dx=p.x-s.X,dz=p.z-s.Z,rx=dx*Mathf.Cos(s.Yaw)-dz*Mathf.Sin(s.Yaw),rz=dx*Mathf.Sin(s.Yaw)+dz*Mathf.Cos(s.Yaw);
@@ -59,7 +59,7 @@ namespace MemoryWhitebox
             if(Phase==FilmPhase.DarkBag&&tank.Contains(p)&&button==0){bagHeld=true;return;}
             if(Phase==FilmPhase.LoadedOpen&&!FilmThreaded&&new Rect(145,484,55,45).Contains(p)){drag=4;dragPoint=p;return;}
             if(Phase==FilmPhase.Processing&&tank.Contains(p)){shaking=true;return;}
-            if(Phase==FilmPhase.Empty)for(int i=0;i<3;i++)if(new Rect(65+i*95,590,82,90).Contains(p)){drag=0;dragISO=new[]{100,200,400}[i];dragPoint=p;return;}
+            if(Phase==FilmPhase.Empty)for(int i=0;i<4;i++)if(new Rect(65+i*95,590,82,90).Contains(p)){drag=0;dragISO=new[]{100,200,400,800}[i];dragPoint=p;return;}
             if(Phase==FilmPhase.Rewound&&new Rect(375,555,90,90).Contains(p)){drag=0;dragPoint=p;return;}
             if(Phase==FilmPhase.Tank){for(int i=0;i<3;i++)if(new Rect(1115,548+i*48,47,42).Contains(p)){drag=i+1;dragPoint=p;return;}if(Chemistry==3&&new Rect(1170,610,70,80).Contains(p)){ProcessingTime=1;Phase=FilmPhase.Processing;return;}}
             if(new Rect(80,445,280,125).Contains(p)){if(Phase==FilmPhase.LoadedOpen&&FilmThreaded)Phase=FilmPhase.Closed;else if(Phase==FilmPhase.Exposed){Fogged=true;Phase=FilmPhase.Rewound;}return;}
@@ -116,14 +116,14 @@ namespace MemoryWhitebox
         }
         public string FailureReason {
             get {
-                if(Captured==null)return "尚未拍摄";
+                if(Captured==null)return "No exposure";
                 var reasons=new System.Collections.Generic.List<string>();
-                if(Fogged)reasons.Add("未倒片就开盖，胶片漏光");
-                if(GeometryError>=21)reasons.Add("构图不匹配：对照参考照片调整站位、朝向和焦距");
-                if(ExposureError>=.38f)reasons.Add(EV(Captured)>EV(Target)?"曝光不足：减慢快门或开大光圈":"曝光过度：加快快门或缩小光圈");
-                if(FocusBlur>=1.4f)reasons.Add("主体模糊：调整拍摄距离或缩小光圈");
-                if(MotionBlur>=3.5f)reasons.Add("快门太慢，产生拖影");
-                return string.Join("；",reasons.ToArray());
+                if(Fogged)reasons.Add("Film fogged: rewind before opening");
+                if(GeometryError>=21)reasons.Add("Framing mismatch: adjust position and focal length");
+                if(ExposureError>=.38f)reasons.Add(EV(Captured)>EV(Target)?"Underexposed: slower shutter / wider aperture":"Overexposed: faster shutter / smaller aperture");
+                if(FocusBlur>=1.4f)reasons.Add("Out of focus: adjust distance / aperture");
+                if(MotionBlur>=3.5f)reasons.Add("Motion blur: use faster shutter");
+                return string.Join("; ",reasons.ToArray());
             }
         }
         public void RestoreCompleted(bool value){Completed=value;}
@@ -180,7 +180,7 @@ namespace MemoryWhitebox
             G.Circle(new Vector2(115,425),17,edge);G.Arrow(new Vector2(100,425),new Vector2(115,410),G.C("#d8e1cd"),2);
             G.Circle(new Vector2(345,423),17,Phase==FilmPhase.Ready?G.C("#ad634f"):edge);G.Line(new Vector2(367,455),new Vector2(410,470),edge,8);G.Circle(new Vector2(405,468),10,edge);
             if(Phase==FilmPhase.Ready)G.Circle(new Vector2(346,423),5,G.C("#e8e9da"));
-            if(Phase==FilmPhase.Empty)for(int i=0;i<3;i++)if(drag!=0||dragISO!=new[]{100,200,400}[i])Roll(new Vector2(105+i*95,635),new[]{100,200,400}[i]);if(Phase==FilmPhase.Rewound&&drag!=0)Roll(new Vector2(417,597),Settings.ISO);
+            if(Phase==FilmPhase.Empty)for(int i=0;i<4;i++)if(drag!=0||dragISO!=new[]{100,200,400,800}[i])Roll(new Vector2(105+i*95,635),new[]{100,200,400,800}[i]);if(Phase==FilmPhase.Rewound&&drag!=0)Roll(new Vector2(417,597),Settings.ISO);
             if(Phase==FilmPhase.Developed){G.Text("↻",new Rect(385,647,75,40),28);if(Completed)G.Check(new Vector2(350,625),22);else{G.Circle(new Vector2(350,625),18,G.C("#ba8063"));G.Text("!",new Rect(338,608,24,32),22,Color.white);}}
             G.Box(new Rect(365,370,85,62),G.C("#b4bda9"),edge,2);G.Circle(new Vector2(407,391),14,G.C("#59684f"));G.Line(new Vector2(407,391),new Vector2(418,380),G.C("#e2e7d5"),2);G.Text("EV",new Rect(375,406,65,18),12);
             if(InViewfinder){G.Box(new Rect(520,548,355,105),G.C("#dce1d1"),edge,2);string val=WheelMode==0?Settings.Focal.ToString("0")+" mm":WheelMode==1?"1/"+(1/Settings.Shutter).ToString("0"):"f/"+Settings.Aperture.ToString("0.0");G.Ring(new Vector2(575,599),31,1,edge,4);G.Line(new Vector2(575,574),new Vector2(575,583),edge,3);G.Text(val,new Rect(622,567,210,55),29);G.Text(WheelMode==0?"↔":WheelMode==1?"◷":"◉",new Rect(829,565,30,50),22);G.Text("ISO "+Settings.ISO,new Rect(665,622,150,23),13);}

@@ -24,11 +24,15 @@ namespace MemoryWhitebox
         public virtual void PointerMove(Vector2 p) { }
         public virtual void PointerUp(Vector2 p) { }
         public virtual void Wheel(float delta, Vector2 p) { }
+        // Return durable nodes only; held controls, animation and drag poses never resume.
+        public virtual string CaptureCheckpoint() => "";
+        public virtual void RestoreCheckpoint(string json) { }
+        public void RestoreStoryCompletion() { Completed=true; }
         protected void Finish()
         {
             if (Completed) return;
             Completed = true;
-            if (WBMain.Instance != null) WBMain.Instance.ChapterComplete();
+            if (WBMain.Instance != null) WBMain.Instance.ChapterComplete(this);
         }
     }
 

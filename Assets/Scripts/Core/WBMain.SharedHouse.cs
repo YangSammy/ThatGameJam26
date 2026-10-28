@@ -9,6 +9,10 @@ namespace MemoryWhitebox
         public Transform StudyEntries {get;private set;}
         public StudyCurtain Curtain {get;private set;}
         bool studyRevealed;
+        // Tape handling uses the current exploration pose, never an operation anchor.
+        public bool DirectTapeHandling => !InStation && radioDeck!=null && radioDeck.State==HouseRadioDeck.Phase.Dragging;
+        public bool DirectRadioReady => houseReady && !InStation && transition<=0 && !houseReturnGate && houseFocused && !(safeInspection!=null && safeInspection.BlocksInput);
+        bool tapePointerWasFree;
         public Camera playerCamera;
         public FirstPersonHands playerHands;
         public GameObject houseShell;
@@ -26,7 +30,7 @@ namespace MemoryWhitebox
             safeInspection!=null && safeInspection.Active?PlayerControlState.Inspection:
             transition>0 || awaitRelease?PlayerControlState.Transition:ShowHelp?PlayerControlState.Paused:
             InStation && CurrentWorld is PhotoWorld3D && ((PhotoWorld3D)CurrentWorld).ParkGalleryOpen?PlayerControlState.Gallery:
-            InStation?PlayerControlState.Operation:PlayerControlState.Exploration;
+            InStation || DirectTapeHandling || (radioDeck!=null && radioDeck.RecordingMode)?PlayerControlState.Operation:PlayerControlState.Exploration;
         public void SuspendHouseInput()
         {
             houseReturnGate=true;houseHandoff.Arm();Room?.StopMotion();
@@ -55,6 +59,7 @@ namespace MemoryWhitebox
             chapters[0]=radioDeck.Chapter;
             worlds[0]=new RadioTapeWorld(radioDeck);
             for(int i=1;i<5;i++)CreateHouseChapter(i);
+            LoadStoryProgress();
             ((PaintingWorld3D)worlds[3]).BindSharedScarf((EndingWorld3D)worlds[4]);
             var hands=playerHands;hands.BindHouse(this);hands.Register(0,worlds[0]);
             for(int i=1;i<5;i++)hands.Register(i,worlds[i]);
@@ -62,8 +67,10 @@ namespace MemoryWhitebox
             // Writing's memory is rendered only by its dedicated camera.
             Room.Camera.cullingMask &= ~(1<<26);
             if(playerSpawn!=null)playerSpawn.Apply(Room.Camera);
+            story.RestoreReturn(Room.Camera);
             ParkFilmRoute.RestoreHouseView(Room.Camera);
-            Room.EnableLook(true);houseReady=true;SuspendHouseInput();
+            story.ClearReturn();
+            Room.EnableLook(true);houseReady=true;radioDeck.SetStationActive(true);SuspendHouseInput();
             if(ParkFilmRoute.EnterDarkroomOnLoad){ParkFilmRoute.EnterDarkroomOnLoad=false;EnterHouseStation(1);}
         }
         void CreateHouseChapter(int index)
@@ -79,8 +86,10 @@ namespace MemoryWhitebox
         }
         public bool TryEnterHouseStation(int index)
         {
+            if(index==0 || DirectTapeHandling)return false;
             if(deskStudy && index==5 && !InStation && transition<=0){var curtainEntry=StudyEntry.Pick(Room.Camera);if(curtainEntry==null || curtainEntry.chapter!=5)return false;Curtain.Toggle();return true;}
             if(!houseReady || InStation || transition>0 || index<0 || index>=5)return false;
+            if(!CanEnterDay(index))return false;
             if(deskStudy){var entry=StudyEntry.Pick(Room.Camera);if(entry==null || entry.chapter!=index)return false;EnterHouseStation(index);return true;}
             Vector3 delta=HouseLayout.Targets[index]-Room.Camera.transform.position;
             if(delta.magnitude>2.5f || Vector3.Dot(Room.Camera.transform.forward,delta.normalized)<.9f)return false;
@@ -101,7 +110,10 @@ namespace MemoryWhitebox
         }
         void EnterHouseStation(int index)
         {
-            if(!houseReady || InStation || transition>0 || index<0 || index>=5)return;
+            if(!houseReady || InStation || DirectTapeHandling || transition>0 || index<=0 || index>=5)return;
+            if(!CanEnterDay(index))return;
+            SaveStableProgress();
+            radioDeck.SetStationActive(false);
             roomEye=Room.Camera.transform.position;roomRotation=Room.Camera.transform.rotation;roomFov=Room.Camera.fieldOfView;
             ChapterIndex=index;Current=chapters[index];CurrentWorld=worlds[index];
             if(index==0 && CurrentWorld is RadioTapeWorld)((RadioTapeWorld)CurrentWorld).ReadViewAnchor();
@@ -114,14 +126,17 @@ namespace MemoryWhitebox
         // Called by the loading UI only after the mechanical steps have been saved.
         public bool TryStartParkPhotography()
         {
-            if(!HouseInputReady || !deskStudy || ChapterIndex!=1)return false;
+            if(!HouseInputReady || !deskStudy || ChapterIndex!=1 || !CanEnterDay(1))return false;
             try
             {
-                var film=ParkFilmStore.LoadActive();
-                if(film==null || !film.ReadyForPark)
-                    throw new System.InvalidOperationException("Camera loading has not been saved as ready.");
+                var film=ParkFilmStore.LoadOrCreate();
+                if(film.state!=ParkFilmState.Loaded)
+                    throw new System.InvalidOperationException("Film must be developed before another park visit.");
                 if(!Application.CanStreamedLevelBeLoaded(ParkFilmRoute.ParkScenePath))
                     throw new System.InvalidOperationException("ParkScene is not in Build Settings.");
+                SaveStableProgress();
+                if(!story.RememberReturn(roomEye,roomRotation,roomFov))return false;
+                SuspendHouseInput();
                 ParkFilmRoute.RememberHouseView(roomEye,roomRotation,roomFov);
                 UnityEngine.SceneManagement.SceneManager.LoadScene(ParkFilmRoute.ParkScenePath);
                 return true;
@@ -129,7 +144,7 @@ namespace MemoryWhitebox
             catch(System.Exception e)
             {
                 ParkFilmRoute.ForgetHouseView();
-                cameraRouteNotice="暂时无法进入公园，请检查场景或胶卷记录；原进度已保留。";
+                cameraRouteNotice="Park unavailable. Film progress kept.";
                 cameraRouteNoticeUntil=Time.unscaledTime+6;
                 Debug.LogWarning("House camera route: "+e.Message);
             }
@@ -186,7 +201,7 @@ namespace MemoryWhitebox
                 returningToRoom=false;Room.EnableLook(true);SuspendHouseInput();
             }
         }
-        // Only the interaction buttons held at entry must be released; WASD is independent.
+        // Keys held across contexts must be released before the new context accepts input.
         public void ReleaseHouseEntryInput()
         {
             if(!InStation || transition>0 || !awaitRelease)return;
@@ -200,6 +215,7 @@ namespace MemoryWhitebox
         void ExitHouseStation()
         {
             if(!houseReady || !InStation || returningToRoom)return;
+            SaveStableProgress();
             returningToRoom=true;ShowHelp=false;awaitRelease=false;houseReturnGate=false;
             InputState.Keys.Clear();InputState.Down=false;
             var photo=CurrentWorld as PhotoWorld3D;if(photo!=null){photo.CancelInteraction();photo.SaveProgress();}
@@ -213,24 +229,34 @@ namespace MemoryWhitebox
             if(ChapterIndex==0)radioDeck.SetStationActive(false);
             else if(CurrentWorld.Active)CurrentWorld.Deactivate();
             if(deskStudy)SetStudyPresentation(-1);
+            // Return to the durable node, never to a held gesture or half-transfer.
+            if(!Current.Completed && story.Available)
+            {
+                try{Current.RestoreCheckpoint(story.Checkpoint(ChapterIndex));}
+                catch(System.Exception e){story.BlockRestore(e);}
+            }
             InputState.Keys.Clear();InputState.Down=false;wasDown=wasRightDown=false;
-            Done[ChapterIndex]=Current.Completed;
+            Done[ChapterIndex]=story.IsComplete(ChapterIndex);
             Room.Camera.rect=new Rect(0,0,1,1);Room.Camera.cullingMask &= ~(1<<26);
             Room.Camera.ResetAspect();
             InStation=false;ShowHelp=false;awaitRelease=false;
+            radioDeck.SetStationActive(true);
             audioSource.Stop();
+            story.ClearReturn();
         }
         void UpdateHouse()
         {
             if(!houseReady || Room==null || !houseFocused)return;
+            TickStoryProgress();
             RestoreHouseCursor();
             if(safeInspection!=null && safeInspection.BlocksInput){Room.StopMotion();return;}
             if(houseReturnGate){Room.StopMotion();ReleaseHouseReturnInput(houseHandoff.Ready);return;}
+            if(radioDeck.RecordingMode){radioDeck.TickRecording();return;}
             if(Input.GetKeyDown(KeyCode.Escape))
             {
                 var gallery=InStation?CurrentWorld as PhotoWorld3D:null;
                 if(gallery!=null && gallery.CloseParkGallery())return;
-                if(!InStation && radioDeck!=null && radioDeck.State==HouseRadioDeck.Phase.Holding){radioDeck.ResetDeck();return;}
+                if(DirectTapeHandling){radioDeck.PutBack();SyncTapePointer();SuspendHouseInput();return;}
                 if(InStation)ExitHouseStation();
                 else RestoreHouseCursor();
                 return;
@@ -239,10 +265,24 @@ namespace MemoryWhitebox
             if(transition>0){AdvanceHouseTransition(dt);return;}
             if(!InStation)
             {
+                if(!radioDeck.StationActive && CanEnterDay(0))radioDeck.SetStationActive(true);
+                if(!CanEnterDay(0) && radioDeck.StationActive)radioDeck.SetStationActive(false);
+                SyncTapePointer();
                 var controls=PlayerControlSettings.Current;
-                Room.WalkSpeed=controls.walkSpeed*controls.houseSpeedMultiplier;Room.LookSensitivity=controls.lookSensitivity;Room.WalkTick(dt);
-                if(Input.GetKeyDown(KeyCode.E) && TryInspectStudyEntry())return;
-                if(Input.GetMouseButtonDown(0) && Room.AimedStation>=0)TryEnterHouseStation(Room.AimedStation);
+                Room.WalkSpeed=controls.walkSpeed*controls.houseSpeedMultiplier;Room.LookSensitivity=controls.lookSensitivity;
+                if(DirectTapeHandling)Room.StopMotion();else Room.WalkTick(dt);
+                var ray=DirectTapeHandling?Room.Camera.ScreenPointToRay(Input.mousePosition):Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f));
+                bool radioTarget=radioDeck.IsEntryHit(StudyEntry.PickVisible(ray));
+                if(Input.GetKeyDown(KeyCode.E))
+                {
+                    if(DirectTapeHandling || radioTarget){if(radioDeck.TryInspect(ray))return;}
+                    else if(TryInspectStudyEntry())return;
+                }
+                bool handling=DirectTapeHandling;
+                radioDeck.TickStation(dt,ray,Input.GetMouseButton(0),Input.GetMouseButton(1),Input.mouseScrollDelta.y,false,PlayerInputPolicy.ActionsReleased);
+                Done[0]=story.IsComplete(0);SyncTapePointer();
+                if(handling && !DirectTapeHandling){SuspendHouseInput();return;}
+                if(!handling && !DirectTapeHandling && !radioTarget && Input.GetMouseButtonDown(0) && Room.AimedStation>0)TryEnterHouseStation(Room.AimedStation);
                 return;
             }
             if(awaitRelease)
@@ -257,7 +297,7 @@ namespace MemoryWhitebox
                     if(Input.GetKeyDown(KeyCode.M)){Muted=!Muted;radioDeck.speaker.mute=Muted;}
                     radioDeck.TickStation(dt,Room.Camera.ScreenPointToRay(Input.mousePosition),Input.GetMouseButton(0),Input.GetMouseButton(1),Input.mouseScrollDelta.y,Input.GetKeyDown(KeyCode.E),PlayerInputPolicy.ActionsReleased);
                 }
-                Done[0]=Current.Completed;return;
+                Done[0]=story.IsComplete(0);return;
             }
             if(Input.GetKeyDown(KeyCode.H))SetHelpVisible(!ShowHelp);
             if(Input.GetKeyDown(KeyCode.M))Muted=!Muted;
@@ -273,7 +313,7 @@ namespace MemoryWhitebox
             CurrentWorld.Move(pointerRay);if(!down&&wasDown || !right&&wasRightDown)CurrentWorld.Release(id,pointerRay);
             if(!photoUI && Mathf.Abs(Input.mouseScrollDelta.y)>.01f)CurrentWorld.Scroll(id,Input.mouseScrollDelta.y,pointerRay);
             CurrentWorld.Tick(dt,InputState);if(!CurrentWorld.WantsMouseLook)CurrentWorld.ApplyPose();
-            Done[ChapterIndex]=Current.Completed;wasDown=down;wasRightDown=right;
+            Done[ChapterIndex]=story.IsComplete(ChapterIndex);wasDown=down;wasRightDown=right;
         }
         // House owns cursor policy outside the inspection modal. Focus/Editor unlocks
         // must not become the next saved exploration state.
@@ -282,7 +322,13 @@ namespace MemoryWhitebox
             if(!sharedHouse || !houseReady || Room==null || !houseFocused || !isActiveAndEnabled)return;
             if(safeInspection!=null && safeInspection.Active)return;
             if(ControlState==PlayerControlState.Exploration && (Cursor.lockState!=CursorLockMode.Locked || Cursor.visible))Room.EnableLook(true);
-            PlayerInputPolicy.ApplyCursor(ControlState,CurrentWorld!=null && CurrentWorld.WantsMouseLook);
+            PlayerInputPolicy.ApplyCursor(ControlState,InStation && CurrentWorld!=null && CurrentWorld.WantsMouseLook);
+        }
+        void SyncTapePointer()
+        {
+            bool free=DirectTapeHandling;
+            if(free!=tapePointerWasFree){Room.EnableLook(!free);tapePointerWasFree=free;PlayerInputPolicy.SuppressLook();}
+            PlayerInputPolicy.ApplyCursor(ControlState,InStation && CurrentWorld!=null && CurrentWorld.WantsMouseLook);
         }
         void DrawHouse()
         {
@@ -295,35 +341,49 @@ namespace MemoryWhitebox
             }
             var style=new GUIStyle(GUI.skin.label){font=UIFont,fontSize=18,wordWrap=true};
             if(InStation && Time.unscaledTime<cameraRouteNoticeUntil)
-                GUI.Label(new Rect(28,60,Screen.width-56,60),cameraRouteNotice,style);
+                InteractionUI.Label(new Rect(28,60,Screen.width-56,60),cameraRouteNotice,style);
             if(!InStation && transition<=0)
             {
-                GUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"·",style);
-                string hint=Room.AimedStation>=0?"左键进入："+HouseLayout.Names[Room.AimedStation]+(safeInspection!=null && Room.AimedStation!=5?" · E 安全检视":""):"WASD 行走 · 鼠标环视 · 走近物件后左键进入 / E 检视";
+                if(DirectTapeHandling || radioDeck.RecordingMode)return;
+                InteractionUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"·",style);
+                string hint=Room.AimedStation>=0?"LMB  "+InteractionUI.ChapterName(Room.AimedStation)+(safeInspection!=null && Room.AimedStation!=5?"  /  E  Inspect":""):"WASD  Move   /   Mouse  Look   /   LMB  Interact   /   E  Inspect";
                 if(radioDeck!=null)hint=radioDeck.GetHint(Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f)))??hint;
                 if(safeInspection!=null && Room.AimedStation<0)
                 {
                     var item=safeInspection.ForHit(StudyEntry.PickVisible(Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f))));
-                    if(item!=null)hint="E 安全检视："+item.title;
+                    if(item!=null)hint="E  Inspect";
                 }
                 if(deskStudy && Room.AimedStation==1)
-                    hint=((PhotoWorld3D)worlds[1]).HouseCameraEntryHint+(safeInspection!=null?" · E 安全检视":"");
+                    hint=((PhotoWorld3D)worlds[1]).HouseCameraEntryHint+(safeInspection!=null?"  /  E  Inspect":"");
                 if(Time.unscaledTime<cameraRouteNoticeUntil)hint=cameraRouteNotice;
-                GUI.Box(new Rect(16,Screen.height-56,600,40),"");GUI.Label(new Rect(28,Screen.height-50,580,34),hint,style);
+                InteractionUI.Label(new Rect(28,Screen.height-50,580,34),hint,style);
             }
             else if(InStation)
             {
-                if(ChapterIndex==0 && radioDeck!=null){radioDeck.DrawStation(style);if(ShowHelp){GUI.Box(new Rect(20,130,Mathf.Min(850,Screen.width-40),190),"");GUI.Label(new Rect(32,140,Mathf.Min(826,Screen.width-64),170),CurrentWorld.Help,style);}}
-                GUI.Label(new Rect(Screen.width-230,12,220,30),"Esc 返回屋内",style);
-                if(awaitRelease && transition<=0)GUI.Label(new Rect(20,70,600,40),"松开刚才的交互按键，开始操作",style);
+                if(ChapterIndex==0 && radioDeck!=null){radioDeck.DrawStation(style);if(ShowHelp){InteractionUI.Label(new Rect(32,140,Mathf.Min(826,Screen.width-64),170),CurrentWorld.Help,style);}}
+                InteractionUI.Label(new Rect(Screen.width-230,12,220,30),"Esc  Back",style);
+                if(awaitRelease && transition<=0)InteractionUI.Label(new Rect(20,70,600,40),"Release controls to continue",style);
                 if(ChapterIndex!=0)
                 {
-                    GUI.Label(new Rect(20,12,600,35),HouseLayout.Names[ChapterIndex]+" · H 操作说明",style);
-                    if(ShowHelp){GUI.Box(new Rect(20,60,Mathf.Min(900,Screen.width-40),230),"");GUI.Label(new Rect(32,72,Mathf.Min(870,Screen.width-64),210),CurrentWorld.Help,style);}
-                    if(CurrentWorld.WantsMouseLook)GUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"·",style);
+                    InteractionUI.Label(new Rect(20,12,600,35),InteractionUI.ChapterName(ChapterIndex)+"  /  H  Help",style);
+                    if(ShowHelp){InteractionUI.Label(new Rect(32,72,Mathf.Min(870,Screen.width-64),210),CurrentWorld.Help,style);}
+                    else if(ChapterIndex>=2)InteractionUI.Label(new Rect(28,Screen.height-72,Screen.width-56,52),OperationHint(),style);
+                    if(CurrentWorld.WantsMouseLook)InteractionUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"·",style);
                     if(deskStudy && ChapterIndex==1 && transition<=0 && !awaitRelease && !ShowHelp)((PhotoWorld3D)CurrentWorld).DrawProgress(style);
                 }
             }
+        }
+        string OperationHint()
+        {
+            if(Current.Completed)return "Complete  /  Esc  Back";
+            var writing=Current as WritingChapter;
+            if(writing!=null)return writing.Phase=="crumple"?"LMB drag paper to bin":writing.Phase=="return"?
+                "WASD  Carry scarf to window  /  LMB drag  Keep writing":"LMB drag  Write  /  WASD  Move memory  /  E  Hold door";
+            var painting=Current as PaintingChapter;
+            if(painting!=null)return "Hold LMB  Focus  /  "+(painting.Phase==0?"Scarf":painting.Phase==1?"Cup contact":"Joined hands")+(painting.Ready?"":"  /  Wait for contact");
+            var scarf=Current as EndingChapter;
+            if(scarf!=null)return scarf.Phase==0?"LMB drag  Smooth corner":scarf.Phase==1?"LMB drag  Fold end":"Hold WASD + LMB drag  Tighten";
+            return "LMB  Interact  /  Esc  Back";
         }
     }
 }
