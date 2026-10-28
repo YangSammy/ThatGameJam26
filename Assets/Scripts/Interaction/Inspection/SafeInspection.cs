@@ -10,6 +10,9 @@ namespace MemoryWhitebox
         public Light inspectionLight;
         public AudioSource feedback;
         public SafeInspectionSubject[] subjects;
+        [Range(0,1)] public float backdropOpacity=.72f;
+        Material backdropMaterial;
+        UnityEngine.Rendering.CommandBuffer backdropCommands;
         [Header("统一检视：距离与缩放")]
         [Min(.1f)] public float defaultDistance=.85f;
         [Min(.1f)] public float minimumDistance=.55f;
@@ -27,15 +30,11 @@ namespace MemoryWhitebox
         [Min(.01f)] public float approachDuration=.35f;
         [Min(.01f)] public float resetDuration=.22f;
         [Min(0)] public float openPartClearance=.65f;
-        [Header("实际手持：镜头局部空间")]
-        public Vector3 heldTapePosition=new Vector3(.09f,-.035f,.35f);
-        public Vector3 heldTapeEulerAngles=Vector3.zero;
-        [Min(.01f)] public float heldTapeMoveSpeed=1.6f;
-        [Min(1)] public float heldTapeRotateSpeed=540;
         float NearDistance=>Mathf.Max(.1f,minimumDistance);
         float FarDistance=>Mathf.Max(NearDistance,maximumDistance);
         float DefaultDistance=>Mathf.Clamp(defaultDistance,NearDistance,FarDistance);
         public SafeInspectionSubject Current {get;private set;}
+        TapeInspectionSession tapeSession;
         public bool Active => Current!=null;
         public bool BlocksInput => Active || releaseGate;
         public float Distance {get;private set;}
@@ -62,7 +61,8 @@ namespace MemoryWhitebox
         Quaternion resetSpin;
         public SafeInspectionPart HoveredPart => hovered;
         public bool Resetting => resetSeconds>=0;
-        public Rect ResetButtonRect => new Rect(20,Screen.height*.5f-20,148,40);
+        public Rect ResetButtonRect => new Rect(28,Screen.height*.5f-46,156,38);
+        public Rect ExitButtonRect => new Rect(28,Screen.height*.5f,156,38);
         SafeInspectionPart hovered;
         Font font;
 
@@ -92,17 +92,18 @@ namespace MemoryWhitebox
                 targetEye=center+direction*Mathf.Clamp(subject.diameter*Mathf.Max(.1f,fixedDeviceDistanceScale),near,Mathf.Max(near,fixedDeviceMaximumDistance));
                 targetRotation=Quaternion.LookRotation(center-targetEye);
             }
-            subject.Begin();view.cullingMask&=~((1<<DisplayLayer)|(1<<FirstPersonHands.HandLayer));
-            displayCamera.enabled=true;inspectionLight.enabled=true;
+            subject.Begin();tapeSession=null;view.cullingMask&=~((1<<DisplayLayer)|(1<<FirstPersonHands.HandLayer));
+            EnableBackdrop();displayCamera.enabled=true;inspectionLight.enabled=true;
             PlayerInputPolicy.ApplyCursor(PlayerControlState.Inspection);entryGate=true;handoff.Arm();
             leftHeld=rightHeld=false;gesture=Gesture.None;pendingPart=null;pendingDelta=Vector2.zero;Advance(0);return true;
         }
         public void Close()
         {
             if(!Active)return;
-            ReleasePart();SetHover(null);leftHeld=rightHeld=false;gesture=Gesture.None;pendingPart=null;resetSeconds=-1;Current.End();Current=null;
+            ReleasePart();SetHover(null);leftHeld=rightHeld=false;gesture=Gesture.None;pendingPart=null;resetSeconds=-1;Current.End();tapeSession?.Close();tapeSession=null;Current=null;
             if(view!=null){view.transform.SetPositionAndRotation(eye,rotation);view.fieldOfView=fov;view.rect=viewport;view.cullingMask=mask;}
             if(displayCamera!=null)displayCamera.enabled=false;
+            DisableBackdrop();
             if(inspectionLight!=null)inspectionLight.enabled=false;
             if(feedback!=null)feedback.Stop();
             PlayerInputPolicy.SetCursor(cursor!=CursorLockMode.Locked);Cursor.visible=cursorVisible;
@@ -116,6 +117,7 @@ namespace MemoryWhitebox
         public void ResetView()
         {
             if(!Active)return;
+            tapeSession?.Cancel();
             ReleasePart();SetHover(null);pendingPart=null;pendingDelta=Vector2.zero;
             gesture=leftHeld || rightHeld?Gesture.WaitRelease:Gesture.None;
             resetSpin=spin;resetDistance=Distance;resetSeconds=0;
@@ -132,7 +134,12 @@ namespace MemoryWhitebox
             HeldPart=part;if(HeldPart==null)return false;
             HeldPart.Press();Sound(HeldPart);return true;
         }
-        public void DragPart(Vector2 delta){if(HeldPart!=null && HeldPart.Drag(delta.x-delta.y))Sound(HeldPart);}
+        public void DragPart(Vector2 delta)
+        {
+            if(HeldPart==null)return;
+            if(tapeSession!=null)return; // Tape reels accept wheel input only; whole-object rotation requires the two-button chord.
+            if(HeldPart.Drag(delta.x-delta.y))Sound(HeldPart);
+        }
         public void ReleasePart(){if(HeldPart==null)return;var part=HeldPart;part.Release();HeldPart=null;Sound(part);}
         void Sound(SafeInspectionPart part){if(feedback!=null && part.contact!=null)feedback.PlayOneShot(part.contact,.35f);}
         public void SetFocus(bool focus){focused=focus;if(!focus)Close();}
@@ -160,7 +167,7 @@ namespace MemoryWhitebox
         public bool PointerOverUI(Vector2 point)
         {
             var gui=new Vector2(point.x,Screen.height-point.y);
-            return gui.y<65 || gui.y>Screen.height-112 || ResetButtonRect.Contains(gui);
+            return ResetButtonRect.Contains(gui) || ExitButtonRect.Contains(gui);
         }
         public void UpdateHover(Vector2 point)
         {
@@ -178,12 +185,18 @@ namespace MemoryWhitebox
         {
             if(!Active)return;
             bool overUI=PointerOverUI(screenPoint);
+            if(tapeSession!=null && tapeSession.Preparing)
+            {
+                if(overUI && type==EventType.MouseUp){tapeSession.Cancel();return;}
+                tapeSession.Handle(type,button,displayCamera.ScreenPointToRay(screenPoint),displayCamera);return;
+            }
+            if(tapeSession!=null && !overUI && !Resetting && gesture==Gesture.None && tapeSession.Handle(type,button,displayCamera.ScreenPointToRay(screenPoint),displayCamera))return;
             if(type==EventType.ScrollWheel)
             {
                 if(overUI || Resetting)return;
                 // A held dial owns the wheel; a pending chord buffers it without changing zoom or the source.
-                if(gesture==Gesture.PendingPart && pendingPart!=null && pendingPart.motion==SafeInspectionPart.Motion.Dial && leftHeld && !rightHeld)pendingDelta.x+=wheel*18;
-                else if(gesture==Gesture.Part && HeldPart!=null && HeldPart.motion==SafeInspectionPart.Motion.Dial && leftHeld && !rightHeld)DragPart(new Vector2(wheel*18,0));
+                if(gesture==Gesture.PendingPart && pendingPart!=null && pendingPart.motion==SafeInspectionPart.Motion.Dial && leftHeld && !rightHeld){if(tapeSession!=null){CommitPart();tapeSession.Turn(HeldPart,wheel);}else pendingDelta.x+=wheel*18;}
+                else if(gesture==Gesture.Part && HeldPart!=null && HeldPart.motion==SafeInspectionPart.Motion.Dial && leftHeld && !rightHeld){if(tapeSession!=null)tapeSession.Turn(HeldPart,wheel);else DragPart(new Vector2(wheel*18,0));}
                 else Zoom(wheel);
                 return;
             }
@@ -234,7 +247,9 @@ namespace MemoryWhitebox
                 if(resetSeconds>=Mathf.Max(.01f,resetDuration))resetSeconds=-1;
             }
             foreach(var part in Current.parts)part.Advance(dt);
+            tapeSession?.Sync();
             elapsed+=dt;float t=Mathf.SmoothStep(0,1,Mathf.Clamp01(elapsed/Mathf.Max(.01f,approachDuration)));
+            if(backdropMaterial!=null)backdropMaterial.SetFloat("_Opacity",Mathf.Clamp01(backdropOpacity)*t);
             // Save the entry FOV in Open and restore it in Close; station anchors stay untouched.
             view.fieldOfView=Mathf.Lerp(fov,Mathf.Clamp(inspectionFieldOfView,20,100),t);
             if(Current.fixedDevice)
@@ -259,7 +274,32 @@ namespace MemoryWhitebox
         }
         void OnApplicationFocus(bool focus){SetFocus(focus);}
         void OnDisable(){Close();releaseGate=false;}
-        void OnDestroy(){if(font!=null)Destroy(font);}
+        void EnableBackdrop()
+        {
+            DisableBackdrop();
+            if(backdropMaterial==null)
+            {
+                var shader=Resources.Load<Shader>("InspectionBackdrop");
+                if(shader==null){Debug.LogError("Inspection backdrop shader missing",this);return;}
+                backdropMaterial=new Material(shader){hideFlags=HideFlags.HideAndDontSave};
+            }
+            backdropMaterial.SetFloat("_Opacity",0);
+            backdropCommands=new UnityEngine.Rendering.CommandBuffer{name="Inspection backdrop"};
+            // Composite after the room camera, before the inspection model and GUI.
+            backdropCommands.Blit(UnityEngine.Rendering.BuiltinRenderTextureType.None,UnityEngine.Rendering.BuiltinRenderTextureType.CameraTarget,backdropMaterial);
+            displayCamera.AddCommandBuffer(UnityEngine.Rendering.CameraEvent.BeforeForwardOpaque,backdropCommands);
+        }
+        void DisableBackdrop()
+        {
+            if(backdropCommands==null)return;
+            if(displayCamera!=null)displayCamera.RemoveCommandBuffer(UnityEngine.Rendering.CameraEvent.BeforeForwardOpaque,backdropCommands);
+            backdropCommands.Release();backdropCommands=null;
+        }
+        void OnDestroy(){DisableBackdrop();if(backdropMaterial!=null)Destroy(backdropMaterial);if(font!=null)Destroy(font);}
+        static bool DrawInspectionButton(Rect rect,string label,GUIStyle style)
+        {
+            return InteractionUI.Button(rect,label,style);
+        }
         void OnGUI()
         {
             if(!Active || entryGate)return;
@@ -269,20 +309,32 @@ namespace MemoryWhitebox
                 PointerEvent(e.type,e.button,new Vector2(e.mousePosition.x,Screen.height-e.mousePosition.y),new Vector2(e.delta.x,-e.delta.y),-e.delta.y/3f);
                 if(!Active)return;
             }
-            if(font==null)font=Font.CreateDynamicFontFromOSFont(new[]{"Microsoft YaHei","Arial"},18);
-            var style=new GUIStyle(GUI.skin.label){font=font,fontSize=18,wordWrap=true};
-            var button=new GUIStyle(GUI.skin.button){font=font,fontSize=17};
-            GUI.Box(new Rect(12,12,Mathf.Min(760,Screen.width-24),48),"");
-            GUI.Label(new Rect(24,22,Screen.width-48,35),Current.title+" · 安全检视 · 放回后保持原状",style);
-            float y=Screen.height-104;
-            GUI.Box(new Rect(12,y,Screen.width-24,92),"");
-            if(GUI.Button(ResetButtonRect,"重置检视 [R]",button))ResetView();
-            if(GUI.Button(new Rect(Screen.width-160,y+10,132,30),"放回 [E / Esc]",button)){Close();return;}
-            string hint=hovered!=null?hovered.label+"："+(hovered.motion==SafeInspectionPart.Motion.Button?"按住左键，松开回弹":hovered.motion==SafeInspectionPart.Motion.Dial?"左键拖动 / 按住左键滚轮转动":"左键拖动操作"):
-                "指向部件查看操作提示";
-            GUI.Label(new Rect(24,y+10,Mathf.Max(100,Screen.width-210),32),hint,style);
-            string controls=Current.fixedDevice?"左键操作部件 · 滚轮远近":"左键操作部件 · 左右键同时按住拖动旋转 · F 翻面 · 滚轮远近";
-            GUI.Label(new Rect(24,y+49,Screen.width-48,37),controls+" · E / Esc 放回",style);
+            if(font==null)font=Font.CreateDynamicFontFromOSFont(new[]{"Segoe UI","Arial"},16);
+            int size=Mathf.Clamp(Mathf.RoundToInt(Screen.width/85f),12,16);
+            var text=new GUIStyle(GUI.skin.label){font=font,fontSize=size,alignment=TextAnchor.MiddleCenter};
+            text.normal.textColor=new Color(.82f,.82f,.8f);
+            var heading=new GUIStyle(text){fontSize=size-2,alignment=TextAnchor.MiddleLeft};
+            heading.normal.textColor=new Color(.64f,.64f,.62f);
+            GUI.Label(new Rect(32,24,180,24),"INSPECT",heading);
+            if(tapeSession!=null)
+            {
+                InteractionUI.Label(new Rect(32,54,Screen.width-64,44),tapeSession.Status);
+                tapeSession.DrawPreparationHints(displayCamera,text);
+            }
+            var button=new GUIStyle(GUIStyle.none){font=font,fontSize=size,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(14,10,0,0)};
+            button.normal.textColor=new Color(.88f,.88f,.85f);
+            button.hover.textColor=button.active.textColor=Color.white;
+            if(DrawInspectionButton(ResetButtonRect,"Reset View   R",button))ResetView();
+            if(DrawInspectionButton(ExitButtonRect,"Exit     E / Esc",button)){Close();return;}
+            string hint=Resetting?"Resetting...":tapeSession!=null?tapeSession.ActionHint:hovered==null?"":
+                hovered.motion==SafeInspectionPart.Motion.Button?"Hold LMB to press":
+                hovered.motion==SafeInspectionPart.Motion.Dial?"LMB drag / Hold LMB + Scroll to turn":"LMB drag to move";
+            GUI.Label(new Rect(24,Screen.height-76,Screen.width-48,26),hint,text);
+            var controls=new GUIStyle(text){fontSize=Mathf.Max(11,size-2)};
+            controls.normal.textColor=new Color(.62f,.62f,.6f);
+            GUI.Label(new Rect(24,Screen.height-42,Screen.width-48,24),Current.fixedDevice?
+                "LMB  Interact     /     Scroll  Zoom":
+                "LMB  Interact     /     LMB + RMB drag  Rotate     /     F  Flip     /     Scroll  Zoom",controls);
         }
     }
 }

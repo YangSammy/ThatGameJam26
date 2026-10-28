@@ -68,6 +68,16 @@ namespace MemoryWhitebox
         public float Focus { get; private set; }
         public float Elapsed { get; private set; }
         public bool[] Painted { get; private set; } = new bool[3];
+        [System.Serializable] sealed class Checkpoint { public int version=1; public int phase; }
+        public override string CaptureCheckpoint()=>JsonUtility.ToJson(new Checkpoint{phase=Phase});
+        public override void RestoreCheckpoint(string json)
+        {
+            if(string.IsNullOrEmpty(json))return;
+            var node=JsonUtility.FromJson<Checkpoint>(json);
+            if(node==null || node.version!=1 || node.phase<0 || node.phase>3)throw new System.IO.InvalidDataException("Invalid painting checkpoint.");
+            Phase=node.phase;Focus=0;Elapsed=0;finishTime=0;
+            for(int i=0;i<Painted.Length;i++)Painted[i]=i<Phase;
+        }
         public Vector2 CurrentTarget { get { return Targets[Mathf.Min(Phase, 2)]; } }
         // Drawing and focus validation share the same contact state.
         public bool CupContact { get { return Elapsed % 5 < 2.7f; } }
@@ -149,6 +159,18 @@ namespace MemoryWhitebox
 
     public class EndingChapter : Chapter
     {
+        [System.Serializable] sealed class Checkpoint { public int version=1; public int phase; }
+        public override string CaptureCheckpoint()=>JsonUtility.ToJson(new Checkpoint{phase=Phase});
+        public override void RestoreCheckpoint(string json)
+        {
+            if(string.IsNullOrEmpty(json))return;
+            var node=JsonUtility.FromJson<Checkpoint>(json);
+            if(node==null || node.version!=1 || node.phase<0 || node.phase>3)throw new System.IO.InvalidDataException("Invalid ending checkpoint.");
+            Phase=node.phase;Dragging=LeftHeld=false;time=finishTime=0;
+            if(Phase>=1)corner=new Vector2(450,442);
+            if(Phase>=2)tail=new Vector2(580,448);
+            if(Phase>=3)tight=new Vector2(660,613);
+        }
         public int Phase { get; private set; }
         public bool Dragging { get; private set; }
         public bool LeftHeld { get; private set; }

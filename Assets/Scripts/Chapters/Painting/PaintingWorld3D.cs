@@ -25,7 +25,7 @@ namespace MemoryWhitebox
         readonly Vector3 easelShift=new Vector3(3.95f,0,-1.08f);
         public Transform SharedScarf {get;private set;}
 
-        public override string Help { get { return "鼠标转动头部与视线。松开左键时画面虚焦；按住左键逐渐清晰。参照身边实体画架底稿，依次看红围巾、手指与杯口接触处、两手相接处，按住左键稳定注视约1.25秒。松开恢复虚焦，已画笔触保留；动作未接触时等待，不需要描线。"; } }
+        public override string Help { get { return "Mouse  Look  /  Hold LMB  Focus\nScarf > Cup contact > Joined hands\nWait for contact; hold focus to complete each detail."; } }
 
         public PaintingWorld3D(WBMain host, PaintingChapter model) : base(host, model, 3)
         {

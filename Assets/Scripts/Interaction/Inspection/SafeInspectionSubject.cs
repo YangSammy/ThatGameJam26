@@ -36,6 +36,7 @@ namespace MemoryWhitebox
         public SafeInspectionPart[] parts;
         public Collider[] surfaces;
         public StudyEntry entry;
+        public TapePreparationBindings tapePreparation;
         bool[] sourceHidden;
 
         public void RefreshFraming()
@@ -86,6 +87,7 @@ namespace MemoryWhitebox
             }
             foreach(var part in parts)part.Capture();
             displayRoot.gameObject.SetActive(true);
+            if(tapePreparation!=null && tapePreparation.toolRoot!=null)tapePreparation.toolRoot.gameObject.SetActive(false);
         }
         public void End()
         {

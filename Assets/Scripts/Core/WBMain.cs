@@ -27,7 +27,7 @@ namespace MemoryWhitebox
         static readonly KeyCode[] keys={KeyCode.W,KeyCode.A,KeyCode.S,KeyCode.D,KeyCode.E,KeyCode.F,KeyCode.J,KeyCode.L,KeyCode.Quote,KeyCode.LeftArrow,KeyCode.RightArrow,KeyCode.UpArrow,KeyCode.DownArrow,KeyCode.Space,KeyCode.LeftShift};
         public void Select(int index){EnterHouseStation(index);}
         public void LeaveStation(){ExitHouseStation();}
-        public void ChapterComplete(){Done[ChapterIndex]=true;Tone(660,.24f);}
+        public void ChapterComplete(Chapter chapter){int index=System.Array.IndexOf(chapters,chapter);if(index>=0)CommitStoryCompletion(index);Tone(660,.24f);}
         public static void Tone(float hz,float duration=.12f)
         {
             if(Instance==null || Instance.Muted || IsQA || Instance.audioSource==null)return;
@@ -52,12 +52,13 @@ namespace MemoryWhitebox
             houseFocused=focus;if(houseReady)SuspendHouseInput();
             if(focus){RestoreHouseCursor();return;}
             PlayerInputPolicy.ApplyCursor(PlayerControlState.Unfocused);
-            if(safeInspection!=null && safeInspection.BlocksInput)return;
+            safeInspection?.Close();
             InputState.Keys.Clear();InputState.Down=false;wasDown=wasRightDown=false;
             var photo=CurrentWorld as PhotoWorld3D;
             if(photo!=null){photo.CancelInteraction();photo.SaveProgress();}
             else if(ChapterIndex==0)radioDeck?.SuspendInput();else CurrentWorld?.Release("",pointerRay);
+            radioDeck?.SuspendInput();SaveStableProgress();
         }
-        void OnDestroy(){foreach(var world in worlds)world?.Dispose();if(Instance==this)Instance=null;}
+        void OnDestroy(){SaveStableProgress();foreach(var world in worlds)world?.Dispose();if(Instance==this)Instance=null;}
     }
 }

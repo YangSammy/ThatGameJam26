@@ -17,9 +17,10 @@ namespace MemoryWhitebox
             get
             {
 #if UNITY_EDITOR
-                if(ResetOnEditorPlay)return EditorSessionRoot;
-#endif
+                return ResetOnEditorPlay?EditorSessionRoot:Path.Combine(Application.persistentDataPath,"EditorPersistentSession");
+#else
                 return Application.persistentDataPath;
+#endif
             }
         }
     }

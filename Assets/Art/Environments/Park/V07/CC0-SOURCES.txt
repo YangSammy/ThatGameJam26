@@ -1,0 +1,44 @@
+CC0 resources used in ParkScene v07
+Provider: Poly Haven — https://polyhaven.com/
+Powered by Poly Haven (source discovery via public API)
+License: CC0 1.0 Universal
+License source: https://polyhaven.com/license
+Legal text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+Verified: 2026-10-27
+Commercial use and modification permitted. Attribution not required; retained here for provenance.
+
+tree_small_02
+https://polyhaven.com/a/tree_small_02
+Authors: {'Rico Cilliers': 'All'}
+
+fern_02
+https://polyhaven.com/a/fern_02
+Authors: {'Rob Tuytel': 'scanning', 'Rico Cilliers': 'modeling'}
+
+grass_medium_01
+https://polyhaven.com/a/grass_medium_01
+Authors: {'Rob Tuytel': 'Photography', 'Rico Cilliers': 'Modeling'}
+
+aerial_grass_rock
+https://polyhaven.com/a/aerial_grass_rock
+Authors: {'Rob Tuytel': 'All'}
+
+brown_mud_leaves_01
+https://polyhaven.com/a/brown_mud_leaves_01
+Authors: {'Rob Tuytel': 'All'}
+
+weathered_brown_planks
+https://polyhaven.com/a/weathered_brown_planks
+Authors: {'Dimitrios Savva': 'Photography', 'Rico Cilliers': 'Processing'}
+
+rock_boulder_dry
+https://polyhaven.com/a/rock_boulder_dry
+Authors: {'Dimitrios Savva': 'Photography', 'Rico Cilliers': 'Processing'}
+
+grass_path_2
+https://polyhaven.com/a/grass_path_2
+Authors: {'Rob Tuytel': 'All'}
+
+Modifications: game mesh simplification; whole-leaf thinning and enlargement; two tree LODs; alpha-channel packing; restrained Unity materials. Original downloads retained outside Assets in output/park-blockout/v07/sources.
+Models: tree_small_02 replaces existing tree positions; fern_02 replaces shrub footprints; grass_medium_01 replaces bank grass.
+Textures: aerial_grass_rock / brown_mud_leaves_01 / grass_path_2 blended using existing vertex masks; weathered_brown_planks on bridge/fences/benches; rock_boulder_dry on existing creek stones.

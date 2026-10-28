@@ -47,30 +47,40 @@ namespace MemoryWhitebox
             if(parkLoading){SaveParkLoading();return;}
             var d=new PhotoProgress{phase=Photo.Phase,settings=Photo.Settings.Copy(),captured=Photo.Captured,chemistry=Photo.Chemistry,attempts=Photo.Attempts,remaining=Mathf.Max(0,Photo.ProcessingTime),bagTurns=Photo.BagTurns,rewindTurns=RewindTurns,clockDuration=clockDuration,threaded=Photo.FilmThreaded,fogged=Photo.Fogged,agitated=Photo.Agitated,backOpen=RewoundBackOpen,completed=Photo.Completed};
             string state=JsonUtility.ToJson(d);if(state==lastSavedState)return;d.image=savedImage;
-            try {PhotoProgressStore.Save(d);lastSavedState=state;if(saveNotice.StartsWith("摄影进度暂未保存"))saveNotice="";}
-            catch(Exception e){saveNotice="摄影进度暂未保存，请检查磁盘空间；退出关卡时会重试";Debug.LogWarning("Photo save failed: "+e.Message);nextSave=Time.unscaledTime+5;}
+            try {PhotoProgressStore.Save(d);lastSavedState=state;if(saveNotice.StartsWith("Photo not saved"))saveNotice="";}
+            catch(Exception e){saveNotice="Photo not saved. Check storage; retry on exit.";Debug.LogWarning("Photo save failed: "+e.Message);nextSave=Time.unscaledTime+5;}
         }
         public string ProgressHint {
             get {
                 if(saveNotice!="")return saveNotice;
-                if(Photo.Completed)return "照片已完成并保存，可以查看成片或 Esc 返回书房";
+                if(Printing)return PrintHint;
+                if(Photo.Completed)return "Photo saved  /  Esc  Back";
                 switch(Photo.Phase){
-                    case PhotoChapter.FilmPhase.Empty:return "将胶卷拖入相机左仓";
-                    case PhotoChapter.FilmPhase.LoadedOpen:return Photo.FilmThreaded?"片头已固定，合上后盖":"将片头拖到右侧收片轴";
-                    case PhotoChapter.FilmPhase.Closed:return "拨动过片杆";
-                    case PhotoChapter.FilmPhase.Ready:return parkLoading?"装卷已完成，点击下方按钮前往公园拍摄。":"点击目镜拿起相机；对照参考照片调整构图，左键拍摄";
-                    case PhotoChapter.FilmPhase.Exposed:return "按住倒片钮并滚轮回卷（"+Mathf.RoundToInt(RewindTurns*100)+"%），再打开后盖";
-                    case PhotoChapter.FilmPhase.Rewound:return !RewoundBackOpen?"倒片完成，打开相机后盖取出胶卷":"先打开右侧帘子，再将胶卷带进暗室并拖入黑袋";
-                    case PhotoChapter.FilmPhase.DarkBag:return "按住暗袋并滚轮装片（"+Mathf.RoundToInt(Photo.BagTurns*100)+"%）";
-                    case PhotoChapter.FilmPhase.Tank:return Photo.Chemistry==3?"点击水龙头水洗":"将 "+(Photo.Chemistry+1)+" 号药瓶拖到罐口";
-                    case PhotoChapter.FilmPhase.Processing:return !Photo.Agitated&&Photo.Chemistry<3?"按住冲洗罐，轻轻拖动摇晃":"冲洗中，剩余 "+Mathf.Max(0,Photo.ProcessingTime).ToString("0.0")+" 秒；离开时暂停";
-                    default:return "查看成片，或重新装卷拍摄";
+                    case PhotoChapter.FilmPhase.Empty:return "Drag film into the left chamber";
+                    case PhotoChapter.FilmPhase.LoadedOpen:return Photo.FilmThreaded?"Close the camera back":"Drag leader to the take-up spool";
+                    case PhotoChapter.FilmPhase.Closed:return "Click the advance lever";
+                    case PhotoChapter.FilmPhase.Ready:return parkLoading?"Film ready. Head to the park.":"Click eyepiece  /  LMB  Shoot";
+                    case PhotoChapter.FilmPhase.Exposed:return "Hold rewind + Scroll  "+Mathf.RoundToInt(RewindTurns*100)+"%  /  Then open back";
+                    case PhotoChapter.FilmPhase.Rewound:return !RewoundBackOpen?"Open back and remove film":"Open curtain; drag film into dark bag";
+                    case PhotoChapter.FilmPhase.DarkBag:return "Hold bag + Scroll  "+Mathf.RoundToInt(Photo.BagTurns*100)+"%";
+                    case PhotoChapter.FilmPhase.Tank:return ManualTank && !tankSealed?"LMB  Seal tank":ManualTank && needsDrain?"Drag tank to sink  /  Release to drain":Photo.Chemistry==3?"Click tap to rinse":"Drag bottle "+(Photo.Chemistry+1)+" to tank";
+                    case PhotoChapter.FilmPhase.Processing:return !Photo.Agitated&&Photo.Chemistry<3?"LMB drag tank to agitate":"Processing  "+Mathf.Max(0,Photo.ProcessingTime).ToString("0.0")+" s  /  Pauses on exit";
+                    default:return "View photo or reload film";
                 }
             }
         }
         public bool CanRetake => !ParkMode && !parkFilmUnavailable && !Photo.Completed && Photo.Captured!=null && (Photo.Phase==PhotoChapter.FilmPhase.Exposed || Photo.Phase==PhotoChapter.FilmPhase.Rewound || Photo.Phase==PhotoChapter.FilmPhase.Developed);
         public float ProgressUIHeight => ParkMode || parkLoading?108:CanRetake && Photo.FailureReason!=""?116:60;
-        public bool PointerOverUI => parkGallery || parkFilmUnavailable || Input.mousePosition.y<ProgressUIHeight || (Photo.InViewfinder && !View.pixelRect.Contains(Input.mousePosition));
+        public Rect ProgressActionRect => new Rect(28,Screen.height-51,220,30);
+        public bool PointerOverUI {
+            get {
+                var point=new Vector2(Input.mousePosition.x,Screen.height-Input.mousePosition.y);
+                return parkGallery || parkFilmUnavailable ||
+                    ((parkLoading && Photo.Phase==PhotoChapter.FilmPhase.Ready || ParkPrintsReady) && ProgressActionRect.Contains(point)) ||
+                    (CanRetake && Photo.FailureReason!="" && new Rect(Mathf.Min(760,Screen.width-180),Screen.height-58,155,32).Contains(point)) ||
+                    (Photo.InViewfinder && !View.pixelRect.Contains(Input.mousePosition));
+            }
+        }
         void UpdateFinderViewport()
         {
             if(View==null)return;
@@ -88,11 +98,11 @@ namespace MemoryWhitebox
             if(ParkMode){DrawParkFilm(style);return;}
             if(parkLoading){DrawParkLoading(style);return;}
             if(Photo.InViewfinder){var r=View.pixelRect;var old=GUI.color;GUI.color=Color.black;GUI.DrawTexture(new Rect(0,0,r.x,Screen.height),Texture2D.whiteTexture);GUI.DrawTexture(new Rect(r.xMax,0,Screen.width-r.xMax,Screen.height),Texture2D.whiteTexture);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height-r.yMax),Texture2D.whiteTexture);GUI.DrawTexture(new Rect(0,Screen.height-r.y,Screen.width,r.y),Texture2D.whiteTexture);GUI.color=old;}
-            GUI.Box(new Rect(16,Screen.height-ProgressUIHeight,Mathf.Min(930,Screen.width-32),ProgressUIHeight-16),"");
-            GUI.Label(new Rect(28,Screen.height-ProgressUIHeight+6,Mathf.Min(900,Screen.width-55),42),ProgressHint,style);
+
+            InteractionUI.Label(new Rect(28,Screen.height-ProgressUIHeight+6,Mathf.Min(900,Screen.width-55),42),ProgressHint,style);
             if(CanRetake && Photo.FailureReason!="") {
-                GUI.Label(new Rect(28,Screen.height-70,Mathf.Min(720,Screen.width-220),55),Photo.FailureReason,style);
-                if(GUI.Button(new Rect(Mathf.Min(760,Screen.width-180),Screen.height-58,155,32),"重新装卷拍摄"))RetakePhoto();
+                InteractionUI.Label(new Rect(28,Screen.height-70,Mathf.Min(720,Screen.width-220),55),Photo.FailureReason,style);
+                if(InteractionUI.Button(new Rect(Mathf.Min(760,Screen.width-180),Screen.height-58,155,32),"Reload film"))RetakePhoto();
             }
         }
         static void ApplyPhotoBlur(Texture2D texture,float focus,float motion)

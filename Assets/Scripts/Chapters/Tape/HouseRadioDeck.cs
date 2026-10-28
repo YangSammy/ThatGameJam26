@@ -6,7 +6,7 @@ namespace MemoryWhitebox
     // The authored desk radio is the single player-facing tape inspection station.
     public sealed partial class HouseRadioDeck : MonoBehaviour
     {
-        public enum Phase { Empty, Holding, Loading, Playing, Paused, Returning }
+        public enum Phase { Empty, Dragging, Loading, Playing, Paused, Returning }
         [Serializable] public sealed class Cassette
         {
             public Transform root, model, leftReel, rightReel;
@@ -15,6 +15,7 @@ namespace MemoryWhitebox
             public string label;
             public Collider leftSpindleHit,rightSpindleHit;
             public GameObject damageMarker;
+            public TapePreparationBindings preparation;
             [NonSerialized] public Transform homeParent;
             [NonSerialized] public Vector3 homePosition, homeScale;
             [NonSerialized] public Quaternion homeRotation, modelRotation;
@@ -39,7 +40,6 @@ namespace MemoryWhitebox
 
         void Awake()
         {
-            MigrateInspectionSettings();
             if(animator==null || speaker==null || carrier==null || proxyTape==null || tapes==null || tapes.Length!=3)
             { Debug.LogError("House radio is missing its authored references.",this);enabled=false;return; }
             proxyRenderers=proxyTape.GetComponentsInChildren<Renderer>(true);
@@ -50,7 +50,7 @@ namespace MemoryWhitebox
                 t.modelPosition=t.model.localPosition;t.modelRotation=t.model.localRotation;t.modelScale=t.model.localScale;
             }
             animator.keepAnimatorStateOnDisable=true;
-            initialized=true;Chapter=new RadioTapeChapter();ResetDeck();
+            initialized=true;Chapter=new RadioTapeChapter();ResetDeck();InitializeRecording();RestoreSource();
         }
         void OnEnable()
         {
@@ -63,17 +63,19 @@ namespace MemoryWhitebox
             }
         }
         void OnDisable(){if(initialized)SetStationActive(false);}
-        public bool PickUp(int index)
+        bool SelectForDrag(int index)
         {
             if(!initialized || State!=Phase.Empty || index<0 || index>=tapes.Length)return false;
-            Selected=index;State=Phase.Holding;tapes[index].hit.enabled=true;Notice="";
-            Chapter.Tape.Selected=index;Chapter.Tape.SourceVerified=Chapter.Tape.Candidates[index].Scanned>=TapeInspectionState.Samples;
+            if(!Chapter.AuditionComplete)return false;
+            Selected=index;State=Phase.Dragging;tapes[index].hit.enabled=true;Notice="";
+            Chapter.Tape.Selected=index;Chapter.Tape.SourceVerified=Chapter.Tape.Candidates[index].Intact;
             return true;
         }
-        public bool InsertHeld()
+        public bool InsertDragged()
         {
-            if(State!=Phase.Holding || Selected<0)return false;
-            if(Chapter.Tape.Candidates[Selected].Broken){Notice="这盒磁带已有断头，请放回并换一盒。";return false;}
+            if(State!=Phase.Dragging || Selected<0)return false;
+            Chapter.WorkingTapeIndex=Selected;
+            if(Chapter.WorkbenchTapeIndex==Selected)Chapter.WorkbenchTapeIndex=-1;
             CancelTapeDrag();ReleaseSpindle();
             var t=tapes[Selected];t.root.SetParent(carrier,false);t.root.localPosition=Vector3.zero;t.root.localRotation=Quaternion.identity;t.root.localScale=Vector3.one;
             // The imported FBX wrapper holds axis conversion and centimeters. Under the
@@ -81,17 +83,13 @@ namespace MemoryWhitebox
             t.model.localPosition=proxyTape.localPosition;t.model.localRotation=proxyTape.localRotation;t.model.localScale=proxyTape.localScale;
             animator.speed=1;animator.Play("LoadCassette",0,0);animator.Update(0);State=Phase.Loading;return true;
         }
-        public void TogglePlayback()
-        {
-            if(State==Phase.Playing){speaker.Pause();animator.speed=0;State=Phase.Paused;}
-            else if(State==Phase.Paused){animator.speed=1;float resume=speaker.time>=speaker.clip.length-.05f?0:speaker.time;speaker.Play();speaker.time=resume;State=Phase.Playing;}
-        }
-        public void PrepareForHide(){SetStationActive(false);hiddenAudioPosition=speaker.time;restoreHiddenAudio=State==Phase.Paused;}
+        public void TogglePlayback(){OpenRecording();}
+        public void PrepareForHide(){StopRecordingInput();SetStationActive(false);restoreHiddenAudio=false;}
         public void ResetDeck()
         {
             if(!initialized)return;
             CancelTapeDrag();ReleaseSpindle();
-            speaker.Stop();animator.speed=1;
+            transport?.StopAll();speaker.Stop();animator.speed=1;
             foreach(var t in tapes)
             {
                 t.root.SetParent(t.homeParent,false);t.root.localPosition=t.homePosition;t.root.localRotation=t.homeRotation;t.root.localScale=t.homeScale;
@@ -100,7 +98,7 @@ namespace MemoryWhitebox
                 if(t.leftReel!=null)t.leftReel.localRotation=Quaternion.identity;
                 if(t.rightReel!=null)t.rightReel.localRotation=Quaternion.identity;
             }
-            Selected=-1;State=Phase.Empty;Chapter.Tape.Selected=-1;
+            Selected=-1;State=Phase.Empty;Chapter.Tape.Selected=-1;Chapter.WorkingTapeIndex=-1;
             if(animator.isActiveAndEnabled){animator.Play("Ready_Open",0,0);animator.Update(0);}
         }
         void Update()
@@ -109,22 +107,24 @@ namespace MemoryWhitebox
             if(!StationActive || waitingForRelease || !focused || (house!=null && house.ShowHelp) || (house!=null && house.safeInspection!=null && house.safeInspection.BlocksInput))return;
             if(State==Phase.Loading && animator.GetCurrentAnimatorStateInfo(0).IsName("PlaybackLoop"))
             {
-                speaker.clip=tapes[Selected].audio;speaker.loop=false;speaker.Play();AudioStarts++;State=Phase.Playing;
+                speaker.Stop();animator.speed=0;State=Phase.Paused;
                 tapes[Selected].hit.enabled=true;
                 Chapter.VerifyPlayback();
+                OpenRecording();
             }
             if(State==Phase.Playing && !speaker.isPlaying && speaker.clip!=null){animator.speed=0;State=Phase.Paused;}
         }
         void LateUpdate()
         {
+            if(RecordingMode)return;
             if(!initialized || Selected<0)return;
             if(house!=null && house.safeInspection!=null && house.safeInspection.BlocksInput)return;
             if(!focused)return;
             var t=tapes[Selected];
             if(State==Phase.Returning){AdvanceReturn(Time.unscaledDeltaTime);return;}
-            if(State==Phase.Holding && view!=null)
+            if(State==Phase.Dragging && view!=null)
             {
-                PoseHeldTape(Time.unscaledDeltaTime);
+                PoseDraggedTape(Time.unscaledDeltaTime);
             }
             else if(State==Phase.Loading || State==Phase.Playing || State==Phase.Paused)
             {
@@ -139,16 +139,20 @@ namespace MemoryWhitebox
         public string GetHint(Ray ray)
         {
             var hit=Pick(ray);
-            if(!StationActive)return IsEntryHit(hit)?"左键：进入磁带检查 · E：安全检视":null;
-            if(State==Phase.Holding)return draggingTape?(hit==slotHit?"松开左键装入 · 右键取消":"按住左键拖向卡槽 · 槽外松手留在手中"):"按住磁带外壳拖向卡槽 · 右键放回";
-            if(State==Phase.Loading)return "正在装入磁带…";
+            var sourceHint=SourceHint(hit);if(sourceHint!=null)return sourceHint;
+            if(!StationActive)return IsEntryHit(hit)?"LMB  Interact   /   E  Inspect":null;
+            if(State==Phase.Dragging)return draggingTape?(hit==slotHit?"Release LMB to insert   /   RMB  Return":"LMB drag to slot. Release to insert."):"LMB drag shell to slot   /   RMB  Return";
+            if(State==Phase.Loading)return "Loading tape...";
+            if(State==Phase.Returning)return string.IsNullOrEmpty(Notice)?"Returning tape...":Notice;
             if(hit==radioHit || hit==slotHit)
             {
-                if(State==Phase.Playing)return "左键：暂停 · 右键：取出并归位";
-                if(State==Phase.Paused)return "左键：继续播放 · 右键：取出并归位";
-                return "先拿起桌上的磁带，检查轮轴 · E 检视收音机";
+                if(RecordingError!="")return "Recording unavailable  /  LMB  Retry";
+                if(State==Phase.Playing)return "LMB  Pause   /   RMB  Eject";
+                if(State==Phase.Paused)return "LMB  Play   /   RMB  Eject";
+                return "Drag tape to slot   /   E  Inspect radio";
             }
-            for(int i=0;i<tapes.Length;i++)if(hit==tapes[i].hit)return State==Phase.Empty?"按住左键拿起"+tapes[i].label+" · E 检视":"先取出录音机中的磁带";
+            for(int i=0;i<tapes.Length;i++)if(hit==tapes[i].hit || hit==tapes[i].leftSpindleHit || hit==tapes[i].rightSpindleHit)
+                return Selected<0 || Selected==i?"LMB  Check tape   /   E  Inspect":"Eject the loaded tape first";
             return null;
         }
         // Called by the existing house input owner; no second competing input loop.

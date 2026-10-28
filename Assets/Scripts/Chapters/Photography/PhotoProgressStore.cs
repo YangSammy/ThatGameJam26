@@ -21,7 +21,7 @@ namespace MemoryWhitebox
         public static string PathName => Path.Combine(DirectoryOverride??GameSavePaths.Root,"study-photo-v1.json");
         static bool SettingsValid(PhotoChapter.CameraSettings s)
         {
-            return s!=null && Finite(s.X)&&Finite(s.Z)&&Finite(s.Yaw)&&Finite(s.Focus) && s.Focus>0 && s.Focal>=28&&s.Focal<=70 && s.Aperture>=2.8f&&s.Aperture<=16 && s.Shutter>=.001f&&s.Shutter<=.25f && (s.ISO==100||s.ISO==200||s.ISO==400);
+            return s!=null && Finite(s.X)&&Finite(s.Z)&&Finite(s.Yaw)&&Finite(s.Focus) && s.Focus>0 && s.Focal>=28&&s.Focal<=70 && s.Aperture>=2.8f&&s.Aperture<=16 && s.Shutter>=.001f&&s.Shutter<=.25f && (s.ISO==100||s.ISO==200||s.ISO==400||s.ISO==800);
         }
         static bool Finite(float v)=>!float.IsNaN(v)&&!float.IsInfinity(v);
         static PhotoProgress Read(string path)
@@ -46,16 +46,16 @@ namespace MemoryWhitebox
                 try {
                     var d=Read(path);
                     if(path.EndsWith(".bak")) {
-                        warning="已从备份恢复摄影进度";
+                        warning="Progress restored from backup.";
                         // Retain the damaged file without letting the next save replace the good backup with it.
                         try {if(File.Exists(PathName))File.Copy(PathName,PathName+".damaged-"+DateTime.UtcNow.Ticks);File.Copy(path,PathName,true);}
-                        catch(Exception){blocked=true;warning="已读取备份，但存档目录不可写；原文件已保留";}
+                        catch(Exception){blocked=true;warning="Backup loaded. Cannot save; original kept.";}
                     }
                     return d;
                 }
                 catch(Exception e){Debug.LogWarning("Photo save could not be loaded: "+e.Message);}
             }
-            if(File.Exists(PathName)||File.Exists(PathName+".bak")){warning="摄影存档无法读取，原文件已保留；本次进度暂不覆盖存档";blocked=true;}
+            if(File.Exists(PathName)||File.Exists(PathName+".bak")){warning="Save unavailable. Original kept; saving paused.";blocked=true;}
             return null;
         }
         public static void Save(PhotoProgress d)
