@@ -13,7 +13,7 @@ namespace MemoryWhitebox
         public bool Rewinding { get; private set; }
         public bool RewoundBackOpen { get; private set; }
         public float RewindTurns { get; private set; }
-        public string DraggedId => dragged;
+        public string DraggedId => printDrag??dragged;
         public int NativeActionCount { get; private set; }
         public int NativeCaptureCount { get; private set; }
         public bool NativePhotoReady => referenceTexture != null;
@@ -31,12 +31,12 @@ namespace MemoryWhitebox
         Camera photoCamera;
         RenderTexture photoRT;
         LineRenderer filmStrip, pour;
-        TextMesh focalNumber, shutterNumber, apertureNumber, isoNumber;
+        WorldTooltipLabel focalNumber, shutterNumber, apertureNumber, isoNumber;
         Transform opticalFinder, handLeft, handRight, armLeft, armRight;
         public override Transform[] PlayerHandTargets => new[]{handLeft,handRight};
         public override Transform[] PlayerArmTargets => new[]{armLeft,armRight};
-        public override bool PlayerHandsEngaged => CameraHeld || dragged!=null || bagHeld || tankHeld || Rewinding;
-        TextMesh finderNumbers;
+        public override bool PlayerHandsEngaged => CameraHeld || dragged!=null || printDrag!=null || printHeld || bagHeld || tankHeld || Rewinding;
+        WorldTooltipLabel finderNumbers;
         string dragged;
         Vector3 dragOrigin, lastDrag;
         Ray lastRay;
@@ -78,6 +78,7 @@ namespace MemoryWhitebox
                 for(int i=Root.transform.childCount-1;i>=processingStart;i--){var part=Root.transform.GetChild(i);if(part.position.x>1.8f && part.position.z>.7f)part.SetParent(supplies,true);}
             }
             BuildPrints();
+            BindPrintObjects();
             Eye = World(walkPosition); Look = World(UsesProgress?cameraDock:new Vector3(1, 1.05f, -3)); Fov = 62;
             yaw = Mathf.Atan2((Look - Eye).x, (Look - Eye).z) * Mathf.Rad2Deg;
             pitch = -Mathf.Asin((Look - Eye).normalized.y) * Mathf.Rad2Deg;
@@ -158,12 +159,16 @@ namespace MemoryWhitebox
             filmStrip = Line("Dragged real film leader", new[] { cameraDock, cameraDock }, "#82704b", .075f);
             filmStrip.useWorldSpace = true;
             filmStrip.gameObject.SetActive(false);
-            // Numeric engravings are physical equipment markings, not tutorial UI.
+            // Dynamic equipment values are presented by the shared hover UI.
             focalNumber = Label("35 mm", new Vector3(-.16f, 1.46f, -3.225f), .026f, "#ece9da");
             shutterNumber = Label("60", new Vector3(.22f, 1.46f, -3.17f), .025f, "#e8e4d5");
             apertureNumber = Label("8", new Vector3(.34f, 1.17f, -3.23f), .026f, "#ece9da");
             isoNumber = Label("100", new Vector3(-.3f, 1.17f, -3.23f), .026f, "#ece9da");
-            foreach (TextMesh text in new[] { focalNumber, shutterNumber, apertureNumber, isoNumber }) text.transform.SetParent(cameraBody, true);
+            foreach (WorldTooltipLabel text in new[] { focalNumber, shutterNumber, apertureNumber, isoNumber }) text.transform.SetParent(cameraBody, true);
+            focalNumber.target=focalRing;focalNumber.prefix="Focal length: ";
+            shutterNumber.target=shutterDial;shutterNumber.prefix="Shutter: 1/";
+            apertureNumber.target=apertureRing;apertureNumber.prefix="Aperture: f/";
+            isoNumber.target=cameraBody;isoNumber.prefix="ISO: ";
         }
 
         void BuildProcessing()
@@ -210,6 +215,9 @@ namespace MemoryWhitebox
             Child(opticalFinder, "", new Vector3(0, -.12f, 0), new Vector3(.43f, .025f, .03f), "#242e29");
             finderNumbers = Label("", new Vector3(0, -.117f, -.019f), .012f, "#c5cc9b");
             finderNumbers.transform.SetParent(opticalFinder, false);
+            var readoutHit=opticalFinder.gameObject.AddComponent<BoxCollider>();
+            readoutHit.center=new Vector3(0,-.12f,0);readoutHit.size=new Vector3(.43f,.025f,.03f);readoutHit.isTrigger=true;
+            finderNumbers.target=opticalFinder;
             finderNumbers.transform.localPosition = new Vector3(0, -.117f, -.019f);
         }
 
@@ -236,6 +244,7 @@ namespace MemoryWhitebox
 
         public override void Deactivate()
         {
+            ClearDarkroomHighlight();
             parkGallery=false;
             if(Host!=null && Host.sharedHouse)
             {
@@ -247,9 +256,11 @@ namespace MemoryWhitebox
             View.ResetAspect();
             base.Deactivate();
         }
+        public bool HasActiveGesture=>dragged!=null || printDrag!=null || Rewinding || bagHeld || tankHeld || printHeld;
         public void CancelInteraction()
         {
             CancelPrintExposure();
+            CancelPhysicalPrint();
             looking=Rewinding=bagHeld=tankHeld=false;
             if(dragged!=null && Nodes.ContainsKey(dragged) && homes.ContainsKey(dragged))
             {Nodes[dragged].transform.localPosition=homes[dragged];Nodes[dragged].transform.localRotation=homeRotations[dragged];SetColliders(Nodes[dragged],true);}
@@ -280,7 +291,7 @@ namespace MemoryWhitebox
                 float t = Mathf.SmoothStep(0, 1, 1 - liftTime);
                 walkPosition = Vector3.Lerp(liftFrom, liftTo, t);
             }
-            else if (!Photo.InViewfinder && !Photo.MeterVisible && (dragged == null || (SharedRoom && dragged == "exposed-film")) && !bagHeld && !tankHeld && !Rewinding)
+            else if (!Photo.InViewfinder && !Photo.MeterVisible && printDrag==null && !printHeld && (dragged == null || (SharedRoom && dragged == "exposed-film")) && !bagHeld && !tankHeld && !Rewinding)
             {
                 Vector2 axis = new Vector2((input.Keys.Contains(KeyCode.D) ? 1 : 0) - (input.Keys.Contains(KeyCode.A) ? 1 : 0), (input.Keys.Contains(KeyCode.W) ? 1 : 0) - (input.Keys.Contains(KeyCode.S) ? 1 : 0));
                 axis = Vector2.ClampMagnitude(axis, 1);
@@ -323,7 +334,7 @@ namespace MemoryWhitebox
         void UpdateBody()
         {
             bool left = CameraHeld || bagHeld || Rewinding;
-            bool right = left || dragged != null || tankHeld;
+            bool right = left || dragged != null || printDrag!=null || printHeld || tankHeld;
             handLeft.gameObject.SetActive(left); armLeft.gameObject.SetActive(left);
             handRight.gameObject.SetActive(right); armRight.gameObject.SetActive(right);
             Vector3 leftAt = Eye + lookRotation * new Vector3(-.05f, Photo.InViewfinder ? -.5f : -.33f, .64f);
@@ -333,6 +344,8 @@ namespace MemoryWhitebox
             if (dragged == "leader") rightAt = filmStrip.GetPosition(1) + Vector3.up * .03f;
             else if (dragged != null && Nodes.ContainsKey(dragged)) rightAt = Nodes[dragged].transform.position + new Vector3(.06f, .055f, 0);
             if (tankHeld) rightAt = tankBody.position + new Vector3(.17f, .1f, 0);
+            if(printDrag!=null)rightAt=Nodes[printDrag].transform.position+Vector3.up*.03f;
+            else if(printHeld && printObjects!=null)rightAt=Nodes["print-exposure"].transform.position;
             handLeft.position = leftAt; handRight.position = rightAt;
             handLeft.rotation = handRight.rotation = lookRotation;
             PoseArm(armLeft, Eye + lookRotation * new Vector3(-.28f, -.55f, -.04f), leftAt);
@@ -360,12 +373,14 @@ namespace MemoryWhitebox
             id = id ?? "";
             if(id=="tank-lid" && (!ManualTank || tankSealed))id="tank";
             lastRay = ray;
+            if(printDrag!=null || printHeld)return;
             if (button == 1) { if (!Photo.InViewfinder) { looking = true; lastLookViewport = View.WorldToViewportPoint(ray.GetPoint(2)); } return; }
             if (button != 0) return;
             if(PressPrintWorkflow(id,ray))return;
             if(parkLoading && !id.StartsWith("film-") && id!="leader" && id!="back" && id!="advance")return;
             if(ParkMode)
             {
+                if(id=="print-paper" && ParkPrintsReady){OpenParkGallery();return;}
                 if(id=="developed-photo"){OpenParkGallery();return;}
                 if(id!="bag" && id!="tank" && id!="tank-lid" && id!="water" && id!="rewind" && id!="back" && id!="exposed-film" && !id.StartsWith("chemical-"))return;
                 if(ManualTank)
@@ -414,6 +429,7 @@ namespace MemoryWhitebox
         {
             if(parkGallery || parkFilmUnavailable)return;
             lastRay = ray;
+            if(MovePhysicalPrint(ray))return;
             if (Photo.InViewfinder)
             {
                 Vector3 screen = View.WorldToViewportPoint(ray.GetPoint(2));
@@ -469,8 +485,12 @@ namespace MemoryWhitebox
         public override void Release(string overId, Ray ray)
         {
             if(parkGallery || parkFilmUnavailable)return;
+            if((printDrag!=null || printHeld) && Input.GetMouseButton(0))return;
             looking = false; Rewinding = false; bagHeld = false; tankHeld = false;
+            bool wasExposing=printHeld;
             CancelPrintExposure();
+            if(ReleasePhysicalPrint(ray))return;
+            if(wasExposing){SyncProps();SaveProgress();return;}
             if (dragged == null) return;
             NativeActionCount++;
             string target = Pick(ray);
@@ -600,7 +620,7 @@ namespace MemoryWhitebox
             looseFilm.SetActive(Photo.Phase == PhotoChapter.FilmPhase.Rewound && RewoundBackOpen);
             if (looseFilm.activeSelf && dragged != "exposed-film") looseFilm.transform.position = cameraBody.TransformPoint(new Vector3(-.23f, 0, -.205f));
             referencePrint.SetActive(!ParkMode && !parkLoading && !parkFilmUnavailable);
-            developedPrint.SetActive((Printing && printStage>=ParkPrintStage.ContactReady) || (Photo.Phase == PhotoChapter.FilmPhase.Developed && (!ParkMode || (ParkPrintsReady && exposedTexture!=null))));
+            developedPrint.SetActive(!PhysicalPrinting && ((Printing && printStage>=ParkPrintStage.ContactReady) || (Photo.Phase == PhotoChapter.FilmPhase.Developed && (!ParkMode || (ParkPrintsReady && exposedTexture!=null)))));
             if(Printing)
             {
                 var paper=developedPrint.GetComponent<Renderer>().sharedMaterial;paper.mainTexture=Texture2D.whiteTexture;
@@ -623,6 +643,7 @@ namespace MemoryWhitebox
             shutterNumber.text = (1 / Photo.Settings.Shutter).ToString("0"); apertureNumber.text = Photo.Settings.Aperture.ToString("0.0"); isoNumber.text = Photo.Settings.ISO.ToString();
             printClip.localRotation = Quaternion.Euler(0, 0, Photo.Completed ? -28 : 0);
             printClip.GetComponent<Renderer>().sharedMaterial.color = feedbackTime > 0 ? feedbackColor : Photo.Completed ? new Color(.38f, .54f, .38f) : new Color(.4f, .47f, .42f);
+            SyncPhysicalPrint();
         }
 
         void RenderReference()
@@ -680,7 +701,9 @@ namespace MemoryWhitebox
 
         public override void Dispose()
         {
+            ClearDarkroomHighlight();
             SaveProgress();
+            if(contactTexture!=null)ReleaseObject(contactTexture);
             if(parkReferenceTexture!=null)ReleaseObject(parkReferenceTexture);
             if (referenceTexture != null) ReleaseObject(referenceTexture);
             if (exposedTexture != null) ReleaseObject(exposedTexture);

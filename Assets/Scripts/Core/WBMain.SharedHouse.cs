@@ -30,9 +30,10 @@ namespace MemoryWhitebox
             safeInspection!=null && safeInspection.Active?PlayerControlState.Inspection:
             transition>0 || awaitRelease?PlayerControlState.Transition:ShowHelp?PlayerControlState.Paused:
             InStation && CurrentWorld is PhotoWorld3D && ((PhotoWorld3D)CurrentWorld).ParkGalleryOpen?PlayerControlState.Gallery:
-            InStation || DirectTapeHandling || (radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode))?PlayerControlState.Operation:PlayerControlState.Exploration;
+            InStation || DirectTapeHandling || (radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode || radioDeck.SuccessPopupOpen))?PlayerControlState.Operation:PlayerControlState.Exploration;
         public void SuspendHouseInput()
         {
+            InputContext.Handoff();
             houseReturnGate=true;houseHandoff.Arm();Room?.StopMotion();
             InputState.Keys.Clear();InputState.Down=false;wasDown=wasRightDown=false;
         }
@@ -56,9 +57,11 @@ namespace MemoryWhitebox
             if(playerCamera==null || playerHands==null || radioDeck==null || radioDeck.Chapter==null)
             {Debug.LogError("House requires its authored player camera, hands and initialized radio.",this);enabled=false;return;}
             Room=new RoomWorld();Room.CreateShared(playerCamera,houseShell);
+            if(safeInspection!=null){safeInspection.InputContext=InputContext;safeInspection.RestoreInputContext=()=>{SuspendHouseInput();SyncInputContext();};}
             chapters[0]=radioDeck.Chapter;
             worlds[0]=new RadioTapeWorld(radioDeck);
             for(int i=1;i<5;i++)CreateHouseChapter(i);
+            BindChapterData();
             LoadStoryProgress();
             ((PaintingWorld3D)worlds[3]).BindSharedScarf((EndingWorld3D)worlds[4]);
             var hands=playerHands;hands.BindHouse(this);hands.Register(0,worlds[0]);
@@ -140,7 +143,8 @@ namespace MemoryWhitebox
                     throw new System.InvalidOperationException("Film must be developed before another park visit.");
                 if(!Application.CanStreamedLevelBeLoaded(ParkFilmRoute.ParkScenePath))
                     throw new System.InvalidOperationException("ParkScene is not in Build Settings.");
-                SaveStableProgress();
+                if(!SaveStableProgress())
+                {cameraRouteNotice="Progress not saved. Stay here and retry. "+LastSaveError;cameraRouteNoticeUntil=Time.unscaledTime+6;return false;}
                 if(!story.RememberReturn(roomEye,roomRotation,roomFov))return false;
                 SuspendHouseInput();
                 ParkFilmRoute.RememberHouseView(roomEye,roomRotation,roomFov);
@@ -255,17 +259,19 @@ namespace MemoryWhitebox
             if(!houseReady || Room==null || !houseFocused)return;
             TickStoryProgress();
             RestoreHouseCursor();
+            if(radioDeck.SuccessPopupOpen){Room.StopMotion();return;}
             if(safeInspection!=null && safeInspection.BlocksInput){Room.StopMotion();return;}
+            if(transition>0){AdvanceHouseTransition(Mathf.Min(Time.unscaledDeltaTime,.1f));return;}
             if(houseReturnGate){Room.StopMotion();ReleaseHouseReturnInput(houseHandoff.Ready);return;}
+            if(awaitRelease){if(houseHandoff.Ready)ReleaseHouseEntryInput();return;}
+            if(!InputContext.Ready){Room.StopMotion();return;}
             if(radioDeck.RecordingMode){radioDeck.TickRecording();return;}
             if(radioDeck.WorkbenchMode){radioDeck.TickWorkbench();return;}
-            if(Input.GetKeyDown(KeyCode.Escape))
+            if(ExitHouseContext())return;
+            if(ShowHelp)
             {
-                var gallery=InStation?CurrentWorld as PhotoWorld3D:null;
-                if(gallery!=null && gallery.CloseParkGallery())return;
-                if(DirectTapeHandling){radioDeck.PutBack();SyncTapePointer();SuspendHouseInput();return;}
-                if(InStation)ExitHouseStation();
-                else RestoreHouseCursor();
+                Room.StopMotion();
+                if(Input.GetKeyDown(KeyCode.H))InputContext.RequestExit(InputContextId.Paused,null,()=>SetHelpVisible(false));
                 return;
             }
             float dt=Mathf.Min(Time.unscaledDeltaTime,.1f);
@@ -306,7 +312,7 @@ namespace MemoryWhitebox
                 }
                 Done[0]=story.IsComplete(0);return;
             }
-            if(Input.GetKeyDown(KeyCode.H))SetHelpVisible(!ShowHelp);
+            if(Input.GetKeyDown(KeyCode.H)){SetHelpVisible(!ShowHelp);return;}
             if(Input.GetKeyDown(KeyCode.M))Muted=!Muted;
             if(ShowHelp)return;
             if(CurrentWorld.WantsMouseLook){var look=PlayerInputPolicy.LookDelta;var controls=PlayerControlSettings.Current;lookYaw+=look.x*controls.lookSensitivity;lookPitch=controls.ClampPitch(lookPitch-look.y*controls.lookSensitivity);Room.Camera.transform.rotation=Quaternion.Euler(lookPitch,lookYaw,0);}
@@ -329,17 +335,18 @@ namespace MemoryWhitebox
             if(!sharedHouse || !houseReady || Room==null || !houseFocused || !isActiveAndEnabled)return;
             if(safeInspection!=null && safeInspection.Active)return;
             if(ControlState==PlayerControlState.Exploration && (Cursor.lockState!=CursorLockMode.Locked || Cursor.visible))Room.EnableLook(true);
-            PlayerInputPolicy.ApplyCursor(ControlState,InStation && CurrentWorld!=null && CurrentWorld.WantsMouseLook);
+            SyncInputContext();
         }
         void SyncTapePointer()
         {
             bool free=DirectTapeHandling || radioDeck.WorkbenchMode;
             if(free!=tapePointerWasFree){Room.EnableLook(!free);tapePointerWasFree=free;PlayerInputPolicy.SuppressLook();}
-            PlayerInputPolicy.ApplyCursor(ControlState,InStation && CurrentWorld!=null && CurrentWorld.WantsMouseLook);
+            SyncInputContext();
         }
         void DrawHouse()
         {
             if(!houseReady || Room==null)return;
+            if(radioDeck!=null && radioDeck.SuccessPopupOpen)return;
             if(safeInspection!=null && safeInspection.BlocksInput)return;
             if(transition>0)
             {
@@ -377,7 +384,8 @@ namespace MemoryWhitebox
                     if(ShowHelp){InteractionUI.Label(new Rect(32,72,Mathf.Min(870,Screen.width-64),210),CurrentWorld.Help,style);}
                     else if(ChapterIndex>=2)InteractionUI.Label(new Rect(28,Screen.height-72,Screen.width-56,52),OperationHint(),style);
                     if(CurrentWorld.WantsMouseLook)InteractionUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"·",style);
-                    if(deskStudy && ChapterIndex==1 && transition<=0 && !awaitRelease && !ShowHelp)((PhotoWorld3D)CurrentWorld).DrawProgress(style);
+                    if(deskStudy && ChapterIndex==1 && transition<=0 && !awaitRelease && !ShowHelp)
+                    {bool enabled=GUI.enabled;GUI.enabled=enabled && InputContext.Ready;((PhotoWorld3D)CurrentWorld).DrawProgress(style);GUI.enabled=enabled;}
                 }
             }
         }

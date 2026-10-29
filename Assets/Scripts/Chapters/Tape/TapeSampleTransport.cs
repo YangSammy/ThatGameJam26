@@ -9,6 +9,7 @@ namespace MemoryWhitebox
     public sealed class TapeSampleTransport : MonoBehaviour
     {
         readonly object sync=new object();
+        readonly object saveSync=new object();
         float[] source,target;
         int[] mapping;
         int a,b,length,rate;
@@ -28,7 +29,9 @@ namespace MemoryWhitebox
         public string TargetStatus {get{lock(sync)return seek<0?"REWINDING":seek>0?"FAST FORWARD":playB && b>=target.Length?"END":playB && record?"RECORDING":playB && b<length?"PLAYBACK":playB?"RUNNING BLANK":length==0?"EMPTY":"PAUSED";}}
         public float RecordedSeconds {get{lock(sync)return length/(float)Math.Max(1,rate);}}
         public string SaveError {get;private set;}="";
+        public string LastWriteError {get;private set;}="";
         string path=>Path.Combine(GameSavePaths.Root,commission==0?"tape-one-pcm-v1.bin":"tape-commission-"+commission+"-pcm.bin");
+        public ArtifactReference Artifact=>new ArtifactReference{artifactId="tape.copy."+(commission+1),chapterId=ChapterIds.Tape,relativePath=Path.GetFileName(path),sourceHash=sourceHash,contentVersion=3};
         public void Initialize(float[] samples,int sampleRate,int commissionIndex=0)
         {
             if(samples==null || samples.Length==0 || sampleRate<=0 || commissionIndex<0 || commissionIndex>=RadioTapeChapter.CommissionCount)throw new ArgumentException("Invalid commission audio.");
@@ -67,7 +70,17 @@ namespace MemoryWhitebox
         public void SourceCommand(int command)
         {lock(sync){if(!configured || SaveError!="")return;if(command==0)playA=false;else if(command==1)playA=a<source.Length;else {playA=false;a=0;}dirty=true;}if(command!=1)Save();}
         public void TargetCommand(bool play,bool write,int winding,bool mute)
-        {lock(sync){playB=configured && play;record=playB && write;seek=!playB && !write?Math.Sign(winding):0;muted=mute;}}
+        {
+            lock(sync)
+            {
+                bool writing=configured && play && write && playA && a<source.Length && length<target.Length;
+                // Listening and winding move b, never the append point. Every new recording
+                // gesture resumes at the end of the saved copy instead of overwriting it.
+                if(writing && !record)b=length;
+                playB=writing || (configured && play && !write && b<length);
+                record=writing;seek=!play && !write?Math.Sign(winding):0;muted=mute;
+            }
+        }
         public void StopAll(){lock(sync){playA=playB=record=false;seek=0;if(configured)dirty=true;}Save();}
         public void ClearTarget(){lock(sync){playB=record=false;seek=0;b=length=0;if(target!=null)Array.Clear(target,0,target.Length);if(mapping!=null)for(int i=0;i<mapping.Length;i++)mapping[i]=-1;dirty=true;}Save();}
         public bool RetryCurrent()
@@ -99,9 +112,13 @@ namespace MemoryWhitebox
                             target[b]=playA?input:0;mapping[b]=playA && a<source.Length?a:-1;
                             b++;length=Math.Max(length,b);dirty=true;
                         }
-                        else {if(!playA)heard=b<length?target[b]:0;b++;dirty=true;}
+                        else
+                        {
+                            if(b<length){if(!playA)heard=target[b];b++;dirty=true;}
+                            if(b>=length){b=length;playB=false;}
+                        }
                     }
-                    if(playA){a++;dirty=true;if(a>=source.Length){a=source.Length;playA=false;}}
+                    if(playA){a++;dirty=true;if(a>=source.Length){a=source.Length;playA=false;if(record){playB=false;record=false;}}}
                     for(int c=0;c<channels;c++)output[i+c]=muted?0:heard*.65f;
                 }
             }
@@ -110,20 +127,29 @@ namespace MemoryWhitebox
         public int[] SnapshotMapping(){lock(sync){var result=new int[length];Array.Copy(mapping,result,length);return result;}}
         public bool Save()
         {
-            lock(sync)
+            // Serialize writers, but never hold the audio callback lock during disk IO.
+            lock(saveSync)
             {
+                float[] samples;int[] origins;int sampleRate,sourceLength,sourceCursor,targetCursor;string hash,file;
+                lock(sync)
+                {
                 if(SaveError!="")return false;
                 if(!configured)return true;
                 if(!dirty)return true;
+                samples=new float[length];origins=new int[length];Array.Copy(target,samples,length);Array.Copy(mapping,origins,length);
+                sampleRate=rate;sourceLength=source.Length;sourceCursor=a;targetCursor=b;hash=sourceHash;file=path;
+                // Later audio changes set dirty again; a completed old write must not clear them.
+                dirty=false;
+                }
                 try
                 {
                     Directory.CreateDirectory(GameSavePaths.Root);
-                    using(var stream=new FileStream(path+".tmp",FileMode.Create,FileAccess.Write))
-                    {using(var writer=new BinaryWriter(stream,System.Text.Encoding.UTF8,true)){writer.Write(3);writer.Write(rate);writer.Write(source.Length);writer.Write(sourceHash);writer.Write(length);for(int i=0;i<length;i++){writer.Write(target[i]);writer.Write(mapping[i]);}writer.Write(a);writer.Write(b);}stream.Flush(true);}
-                    if(File.Exists(path))File.Replace(path+".tmp",path,path+".bak");else File.Move(path+".tmp",path);
-                    dirty=false;return true;
+                    using(var stream=new FileStream(file+".tmp",FileMode.Create,FileAccess.Write))
+                    {using(var writer=new BinaryWriter(stream,System.Text.Encoding.UTF8,true)){writer.Write(3);writer.Write(sampleRate);writer.Write(sourceLength);writer.Write(hash);writer.Write(samples.Length);for(int i=0;i<samples.Length;i++){writer.Write(samples[i]);writer.Write(origins[i]);}writer.Write(sourceCursor);writer.Write(targetCursor);}stream.Flush(true);}
+                    if(File.Exists(file))File.Replace(file+".tmp",file,file+".bak");else File.Move(file+".tmp",file);
+                    LastWriteError="";return true;
                 }
-                catch(Exception e){Debug.LogWarning("Recording not saved; retained in memory: "+e.Message);return false;}
+                catch(Exception e){lock(sync){dirty=true;}LastWriteError=e.Message;Debug.LogWarning("Recording not saved; retained in memory: "+e.Message);return false;}
             }
         }
         void OnDisable(){StopAll();}

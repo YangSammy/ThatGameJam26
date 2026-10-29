@@ -73,25 +73,47 @@ namespace MemoryWhitebox
             }
             catch(System.Exception e){story.BlockRestore(e);}
         }
-        public void SaveStableProgress()
+        public string LastSaveError {get;private set;}="";
+        public bool SaveStableProgress()
         {
-            if(!houseReady || story==null || !story.Available)return;
-            radioDeck.SaveRecordingProgress();
+            if(!houseReady || story==null || !story.Available){LastSaveError=story!=null?story.Error:"Story not ready.";return false;}
+            if(!radioDeck.SaveRecordingProgress()){LastSaveError="Recording could not be saved.";return false;}
+            var photography=worlds[1] as PhotoWorld3D;
+            if(photography!=null && !photography.SaveProgress()){LastSaveError="Photography progress could not be saved.";return false;}
             for(int i=0;i<chapters.Length;i++)
             {
                 if(!story.CanEnter(i) || story.IsComplete(i))continue;
-                if(chapters[i].Completed)CommitStoryCompletion(i);
-                else story.SaveCheckpoint(i,chapters[i].CaptureCheckpoint());
+                bool saved=chapters[i].Completed?CommitStoryCompletion(i):story.SaveCheckpoint(i,chapters[i].CaptureCheckpoint());
+                if(!saved){LastSaveError=story.Error;return false;}
             }
+            LastSaveError="";return true;
         }
-        void CommitStoryCompletion(int index)
+        bool CommitStoryCompletion(int index)
         {
-            if(story==null || story.IsComplete(index))return;
-            if(!story.Complete(index,chapters[index].CaptureCheckpoint()))return;
+            if(story==null)return false;
+            if(story.IsComplete(index))return true;
+            if(index==0 && !radioDeck.SaveRecordingProgress())return false;
+            if(index==1 && worlds[index] is PhotoWorld3D && !((PhotoWorld3D)worlds[index]).SaveProgress())return false;
+            if(!story.Complete(index,chapters[index].CaptureCheckpoint()))return false;
+            PublishCommittedCompletion(index);return true;
+        }
+        void PublishCommittedCompletion(int index)
+        {
             Done[index]=true;
             DayChanged?.Invoke(story.Day);
             leaveCompletedChapter=InStation && ChapterIndex==index;
             if(index==0)radioDeck.SuspendInput();
+        }
+        public SaveResult CommitPreparedChapter(string id,string payload,bool completed,ArtifactReference artifact)
+        {
+            if(!houseReady || story==null || !story.Available)return SaveResult.Failed("Story save unavailable.");
+            var result=story.CommitChapter(id,payload,completed,artifact);LastSaveError=result.Error;return result;
+        }
+        public void ApplyCommittedChapter(string id,string payload)
+        {
+            int index=ChapterIds.Index(id);chapters[index].RestoreCheckpoint(payload);
+            if(story.IsComplete(index))
+            {chapters[index].RestoreStoryCompletion();if(!Done[index])PublishCommittedCompletion(index);}
         }
         void TickStoryProgress()
         {
@@ -108,7 +130,7 @@ namespace MemoryWhitebox
                 CurrentWorld?.Release("",pointerRay);
                 (CurrentWorld as PhotoWorld3D)?.SaveProgress();SaveStableProgress();
             }
-            houseFocused=!paused;SuspendHouseInput();RestoreHouseCursor();
+            houseFocused=!paused;SyncInputContext();SuspendHouseInput();RestoreHouseCursor();
         }
         void OnApplicationQuit(){SaveStableProgress();}
     }

@@ -7,10 +7,11 @@ namespace MemoryWhitebox
     public static class PlayerInputPolicy
     {
         // A key may mean movement in one context and recording in another.
-        // Require release only for keys held at handoff, not later presses.
+        // Handoffs wait for relevant controls to be released before accepting a new gesture.
         internal static readonly KeyCode[] Actions={KeyCode.Mouse0,KeyCode.Mouse1,KeyCode.Mouse2,
             KeyCode.Escape,KeyCode.E,KeyCode.H,KeyCode.R,KeyCode.F,KeyCode.J,KeyCode.L,KeyCode.Quote,KeyCode.Return,KeyCode.Space,
-            KeyCode.W,KeyCode.A,KeyCode.S,KeyCode.D,KeyCode.LeftArrow,KeyCode.RightArrow,KeyCode.UpArrow,KeyCode.DownArrow};
+            KeyCode.W,KeyCode.A,KeyCode.S,KeyCode.D,KeyCode.LeftArrow,KeyCode.RightArrow,KeyCode.UpArrow,KeyCode.DownArrow,
+            KeyCode.LeftShift,KeyCode.RightShift,KeyCode.M};
         static int ignoreLookThrough=-1;
         public static bool ActionsReleased
         {get{foreach(var key in Actions)if(Input.GetKey(key))return false;return true;}}
@@ -36,18 +37,25 @@ namespace MemoryWhitebox
     public sealed class PlayerInputReleaseGate
     {
         int pending,armedFrame=-10;
+        bool waiting;
         public void Arm()
         {
-            pending=0;armedFrame=Time.frameCount;
+            pending=0;armedFrame=Time.frameCount;waiting=true;
             for(int i=0;i<PlayerInputPolicy.Actions.Length;i++)if(Input.GetKey(PlayerInputPolicy.Actions[i]))pending|=1<<i;
             PlayerInputPolicy.SuppressLook();
         }
+        public void AdoptGesture(){pending=0;waiting=false;armedFrame=-10;PlayerInputPolicy.SuppressLook();}
         public bool Ready
         {
             get
             {
-                for(int i=0;i<PlayerInputPolicy.Actions.Length;i++)if(!Input.GetKey(PlayerInputPolicy.Actions[i]))pending&=~(1<<i);
-                return pending==0 && Time.frameCount>armedFrame+1;
+                if(!waiting)return true;
+                // Include presses made while waiting, preventing a fresh hold from
+                // leaking into the next mode on the release frame of the old key.
+                pending=0;
+                for(int i=0;i<PlayerInputPolicy.Actions.Length;i++)if(Input.GetKey(PlayerInputPolicy.Actions[i]))pending|=1<<i;
+                if(pending!=0 || Time.frameCount<=armedFrame+1)return false;
+                waiting=false;return true;
             }
         }
     }

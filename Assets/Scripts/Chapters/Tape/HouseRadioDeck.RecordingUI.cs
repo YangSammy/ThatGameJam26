@@ -18,6 +18,7 @@ namespace MemoryWhitebox
         float feedbackUntil;
         void OnGUI()
         {
+            if(SuccessPopupOpen)return;
             DrawWorkbench();
             if(!RecordingMode || transport==null || house==null || house.safeInspection.Active)return;
             if(SubmissionMessage!=lastFeedback)
@@ -25,7 +26,7 @@ namespace MemoryWhitebox
             var text=new GUIStyle(GUI.skin.label){fontSize=14,wordWrap=true};
             text.normal.textColor=new Color(.94f,.94f,.88f);
             bool canRetry=!Chapter.Completed && transport.RecordedSeconds>0;
-            if(canRetry && GUI.Button(RetryButtonRect,"Retry"))RetryCurrentCommission();
+            if(canRetry && RecordingInputReady && GUI.Button(RetryButtonRect,"Retry"))RetryCurrentCommission();
             string feedback=Time.unscaledTime<feedbackUntil?SubmissionMessage:"";
             if(transport.Writing && !transport.SourcePlaying)feedback="A is stopped. B is recording silence.";
             else if(transport.TargetStatus=="RUNNING BLANK")feedback="B is running blank. STOP to pause.";

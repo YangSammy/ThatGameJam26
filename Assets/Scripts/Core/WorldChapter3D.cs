@@ -8,6 +8,7 @@ namespace MemoryWhitebox
     {
         public WorldChapter3D Owner;
         public string Id;
+        public string InstanceId=>Owner!=null && !string.IsNullOrEmpty(Owner.Model.Id)?Owner.Model.Id+"/"+Id:"";
     }
 
     // Each chapter owns spatial meshes and colliders. UI is never a puzzle renderer.
@@ -15,6 +16,7 @@ namespace MemoryWhitebox
     {
         public readonly WBMain Host;
         public readonly Chapter Model;
+        public ChapterSceneBinding SceneBinding=>Host!=null && !string.IsNullOrEmpty(Model.Id)?Host.FindChapterBinding(Model.Id):null;
         public readonly GameObject Root;
         public readonly Camera View;
         public readonly Vector3 Origin;
@@ -100,12 +102,11 @@ namespace MemoryWhitebox
             line.useWorldSpace=false;line.positionCount=localPoints.Length;line.SetPositions(localPoints);line.startWidth=line.endWidth=width;
             line.numCapVertices=4;line.numCornerVertices=3;line.sharedMaterial=Material(hex);return line;
         }
-        protected TextMesh Label(string text,Vector3 localPosition,float size=.05f,string hex="#dcd7c9",Vector3? euler=null)
+        protected WorldTooltipLabel Label(string text,Vector3 localPosition,float size=.05f,string hex="#dcd7c9",Vector3? euler=null)
         {
             var go=new GameObject("Device marking "+text);go.transform.SetParent(Root.transform,false);go.transform.localPosition=localPosition;
             if(euler.HasValue)go.transform.localEulerAngles=euler.Value;
-            var tm=go.AddComponent<TextMesh>();tm.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");tm.GetComponent<MeshRenderer>().sharedMaterial=tm.font.material;tm.text=text;tm.characterSize=size*.25f;tm.fontSize=64;tm.anchor=TextAnchor.MiddleCenter;
-            ColorUtility.TryParseHtmlString(hex,out Color c);tm.color=c;return tm;
+            var tooltip=go.AddComponent<WorldTooltipLabel>();tooltip.text=text;return tooltip;
         }
         protected void Room(float width=8,float depth=9)
         {

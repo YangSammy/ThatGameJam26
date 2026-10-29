@@ -14,6 +14,16 @@ namespace MemoryWhitebox
 
     public abstract class Chapter
     {
+        public string Id {get;private set;}
+        public ChapterDefinition Definition {get;private set;}
+        public void BindDefinition(string id,ChapterDefinition definition=null)
+        {
+            ChapterIds.Index(id);
+            if(definition!=null && definition.chapterId!=id)throw new ArgumentException("Chapter definition mismatch.");
+            if(!string.IsNullOrEmpty(Id) && Id!=id)throw new InvalidOperationException("Chapter identity cannot change.");
+            Id=id;Definition=definition;
+        }
+        public ChapterSaveRecord CaptureRecord()=>new ChapterSaveRecord{chapterId=Id,completed=Completed,payload=CaptureCheckpoint()};
         public bool Completed { get; protected set; }
         public virtual string Help => "";
         public virtual string DebugState => JsonUtility.ToJson(new State { completed = Completed });

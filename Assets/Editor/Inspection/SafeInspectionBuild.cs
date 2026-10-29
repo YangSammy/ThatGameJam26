@@ -260,10 +260,10 @@ namespace MemoryWhitebox.Editor
         static void CopyRenderer(Transform source,Transform target,List<SafeInspectionSubject.RenderPair> renders)
         {
             var mesh=source.GetComponent<MeshFilter>();var original=source.GetComponent<MeshRenderer>();var text=source.GetComponent<TextMesh>();
-            if(text!=null)
+            var tooltip=source.GetComponent<WorldTooltipLabel>();
+            if(text!=null || tooltip!=null)
             {
-                var copy=target.gameObject.AddComponent<TextMesh>();copy.text=text.text;copy.font=text.font;copy.fontSize=text.fontSize;copy.characterSize=text.characterSize;copy.anchor=text.anchor;copy.alignment=text.alignment;copy.color=text.color;
-                var r=target.GetComponent<Renderer>();r.sharedMaterials=original.sharedMaterials;r.enabled=original.enabled;renders.Add(new SafeInspectionSubject.RenderPair{source=original,display=r});return;
+                var copy=target.gameObject.AddComponent<WorldTooltipLabel>();copy.text=tooltip!=null?tooltip.text:text.text;copy.prefix=tooltip!=null?tooltip.prefix:"";copy.mirror=tooltip;return;
             }
             if(mesh==null || original==null || mesh.sharedMesh==null)return;
             target.gameObject.AddComponent<MeshFilter>().sharedMesh=mesh.sharedMesh;

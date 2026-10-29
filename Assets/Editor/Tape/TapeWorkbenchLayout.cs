@@ -32,7 +32,7 @@ namespace MemoryWhitebox.Editor
             for(int i=0;i<3;i++){d.keys3d[i].SetParent(source,false);d.keys3d[i].localPosition=new Vector3((i-1)*.055f,.015f,-.078f);d.keys3d[i].localRotation=Quaternion.identity;}
             d.sourceCounter.transform.SetParent(source,false);d.sourceCounter.transform.localPosition=new Vector3(0,.016f,.085f);
             d.sourceCounter.transform.localRotation=Quaternion.Euler(90,0,0);
-            d.sourceCounter.characterSize=.0045f;d.targetCounter.characterSize=.0045f;
+
 
             var tool=d.transform.Find("AdhesiveTool_Desktop");
             if(tool==null){tool=new GameObject("AdhesiveTool_Desktop").transform;tool.SetParent(d.transform,false);}

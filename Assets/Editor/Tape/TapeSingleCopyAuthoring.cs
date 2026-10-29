@@ -42,8 +42,8 @@ namespace MemoryWhitebox.Editor
                 var hit=source.AddComponent<BoxCollider>();hit.center=d.originalTape.InverseTransformPoint(bounds.center);var scale=d.originalTape.lossyScale;hit.size=new Vector3(bounds.size.x/scale.x,bounds.size.y/scale.y,bounds.size.z/scale.z);d.originalHit=hit;
                 d.originalTape.rotation=d.originalHome.rotation;
                 var socketHit=d.sourceSocket.gameObject.AddComponent<BoxCollider>();socketHit.size=new Vector3(.23f,.16f,.07f);d.sourceSocket.gameObject.layer=25;d.sourceSlot=socketHit;
-                var tag=Anchor(d.originalTape,"OriginalLabel",new Vector3(0,.023f,-.008f));var t=tag.gameObject.AddComponent<TextMesh>();t.text="ORIGINAL 01";t.characterSize=.0024f;t.fontSize=40;t.anchor=TextAnchor.MiddleCenter;t.color=Color.black;
-                var note=Anchor(d.adhesiveTab.transform.parent,"WriteProtectGuide",new Vector3(0,.035f,.06f));note.localRotation=Quaternion.Euler(70,0,0);var n=note.gameObject.AddComponent<TextMesh>();n.text="MISSING TAB > COVER HOLE > RECORD\nBoth sides ready. Not a repair for broken tape.";n.characterSize=.0025f;n.fontSize=36;n.anchor=TextAnchor.MiddleCenter;n.color=new Color(.9f,.85f,.65f);
+                var tag=Anchor(d.originalTape,"OriginalLabel",new Vector3(0,.023f,-.008f));var t=tag.gameObject.AddComponent<WorldTooltipLabel>();t.text="Original 01";t.target=d.originalTape;
+                var note=Anchor(d.adhesiveTab.transform.parent,"WriteProtectGuide",new Vector3(0,.035f,.06f));note.localRotation=Quaternion.Euler(70,0,0);var n=note.gameObject.AddComponent<WorldTooltipLabel>();n.text="Cover both write-protect holes to allow recording. This does not repair broken tape.";n.target=d.adhesiveTab.transform.parent;
             }
             var ui=d.transportPanel;Undo.RecordObject(ui,"Dual transport controls");
             if(ui.sourceStatus==null)

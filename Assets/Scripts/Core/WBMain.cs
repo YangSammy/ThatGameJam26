@@ -27,7 +27,7 @@ namespace MemoryWhitebox
         static readonly KeyCode[] keys={KeyCode.W,KeyCode.A,KeyCode.S,KeyCode.D,KeyCode.E,KeyCode.F,KeyCode.J,KeyCode.L,KeyCode.Quote,KeyCode.LeftArrow,KeyCode.RightArrow,KeyCode.UpArrow,KeyCode.DownArrow,KeyCode.Space,KeyCode.LeftShift};
         public void Select(int index){EnterHouseStation(index);}
         public void LeaveStation(){ExitHouseStation();}
-        public void ChapterComplete(Chapter chapter){int index=System.Array.IndexOf(chapters,chapter);if(index>=0)CommitStoryCompletion(index);Tone(660,.24f);}
+        public void ChapterComplete(Chapter chapter){int index=System.Array.IndexOf(chapters,chapter);if(index>=0 && CommitStoryCompletion(index))Tone(660,.24f);}
         public static void Tone(float hz,float duration=.12f)
         {
             if(Instance==null || Instance.Muted || IsQA || Instance.audioSource==null)return;
@@ -45,11 +45,11 @@ namespace MemoryWhitebox
             if(photo!=null)photo.CancelInteraction();else CurrentWorld?.Release("",pointerRay);
             InputState.Keys.Clear();InputState.Down=false;
             wasDown=Input.GetMouseButton(0);wasRightDown=Input.GetMouseButton(1);
-            ShowHelp=visible;SuspendHouseInput();
+            ShowHelp=visible;SuspendHouseInput();SyncInputContext();
         }
         void OnApplicationFocus(bool focus)
         {
-            houseFocused=focus;if(houseReady)SuspendHouseInput();
+            houseFocused=focus;if(houseReady){SyncInputContext();SuspendHouseInput();}
             if(focus){RestoreHouseCursor();return;}
             PlayerInputPolicy.ApplyCursor(PlayerControlState.Unfocused);
             safeInspection?.Close();

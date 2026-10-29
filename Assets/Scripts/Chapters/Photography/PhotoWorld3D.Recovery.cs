@@ -39,20 +39,22 @@ namespace MemoryWhitebox
             if(!string.IsNullOrEmpty(savedImage)){exposedTexture=new Texture2D(2,2);exposedTexture.LoadImage(Convert.FromBase64String(savedImage));}
             Photo.Assess();ReturnToCheckpoint();Eye=World(walkPosition);Look=Eye+Quaternion.Euler(pitch,yaw,0)*Vector3.forward;
         }
-        public void SaveProgress(bool force=true)
+        public bool SaveProgress(bool force=true)
         {
-            if(!UsesProgress || saveBlocked || PhotoProgressStore.SuppressWrites)return;
-            if(!force && Time.unscaledTime<nextSave)return;nextSave=Time.unscaledTime+.5f;
-            if(ParkMode){SaveParkFilm();return;}
-            if(parkLoading){SaveParkLoading();return;}
+            if(!UsesProgress || PhotoProgressStore.SuppressWrites)return true;
+            if(saveBlocked)return false;
+            if(!force && Time.unscaledTime<nextSave)return false;nextSave=Time.unscaledTime+.5f;
+            if(ParkMode)return SaveParkFilm();
+            if(parkLoading)return SaveParkLoading();
             var d=new PhotoProgress{phase=Photo.Phase,settings=Photo.Settings.Copy(),captured=Photo.Captured,chemistry=Photo.Chemistry,attempts=Photo.Attempts,remaining=Mathf.Max(0,Photo.ProcessingTime),bagTurns=Photo.BagTurns,rewindTurns=RewindTurns,clockDuration=clockDuration,threaded=Photo.FilmThreaded,fogged=Photo.Fogged,agitated=Photo.Agitated,backOpen=RewoundBackOpen,completed=Photo.Completed};
-            string state=JsonUtility.ToJson(d);if(state==lastSavedState)return;d.image=savedImage;
-            try {PhotoProgressStore.Save(d);lastSavedState=state;if(saveNotice.StartsWith("Photo not saved"))saveNotice="";}
-            catch(Exception e){saveNotice="Photo not saved. Check storage; retry on exit.";Debug.LogWarning("Photo save failed: "+e.Message);nextSave=Time.unscaledTime+5;}
+            string state=JsonUtility.ToJson(d);if(state==lastSavedState)return true;d.image=savedImage;
+            try {PhotoProgressStore.Save(d);lastSavedState=state;if(saveNotice.StartsWith("Photo not saved"))saveNotice="";return true;}
+            catch(Exception e){saveNotice="Photo not saved. Check storage; retry on exit.";Debug.LogWarning("Photo save failed: "+e.Message);nextSave=Time.unscaledTime+5;return false;}
         }
         public string ProgressHint {
             get {
                 if(saveNotice!="")return saveNotice;
+                string task=DarkroomTask;if(!string.IsNullOrEmpty(task))return task;
                 if(Printing)return PrintHint;
                 if(Photo.Completed)return "Photo saved  /  Esc  Back";
                 switch(Photo.Phase){

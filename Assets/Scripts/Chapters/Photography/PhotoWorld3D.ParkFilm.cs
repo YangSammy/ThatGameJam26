@@ -17,7 +17,7 @@ namespace MemoryWhitebox
         bool printProcessing,printHeld;
         bool Printing=>ParkMode && darkroomWorkflow>=2 && printStage!=ParkPrintStage.None && printStage!=ParkPrintStage.Complete;
         public ParkPrintStage CurrentPrintStage=>printStage;
-        string PrintHint=>printProcessing?(printStage==ParkPrintStage.Exposing?"Hold LMB  Expose":"Processing"):
+        string PrintHint=>PhysicalPrinting?PhysicalPrintHint:printProcessing?(printStage==ParkPrintStage.Exposing?"Hold LMB  Expose":"Processing"):
             printStage==ParkPrintStage.NegativeDrying?"LMB tank  Hang negative":
             printStage==ParkPrintStage.ContactReady?"Hold LMB on paper  Expose":
             printStage==ParkPrintStage.PaperWash?"LMB tap  Wash paper":
@@ -51,11 +51,13 @@ namespace MemoryWhitebox
                 }
                 parkFilm=active;
                 var d=active.darkroom ?? (active.version>=3 && active.state!=ParkFilmState.Developed?
-                    new ParkDarkroomProgress{workflowVersion=2,phase=PhotoChapter.FilmPhase.Exposed}:new ParkDarkroomProgress());
+                    new ParkDarkroomProgress{workflowVersion=3,phase=PhotoChapter.FilmPhase.Exposed}:new ParkDarkroomProgress());
                 if(d.workflowVersion==1 && active.state!=ParkFilmState.Developed)d.workflowVersion=2;
+                if(d.workflowVersion==2 && active.state!=ParkFilmState.Developed){d.printObjects=DarkroomPrintState.FromLegacy(d.printStage,d.printProcessing);d.workflowVersion=3;}
                 darkroomWorkflow=d.workflowVersion;tankSealed=d.tankSealed;needsDrain=d.needsDrain;
+                printObjectsState=d.printObjects ?? new DarkroomPrintState();printObjectsState.Validate();
                 printStage=d.printStage;printRemaining=d.printRemaining;printProcessing=d.printProcessing;
-                if(printStage==ParkPrintStage.Exposing){printStage=ParkPrintStage.ContactReady;printRemaining=0;printProcessing=false;}
+                if(printStage==ParkPrintStage.Exposing){printStage=ParkPrintStage.ContactReady;if(darkroomWorkflow<3)printRemaining=0;printProcessing=false;}
                 RewindTurns=d.rewindTurns;RewoundBackOpen=d.backOpen;
                 if(active.state==ParkFilmState.Developed){d.phase=PhotoChapter.FilmPhase.Developed;d.chemistry=4;}
                 Photo.Phase=d.phase;Photo.Chemistry=d.chemistry;Photo.ProcessingTime=d.remaining;
@@ -64,6 +66,7 @@ namespace MemoryWhitebox
                 Photo.RestoreCompleted(ParkPrintsReady);parkFrame=d.selectedFrame;
                 ReturnToCheckpoint();Eye=World(walkPosition);Look=Eye+Quaternion.Euler(pitch,yaw,0)*Vector3.forward;
                 if(ParkPrintsReady)LoadParkFrame();
+                if(PhysicalPrinting && printStage>=ParkPrintStage.PaperDeveloper)LoadContactTexture();
                 return true;
             }
             catch(Exception e)
@@ -74,20 +77,21 @@ namespace MemoryWhitebox
             }
         }
 
-        void SaveParkLoading()
+        bool SaveParkLoading()
         {
-            if(loadingFilm==null && Photo.Phase==PhotoChapter.FilmPhase.Empty)return;
+            if(loadingFilm==null && Photo.Phase==PhotoChapter.FilmPhase.Empty)return true;
             var c=new ParkCameraLoading{phase=Photo.Phase,threaded=Photo.FilmThreaded,iso=Photo.Settings.ISO};
-            string state=JsonUtility.ToJson(c);if(state==lastSavedState)return;
+            string state=JsonUtility.ToJson(c);if(state==lastSavedState)return true;
             try
             {
                 loadingFilm=ParkFilmStore.SaveCameraLoading(loadingFilm!=null?loadingFilm.id:null,c);
-                lastSavedState=state;saveNotice="";
+                lastSavedState=state;saveNotice="";return true;
             }
             catch(Exception e)
             {
                 saveNotice="Loading not saved. Check storage and retry.";
                 nextSave=Time.unscaledTime+5;Debug.LogWarning("Camera loading save: "+e.Message);
+                return false;
             }
         }
         void DrawParkLoading(GUIStyle style)
@@ -95,10 +99,10 @@ namespace MemoryWhitebox
 
             InteractionUI.Label(new Rect(28,Screen.height-100,Screen.width-56,42),ProgressHint,style);
             if(InteractionUI.Button(ProgressActionRect,"Go to park"))
-            {CancelInteraction();SaveProgress();Host.TryStartParkPhotography();}
+            {CancelInteraction();if(SaveProgress())Host.TryStartParkPhotography();}
         }
 
-        void SaveParkFilm()
+        bool SaveParkFilm()
         {
             var d=new ParkDarkroomProgress{phase=Photo.Phase,chemistry=Photo.Chemistry,
                 remaining=Mathf.Max(0,Photo.ProcessingTime),bagTurns=Photo.BagTurns,
@@ -106,9 +110,10 @@ namespace MemoryWhitebox
                 workflowVersion=darkroomWorkflow,tankSealed=tankSealed,needsDrain=needsDrain,
                 rewindTurns=RewindTurns,backOpen=RewoundBackOpen,
                 printStage=printStage==ParkPrintStage.Exposing?ParkPrintStage.ContactReady:printStage,
-                printRemaining=printStage==ParkPrintStage.Exposing?0:printRemaining,
-                printProcessing=printStage!=ParkPrintStage.Exposing && printProcessing};
-            string state=JsonUtility.ToJson(d);if(state==lastSavedState)return;
+                printRemaining=printStage==ParkPrintStage.Exposing && darkroomWorkflow<3?0:printRemaining,
+                printProcessing=printStage!=ParkPrintStage.Exposing && printProcessing,
+                printObjects=darkroomWorkflow>=3?printObjectsState:null};
+            string state=JsonUtility.ToJson(d);if(state==lastSavedState)return true;
             try
             {
                 bool wasReady=ParkPrintsReady;
@@ -119,11 +124,13 @@ namespace MemoryWhitebox
                     Photo.RestoreCompleted(true);
                     if(!wasReady){CancelInteraction();LoadParkFrame();parkGallery=true;Host.SuspendHouseInput();}
                 }
+                return true;
             }
             catch(Exception e)
             {
                 saveNotice="Film not saved. Check storage; retrying.";
                 Debug.LogWarning("Darkroom film save: "+e.Message);nextSave=Time.unscaledTime+5;
+                return false;
             }
         }
 
@@ -132,12 +139,14 @@ namespace MemoryWhitebox
             // The model's legacy rinse finishes the negative, not the paper print.
             Photo.Phase=PhotoChapter.FilmPhase.Tank;Photo.Chemistry=3;Photo.ProcessingTime=0;
             Photo.RestoreCompleted(false);needsDrain=false;
-            printStage=ParkPrintStage.NegativeDrying;printRemaining=3;printProcessing=false;
+            printStage=ParkPrintStage.NegativeDrying;printRemaining=PhysicalPrinting?PrintDuration(printStage):3;printProcessing=false;
+            if(PhysicalPrinting)printObjectsState=new DarkroomPrintState();
             SaveProgress();
         }
         bool PressPrintWorkflow(string id,Ray ray)
         {
             if(!Printing)return false;
+            if(PhysicalPrinting)return PressPhysicalPrint(id,ray);
             if(printProcessing)return true;
             if(printStage==ParkPrintStage.NegativeDrying && (id=="tank" || id=="tank-lid"))printProcessing=true;
             else if(printStage==ParkPrintStage.ContactReady && id=="developed-photo")
@@ -153,7 +162,7 @@ namespace MemoryWhitebox
         {
             printHeld=false;
             if(printStage!=ParkPrintStage.Exposing)return;
-            printStage=ParkPrintStage.ContactReady;printRemaining=0;printProcessing=false;
+            printStage=ParkPrintStage.ContactReady;if(!PhysicalPrinting)printRemaining=0;printProcessing=false;
         }
         void PourPrintChemical(int index)
         {
@@ -162,7 +171,7 @@ namespace MemoryWhitebox
         }
         void TickPrintWorkflow(float dt)
         {
-            if(!Printing || !printProcessing || (printStage==ParkPrintStage.Exposing && !printHeld))return;
+            if(!Printing || !printProcessing || (PhysicalPrinting && printObjects==null) || (printStage==ParkPrintStage.Exposing && !printHeld))return;
             printRemaining=Mathf.Max(0,printRemaining-Mathf.Max(0,dt));
             clockHand.localRotation=Quaternion.Euler(0,0,-printRemaining*120);
             if(printRemaining>0)return;
@@ -174,7 +183,7 @@ namespace MemoryWhitebox
                 printStage=ParkPrintStage.Complete;Photo.Phase=PhotoChapter.FilmPhase.Developed;Photo.Chemistry=4;
             }
             else printStage=(ParkPrintStage)((int)printStage+1);
-            SaveProgress();SyncProps();
+            if(SaveProgress() && PhysicalPrinting && printStage>=ParkPrintStage.PaperDeveloper)LoadContactTexture();SyncProps();
         }
         void LoadParkFrame()
         {
@@ -244,7 +253,7 @@ namespace MemoryWhitebox
             GUI.enabled=parkFrame>1;if(InteractionUI.Button(new Rect(36,Screen.height-70,140,36),"< Previous"))TurnParkFrame(-1);
             GUI.enabled=parkFrame<parkFilm.Capacity;if(InteractionUI.Button(new Rect(188,Screen.height-70,140,36),"Next >"))TurnParkFrame(1);
             GUI.enabled=enabled;
-            if(InteractionUI.Button(new Rect(Screen.width-204,Screen.height-70,168,36),"Close  /  Esc"))CloseParkGallery();
+            if(InteractionUI.Button(new Rect(Screen.width-204,Screen.height-70,168,36),"Close  /  Esc"))Host.InputContext.RequestExit(InputContextId.Gallery,null,()=>{CloseParkGallery();Host.SuspendHouseInput();});
         }
     }
 }

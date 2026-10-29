@@ -20,7 +20,7 @@ namespace MemoryWhitebox.Editor
                     var home=new GameObject("OriginalTapeHome_"+(i+1).ToString("00")).transform;Undo.RegisterCreatedObjectUndo(home.gameObject,"Original home");home.SetParent(d.originalHome.parent,false);
                     home.localPosition=d.originalHome.localPosition+new Vector3(-.22f*i,0,0);home.localRotation=d.originalHome.localRotation;
                     var clone=Object.Instantiate(d.originalTape.gameObject,d.originalTape.parent);Undo.RegisterCreatedObjectUndo(clone,"Original cassette");clone.name="OriginalTape_"+(i+1).ToString("00");clone.transform.SetPositionAndRotation(home.position,home.rotation);
-                    clone.GetComponentInChildren<TextMesh>(true).text="ORIGINAL "+(i+1).ToString("00");
+                    clone.GetComponentInChildren<WorldTooltipLabel>(true).text="ORIGINAL "+(i+1).ToString("00");
                     var reels=new System.Collections.Generic.List<Transform>();foreach(var t in clone.GetComponentsInChildren<Transform>(true))foreach(var original in d.originalReels)if(t.name==original.name)reels.Add(t);
                     d.originals[i]=new HouseRadioDeck.OriginalCassette{tape=clone.transform,home=home,hit=clone.GetComponent<Collider>(),reels=reels.ToArray()};
                 }
@@ -33,7 +33,7 @@ namespace MemoryWhitebox.Editor
                 {
                     var copy=Object.Instantiate(d.originals[i].tape.gameObject,rack);Undo.RegisterCreatedObjectUndo(copy,"Completed copy");copy.name="CompletedCopy_"+(i+1).ToString("00");copy.transform.localPosition=new Vector3(-.22f*i,0,0);copy.transform.rotation=d.originalHome.rotation;
                     foreach(var collider in copy.GetComponentsInChildren<Collider>(true))Object.DestroyImmediate(collider);
-                    var label=copy.GetComponentInChildren<TextMesh>(true);label.text="COPY "+(i+1).ToString("00");label.color=new Color(.1f,.32f,.18f);d.completedCopies[i]=copy;copy.SetActive(false);
+                    var label=copy.GetComponentInChildren<WorldTooltipLabel>(true);label.text="COPY "+(i+1).ToString("00");label.target=copy.transform;d.completedCopies[i]=copy;copy.SetActive(false);
                 }
             }
             EditorUtility.SetDirty(d);EditorSceneManager.MarkSceneDirty(d.gameObject.scene);EditorSceneManager.SaveScene(d.gameObject.scene);

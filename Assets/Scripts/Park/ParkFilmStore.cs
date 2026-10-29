@@ -24,6 +24,7 @@ namespace MemoryWhitebox
         public ParkPrintStage printStage;
         public float printRemaining;
         public bool printProcessing;
+        public DarkroomPrintState printObjects;
         public PhotoChapter.FilmPhase phase=PhotoChapter.FilmPhase.DarkBag;
         public int chemistry;
         public float remaining,bagTurns,clockDuration;
@@ -36,6 +37,7 @@ namespace MemoryWhitebox
         public const int FrameCapacity=3;
         public int Capacity=>version==1?4:FrameCapacity;
         public int version=3;
+        public string chapterId=ChapterIds.Photography;
         public string id,createdUtc,updatedUtc;
         public ParkFilmState state;
         public ParkDarkroomProgress darkroom;
@@ -63,6 +65,8 @@ namespace MemoryWhitebox
         static void Validate(ParkFilmRoll roll)
         {
             if(roll==null || (roll.version!=1 && roll.version!=2 && roll.version!=3) || roll.frames==null || roll.frames.Count>roll.Capacity)throw new InvalidDataException("Unsupported or damaged film record.");
+            if(string.IsNullOrEmpty(roll.chapterId))roll.chapterId=ChapterIds.Photography;
+            if(roll.chapterId!=ChapterIds.Photography)throw new InvalidDataException("Film belongs to a different chapter.");
             RollFolder(roll.id);
             foreach(string taskId in new[]{"entrance","bridge","meadow"})
             {
@@ -89,7 +93,7 @@ namespace MemoryWhitebox
             if(roll.darkroom!=null)
             {
                 var d=roll.darkroom;
-                if(d.workflowVersion<0 || d.workflowVersion>2 ||
+                if(d.workflowVersion<0 || d.workflowVersion>3 ||
                    d.phase<(d.workflowVersion>=1?PhotoChapter.FilmPhase.Exposed:PhotoChapter.FilmPhase.DarkBag) || d.phase>PhotoChapter.FilmPhase.Developed ||
                    d.chemistry<0 || d.chemistry>4 || !FiniteRange(d.remaining,0,3) || !FiniteRange(d.bagTurns,0,1) ||
                    !FiniteRange(d.clockDuration,0,3) || d.selectedFrame<1 || d.selectedFrame>roll.Capacity ||
@@ -102,12 +106,17 @@ namespace MemoryWhitebox
                    (d.needsDrain && (d.phase!=PhotoChapter.FilmPhase.Tank || d.chemistry<1 || !d.tankSealed))))throw new InvalidDataException("Invalid tank checkpoint.");
                 if(d.workflowVersion>=2)
                 {
-                    if(!Enum.IsDefined(typeof(ParkPrintStage),d.printStage) || !FiniteRange(d.printRemaining,0,10) ||
+                    if(!Enum.IsDefined(typeof(ParkPrintStage),d.printStage) || !FiniteRange(d.printRemaining,0,d.workflowVersion>=3?3600:10) ||
                        (d.printStage==ParkPrintStage.Complete)!=(d.phase==PhotoChapter.FilmPhase.Developed) ||
                        (d.printStage!=ParkPrintStage.None && (!d.tankSealed || d.needsDrain)) ||
                        (d.printStage!=ParkPrintStage.None && d.printStage!=ParkPrintStage.Complete && (d.phase!=PhotoChapter.FilmPhase.Tank || d.chemistry!=3)) ||
                        (d.printProcessing && (d.printStage==ParkPrintStage.None || d.printStage==ParkPrintStage.ContactReady || d.printStage==ParkPrintStage.Complete)))
                         throw new InvalidDataException("Invalid contact print checkpoint.");
+                }
+                if(d.workflowVersion>=3)
+                {
+                    if(d.printObjects==null)throw new InvalidDataException("Missing print item placements.");
+                    d.printObjects.ValidateProgress(d.printStage,d.printProcessing);
                 }
             }
             var ids=new HashSet<string>();
@@ -179,6 +188,33 @@ namespace MemoryWhitebox
             roll.darkroom=progress;
             if(progress.phase==PhotoChapter.FilmPhase.Developed)roll.state=ParkFilmState.Developed;
             roll.updatedUtc=DateTime.UtcNow.ToString("o");Validate(roll);WriteJson(Manifest(roll.id),roll);return roll;
+        }
+        internal static Texture2D CreateContactSheetPreview(string rollId)
+        {
+            var roll=Load(rollId);
+            if(roll.state!=ParkFilmState.Developed && (roll.darkroom==null || roll.darkroom.printStage<ParkPrintStage.PaperDeveloper))
+                throw new InvalidOperationException("Contact sheet has not been exposed.");
+            const int width=256,height=144,border=12;
+            int sheetWidth=(width+border)*roll.frames.Count+border;
+            var sheet=new Texture2D(sheetWidth,Mathf.RoundToInt(sheetWidth*9f/16),TextureFormat.RGB24,false);
+            try
+            {
+                var background=new Color[sheet.width*sheet.height];for(int i=0;i<background.Length;i++)background[i]=new Color(.93f,.91f,.84f);sheet.SetPixels(background);
+                for(int n=0;n<roll.frames.Count;n++)
+                {
+                    var image=new Texture2D(2,2);
+                    try
+                    {
+                        if(!image.LoadImage(File.ReadAllBytes(Path.Combine(RollFolder(roll.id),roll.frames[n].negativeFile))))throw new InvalidDataException("Negative unavailable.");
+                        float fit=Mathf.Min(width/(float)image.width,height/(float)image.height);
+                        int w=Mathf.Max(1,Mathf.RoundToInt(image.width*fit)),h=Mathf.Max(1,Mathf.RoundToInt(image.height*fit));
+                        for(int y=0;y<h;y++)for(int x=0;x<w;x++)sheet.SetPixel(border+n*(width+border)+(width-w)/2+x,(sheet.height-h)/2+y,image.GetPixelBilinear((x+.5f)/w,(y+.5f)/h));
+                    }
+                    finally{UnityEngine.Object.Destroy(image);}
+                }
+                sheet.name="Contact sheet "+roll.id;sheet.Apply();return sheet;
+            }
+            catch{UnityEngine.Object.Destroy(sheet);throw;}
         }
         static void WriteAtomic(string path,byte[] bytes)
         {

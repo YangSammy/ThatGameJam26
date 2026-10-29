@@ -131,7 +131,7 @@ namespace MemoryWhitebox.EditorTools
             }
             if(GUILayout.Button("添加可操作部件"))parts.Add(new PartRow());
             EditorGUILayout.Space();
-            EditorGUILayout.HelpBox("当前支持 MeshRenderer 网格和 TextMesh 文字。骨骼蒙皮、粒子、线条等渲染组件会明确提示暂不支持。新模型统一 -Z 为正面、+Y 向上；现有类型自动应用观察面规则。",MessageType.None);
+            EditorGUILayout.HelpBox("当前支持 MeshRenderer 网格和 UI 悬停提示。骨骼蒙皮、粒子、线条等渲染组件会明确提示暂不支持。新模型统一 -Z 为正面、+Y 向上；现有类型自动应用观察面规则。",MessageType.None);
             using(new EditorGUI.DisabledScope(EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling))
                 if(GUILayout.Button(existing!=null?"更新检视副本并重新绑定":"接入检视并自动注册",GUILayout.Height(36)))Apply();
             if(!string.IsNullOrEmpty(status))EditorGUILayout.HelpBox(status,MessageType.Info);

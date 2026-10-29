@@ -44,7 +44,7 @@ namespace MemoryWhitebox.Editor
                     var part=Cube(controls,names[i],new Vector3((i%5-2)*.047f,.02f,.105f+(i/5)*.055f),new Vector3(.039f,.018f,.036f),key);
                     deck.keys3d[i]=part;deck.controlHits[i]=part.GetComponent<Collider>();
                     var label=Group(part,"Marking");label.localPosition=new Vector3(0,.55f,0);label.localRotation=Quaternion.Euler(90,0,0);
-                    var text=label.gameObject.AddComponent<TextMesh>();text.text=marks[i];text.anchor=TextAnchor.MiddleCenter;text.fontSize=48;text.characterSize=.22f;text.color=Color.black;
+                    var text=label.gameObject.AddComponent<WorldTooltipLabel>();text.text=names[i];text.target=part;
                 }
             }
             if(deck.transport==null)

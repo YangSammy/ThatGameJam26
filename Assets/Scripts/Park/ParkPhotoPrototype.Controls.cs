@@ -32,9 +32,9 @@ namespace MemoryWhitebox
         Transform instruments,bodyRoot,meterRoot;
         readonly Dictionary<string,Transform> instrumentParts=new Dictionary<string,Transform>();
         readonly Dictionary<string,Vector3> partHomes=new Dictionary<string,Vector3>();
-        readonly List<TextMesh> instrumentLabels=new List<TextMesh>();
+        readonly List<WorldTooltipLabel> instrumentLabels=new List<WorldTooltipLabel>();
         Material instrumentMaterial;
-        TextMesh meterReadout,cameraReadout;
+        WorldTooltipLabel meterReadout,cameraReadout;
 
         void InitializePhotographyModes()
         {
@@ -78,10 +78,10 @@ namespace MemoryWhitebox
             go.transform.SetParent(parent,false);go.transform.localPosition=position;go.transform.localScale=scale;
             go.GetComponent<Renderer>().sharedMaterial=instrumentMaterial;instrumentParts[id]=go.transform;partHomes[id]=position;return go.transform;
         }
-        TextMesh Numeric(Transform parent,string text,Vector3 position,float size)
+        WorldTooltipLabel Numeric(Transform parent,string text,Vector3 position,float size)
         {
             var go=new GameObject("Instrument scale");go.layer=FirstPersonHands.HandLayer;go.transform.SetParent(parent,false);go.transform.localPosition=position;
-            var label=go.AddComponent<TextMesh>();label.text=text;label.characterSize=size;label.fontSize=48;label.anchor=TextAnchor.MiddleCenter;label.color=new Color(.95f,.9f,.7f);instrumentLabels.Add(label);return label;
+            var label=go.AddComponent<WorldTooltipLabel>();label.text=text;label.target=parent;instrumentLabels.Add(label);return label;
         }
         void SetPhotographyMode(PhotographyMode mode)
         {
@@ -89,6 +89,7 @@ namespace MemoryWhitebox
             if(mode!=PhotographyMode.Aperture && mode!=PhotographyMode.Shutter)virtualPointer=new Vector2(.5f,.5f);
             dwell=0;cooldown=.2f;edgeCandidate=-1;edgeArmed=false;
             moveVelocity=Vector3.zero;inputGate=true;handoff.Arm();
+            InputContext.Handoff();SyncParkInput();
             if(instruments!=null)SyncInstruments();
         }
         void CancelInstrumentDrag()
@@ -133,6 +134,11 @@ namespace MemoryWhitebox
             if(photoMode==PhotographyMode.Body)HandleBody();
             SyncInstruments();
             return photoMode!=PhotographyMode.Exploration && photoMode!=PhotographyMode.Viewfinder;
+        }
+        public Vector2 TooltipPoint=>new Vector2(virtualPointer.x*Screen.width,virtualPointer.y*Screen.height);
+        public Collider TooltipTarget
+        {
+            get{var id=PickInstrument(view.ViewportPointToRay(virtualPointer));return instrumentParts.ContainsKey(id)?instrumentParts[id].GetComponent<Collider>():null;}
         }
         string PickInstrument(Ray ray)
         {

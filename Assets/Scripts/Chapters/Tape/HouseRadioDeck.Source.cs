@@ -42,7 +42,7 @@ namespace MemoryWhitebox
             if(Chapter.SourceLoaded){if(!RecordingMode)OpenRecording();return true;}
             if(RecordingMode)CloseRecording();
             OpenWorkbench();
-            if(hit==originalHit){benchWaiting=false;SourcePointer(EventType.MouseDown,0,ray);}
+            if(hit==originalHit){benchWaiting=false;house.AdoptPointerGesture();SourcePointer(EventType.MouseDown,0,ray);}
             return true;
         }
         public void RestoreSource()
@@ -70,7 +70,7 @@ namespace MemoryWhitebox
         }
         public void SourceControl(int command)
         {
-            if(!RecordingMode || recordingWait || !Chapter.SourceLoaded)return;
+            if(SuccessPopupOpen || !RecordingMode || recordingWait || !Chapter.SourceLoaded)return;
             if(command==3)
             {
                 UITransportCommand=-1;transport.StopAll();Chapter.SourceLoaded=false;RestoreSource();house.SaveStableProgress();return;

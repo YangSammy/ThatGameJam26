@@ -6,6 +6,7 @@ namespace MemoryWhitebox
     [Serializable] public sealed class PhotoProgress
     {
         public int version=1;
+        public string chapterId=ChapterIds.Photography;
         public PhotoChapter.FilmPhase phase;
         public PhotoChapter.CameraSettings settings,captured;
         public int chemistry,attempts;
@@ -27,6 +28,7 @@ namespace MemoryWhitebox
         static PhotoProgress Read(string path)
         {
             var d=JsonUtility.FromJson<PhotoProgress>(File.ReadAllText(path));
+            if(d!=null){if(string.IsNullOrEmpty(d.chapterId))d.chapterId=ChapterIds.Photography;if(d.chapterId!=ChapterIds.Photography)throw new InvalidDataException("Photo chapter identity mismatch.");}
             if(d==null||d.version!=1 || !Enum.IsDefined(typeof(PhotoChapter.FilmPhase),d.phase) || !SettingsValid(d.settings) || d.chemistry<0||d.chemistry>4 || !Finite(d.remaining)||d.remaining<0||d.remaining>3 || !Finite(d.bagTurns)||d.bagTurns<0||d.bagTurns>1 || !Finite(d.rewindTurns)||d.rewindTurns<0||d.rewindTurns>1 || !Finite(d.clockDuration)||d.clockDuration<0||d.clockDuration>3 || d.attempts<0)throw new InvalidDataException("Invalid photo progress");
             if(d.phase>=PhotoChapter.FilmPhase.Exposed && (!SettingsValid(d.captured)||string.IsNullOrEmpty(d.image)))throw new InvalidDataException("Missing exposure");
             if(d.completed&&d.phase!=PhotoChapter.FilmPhase.Developed)throw new InvalidDataException("Invalid completed phase");

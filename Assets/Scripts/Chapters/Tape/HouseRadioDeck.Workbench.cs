@@ -23,6 +23,7 @@ namespace MemoryWhitebox
             if(RecordingMode)CloseRecording();
             StopRecordingInput();
             WorkbenchMode=true;benchWaiting=true;benchLeft=benchRight=false;benchGesture=BenchGesture.None;benchGate.Arm();house.Room.StopMotion();PlayerInputPolicy.SetCursor(true);
+            house.SyncInputContext();
         }
         public bool TryBeginWorkbenchInteraction(Ray ray)
         {
@@ -41,6 +42,7 @@ namespace MemoryWhitebox
             if(hit==adhesiveTab || (adhesiveStrip!=null && hit!=null && hit.transform==adhesiveStrip))
             {
                 benchWaiting=false;
+                house.AdoptPointerGesture();
                 WorkbenchPointer(EventType.MouseDown,0,view.WorldToScreenPoint(ray.GetPoint(1)),Vector2.zero,0);
             }
             return true;
@@ -55,6 +57,7 @@ namespace MemoryWhitebox
             if(benchGesture==BenchGesture.MoveStrip)RestStrip();
             adhesiveRibbon.gameObject.SetActive(false);ReleaseSpindle();
             benchGesture=BenchGesture.None;benchLeft=benchRight=false;benchWaiting=true;benchGate.Arm();
+            house.InputContext.Handoff();
             house.SaveStableProgress();return true;
         }
         public void CloseWorkbench()
@@ -62,6 +65,7 @@ namespace MemoryWhitebox
             CancelWorkbenchGesture();StopRecordingInput();
             adhesiveRibbon.gameObject.SetActive(false);benchGesture=BenchGesture.None;benchLeft=benchRight=false;
             WorkbenchMode=false;house.SaveStableProgress();house.SuspendHouseInput();
+            house.SyncInputContext();
         }
         public void PlaceOnWorkbench(int index)
         {
@@ -89,7 +93,7 @@ namespace MemoryWhitebox
         public void TickWorkbench()
         {
             house.Room.StopMotion();
-            if(Input.GetKeyDown(KeyCode.Escape)){if(!CancelWorkbenchGesture())CloseWorkbench();return;}
+            if(house.InputContext.ExitPressed(InputContextId.TapeWorkbench,CancelWorkbenchGesture,CloseWorkbench))return;
             if(benchWaiting){if(benchGate.Ready)benchWaiting=false;return;}
             if(benchGesture==BenchGesture.Pending){benchPending+=Time.unscaledDeltaTime;if(benchPending>.1f && benchSpindle>=0)benchGesture=BenchGesture.Spindle;}
             AdvanceInspection(Time.unscaledDeltaTime);
@@ -103,7 +107,7 @@ namespace MemoryWhitebox
         }
         public void WorkbenchPointer(EventType type,int button,Vector2 point,Vector2 delta,float wheel)
         {
-            if(!WorkbenchMode || benchWaiting)return;
+            if(!WorkbenchMode || benchWaiting || !house.InputContext.Allows(InputContextId.TapeWorkbench))return;
             var ray=view.ScreenPointToRay(point);Physics.SyncTransforms();
             if(SourcePointer(type,button,ray))return;
             if(type==EventType.MouseDown && button==0 && benchGesture==BenchGesture.None)

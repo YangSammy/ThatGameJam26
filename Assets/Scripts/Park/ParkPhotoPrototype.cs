@@ -20,6 +20,7 @@ namespace MemoryWhitebox
     {
         [Header("场景引用")]
         public Camera view;
+        public ChapterSceneBinding DataBinding=>GetComponent<ChapterSceneBinding>();
         public Transform spawn;
         public ParkCompanion companion;
         public ParkPhotoFocus focusEffect;
@@ -65,6 +66,7 @@ namespace MemoryWhitebox
             PlayerControlState.Transition:Paused?PlayerControlState.Paused:Aiming?PlayerControlState.Operation:PlayerControlState.Exploration;
         void Start()
         {
+            if(DataBinding!=null && DataBinding.ChapterId!=ChapterIds.Photography){Debug.LogError("Park chapter binding must reference photography.",this);enabled=false;return;}
             motor=GetComponent<CharacterController>();
             if(view==null || spawn==null || companion==null || focusEffect==null){Debug.LogError("Park photo prototype is missing scene references.",this);enabled=false;return;}
             var story=FiveDayProgress.Load();
@@ -90,13 +92,14 @@ namespace MemoryWhitebox
         }
         void SetCursor(bool free){PlayerInputPolicy.SetCursor(free);}
         void Notify(string text,float seconds=4){notice=text;noticeUntil=Time.unscaledTime+seconds;}
-        public void Resume(){SetPhotographyMode(PhotographyMode.Exploration);Paused=false;inputGate=true;moveVelocity=Vector3.zero;handoff.Arm();SetCursor(false);}
+        public void Resume(){SetPhotographyMode(PhotographyMode.Exploration);Paused=false;inputGate=true;moveVelocity=Vector3.zero;handoff.Arm();SyncParkInput();InputContext.Handoff();}
         void PauseControls()
         {
             SavePhotoSettings();
             SetPhotographyMode(PhotographyMode.Exploration);Paused=true;Aiming=false;moveVelocity=Vector3.zero;verticalSpeed=0;handoff.Arm();inputGate=true;
             if(companion!=null)companion.Paused=true;
             if(focusEffect!=null)focusEffect.activeFocus=false;SetCursor(true);
+            SyncParkInput();InputContext.Handoff();
         }
         void OpenFilmReturnPanel()
         {
@@ -104,7 +107,7 @@ namespace MemoryWhitebox
         }
         public void ReturnToDarkroom()
         {
-            if(!CanReturnToDarkroom || changingScene || returnUiGate)return;
+            if(!CanReturnToDarkroom || changingScene || returnUiGate || !InputContext.Allows(InputContextId.Paused))return;
             try
             {
                 // Reload the committed roll before leaving; never pass a transient capture.
@@ -124,26 +127,22 @@ namespace MemoryWhitebox
             }
         }
         void OnApplicationFocus(bool value)
-        {focused=value;if(!value)PauseControls();else handoff.Arm();}
+        {focused=value;if(!value)PauseControls();else {handoff.Arm();InputContext.Handoff();}SyncParkInput();}
         void OnApplicationPause(bool value)
-        {if(value)PauseControls();else {inputGate=true;handoff.Arm();}}
+        {applicationPaused=value;if(value)PauseControls();else {inputGate=true;handoff.Arm();InputContext.Handoff();}SyncParkInput();}
         void Update()
         {
-            if(!focused || changingScene)return;
+            SyncParkInput();
+            if(!focused || applicationPaused || changingScene)return;
             // The final shutter press must be released before it can activate UI.
             if(returnUiGate && handoff.Ready)returnUiGate=false;
             var controls=PlayerControlSettings.Current;
             float dt=Mathf.Min(Time.deltaTime,.1f);shotCooldown=Mathf.Max(0,shotCooldown-dt);flash=Mathf.Max(0,flash-dt*4);
-            if(Input.GetKeyDown(KeyCode.Escape))
-            {
-                if(Paused)Resume();
-                else if(photoMode!=PhotographyMode.Exploration){SetPhotographyMode(PhotographyMode.Exploration);return;}
-                else PauseControls();
-            }
+            if(ExitParkContext())return;
             companion.Paused=Paused || (photoMode!=PhotographyMode.Exploration && photoMode!=PhotographyMode.Viewfinder);
             focusEffect.activeFocus=Aiming && !Paused;focusEffect.distance=focusDistance;
             if(Paused)return;
-            PlayerInputPolicy.ApplyCursor(ControlState,true);
+            if(!InputContext.Ready){moveVelocity=Vector3.zero;return;}
             if(inputGate){if(handoff.Ready)inputGate=false;return;}
             if(TickPhotographyModes(dt))return;
             if(Input.GetKeyDown(KeyCode.R))
@@ -253,7 +252,7 @@ namespace MemoryWhitebox
             PhotoTaken?.Invoke(record);
             if(roll.Remaining==0)FilmFilled?.Invoke(roll.id);
         }
-        void OnDisable(){SavePhotoSettings();if(companion!=null)companion.Paused=true;if(focusEffect!=null)focusEffect.activeFocus=false;SetCursor(true);}
+        void OnDisable(){SavePhotoSettings();CancelInstrumentDrag();moveVelocity=Vector3.zero;InputContext.Select(InputContextId.Unfocused,PlayerControlState.Unfocused);InputContext.Handoff();if(companion!=null)companion.Paused=true;if(focusEffect!=null)focusEffect.activeFocus=false;}
         void OnDestroy(){DisposePhotographyModes();if(bridgeReference!=null)Destroy(bridgeReference);if(font!=null)Destroy(font);}
         void OnGUI()
         {
@@ -264,8 +263,8 @@ namespace MemoryWhitebox
             {
 
                 InteractionUI.Label(new Rect(Screen.width*.5f-150,Screen.height*.5f-50,300,50),CanReturnToDarkroom?"Roll complete  " + RollCapacity + " / " + RollCapacity + " frames\nDevelop to view.":"Paused",text);
-                bool previousEnabled=GUI.enabled;GUI.enabled=previousEnabled && !returnUiGate && !changingScene;
-                if(InteractionUI.Button(new Rect(Screen.width*.5f-100,Screen.height*.5f+10,200,40),"Resume  /  Esc",button))Resume();
+                bool previousEnabled=GUI.enabled;GUI.enabled=previousEnabled && !returnUiGate && !changingScene && InputContext.Allows(InputContextId.Paused);
+                if(InteractionUI.Button(new Rect(Screen.width*.5f-100,Screen.height*.5f+10,200,40),"Resume  /  Esc",button))InputContext.RequestExit(InputContextId.Paused,null,Resume);
                 if(CanReturnToDarkroom && InteractionUI.Button(new Rect(Screen.width*.5f-145,Screen.height*.5f+66,290,40),"Return to darkroom",button))ReturnToDarkroom();
                 GUI.enabled=previousEnabled;
                 if(Time.unscaledTime<noticeUntil)InteractionUI.Label(new Rect(24,Screen.height-75,Screen.width-48,50),notice,text);

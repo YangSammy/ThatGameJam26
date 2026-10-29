@@ -12,9 +12,16 @@ namespace MemoryWhitebox
         public Text sourceStatus;
         public Button[] sourceButtons;
         public GameObject prepareAction,listenAction,submitAction;
+        public GameObject successPopup;
+        public Text successText;
+        public Button successDismiss;
+        public bool SuccessOpen=>successPopup!=null && successPopup.activeSelf;
+        readonly PlayerInputReleaseGate successGate=new PlayerInputReleaseGate();
         Text recordLabel,playLabel;
+        bool CanOperate=>deck!=null && deck.RecordingInputReady;
         void Awake()
         {
+            if(successPopup!=null)successPopup.SetActive(false);
             recordLabel=buttons[0].GetComponentInChildren<Text>(true);
             playLabel=buttons[1].GetComponentInChildren<Text>(true);
             recordLabel.fontSize=12;
@@ -23,6 +30,7 @@ namespace MemoryWhitebox
         }
         void Update()
         {
+            if(SuccessOpen){successDismiss.interactable=successGate.Ready && deck.house.InputContext.Allows(InputContextId.Modal);return;}
             bool show=deck!=null && deck.RecordingMode;
             if(panel.activeSelf!=show)panel.SetActive(show);
             if(!show)return;
@@ -35,17 +43,33 @@ namespace MemoryWhitebox
             recordLabel.text=hasCopy && !deck.transport.Writing?"RESUME REC":"RECORD";
             if(listenAction!=null)listenAction.SetActive(hasCopy);
             if(submitAction!=null)submitAction.SetActive(hasCopy && !deck.Chapter.Completed);
-            if(sourceButtons!=null)foreach(var button in sourceButtons)button.interactable=deck.Chapter.SourceLoaded;
+            if(sourceButtons!=null)foreach(var button in sourceButtons)button.interactable=CanOperate && deck.Chapter.SourceLoaded;
             for(int i=0;i<buttons.Length;i++)
             {
-                buttons[i].interactable=loaded && (i>=4 || !deck.Chapter.Completed);
+                buttons[i].interactable=CanOperate && loaded && (i!=0 || !deck.Chapter.Completed);
                 var colors=buttons[i].colors;colors.normalColor=deck.UITransportCommand==i?new Color(.3f,.46f,.36f):new Color(.2f,.23f,.22f);buttons[i].colors=colors;
             }
         }
-        public void Command(int command){if(deck!=null)deck.SetUITransportCommand(command);}
-        public void SourceCommand(int command){deck.SourceControl(command);}
-        public void Prepare(){deck.OpenPreparation();}
-        public void Listen(){deck.ListenToCopy();}
-        public void Submit(){deck.SubmitCurrentRecording();}
+        public void Command(int command){if(CanOperate)deck.SetUITransportCommand(command);}
+        public void SourceCommand(int command){if(CanOperate)deck.SourceControl(command);}
+        public void Prepare(){if(CanOperate)deck.OpenPreparation();}
+        public void Listen(){if(CanOperate)deck.ListenToCopy();}
+        public void Submit(){if(CanOperate)deck.SubmitCurrentRecording();}
+        public void ShowSuccess(string message)
+        {
+            successText.text=message+"\n\nClick to continue";
+            panel.SetActive(false);successPopup.SetActive(true);successPopup.transform.SetAsLastSibling();
+            successDismiss.interactable=false;successGate.Arm();PlayerInputPolicy.SetCursor(true);
+            deck.house.SyncInputContext();deck.house.InputContext.Handoff();
+        }
+        public void DismissSuccess()
+        {
+            if(!SuccessOpen || !successGate.Ready || !deck.house.InputContext.Allows(InputContextId.Modal))return;
+            deck.house.InputContext.RequestExit(InputContextId.Modal,null,CloseSuccess);
+        }
+        void CloseSuccess()
+        {
+            successPopup.SetActive(false);deck.DismissRecordingSuccess();
+        }
     }
 }

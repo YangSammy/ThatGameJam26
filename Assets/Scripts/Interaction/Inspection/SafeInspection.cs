@@ -37,6 +37,8 @@ namespace MemoryWhitebox
         TapeInspectionSession tapeSession;
         public bool Active => Current!=null;
         public bool BlocksInput => Active || releaseGate;
+        public PlayerInputContext InputContext {get;set;}=new PlayerInputContext();
+        public System.Action RestoreInputContext;
         public float Distance {get;private set;}
         public SafeInspectionPart HeldPart {get;private set;}
         bool releaseGate,focused=true;
@@ -95,6 +97,7 @@ namespace MemoryWhitebox
             subject.Begin();tapeSession=null;view.cullingMask&=~((1<<DisplayLayer)|(1<<FirstPersonHands.HandLayer));
             EnableBackdrop();displayCamera.enabled=true;inspectionLight.enabled=true;
             PlayerInputPolicy.ApplyCursor(PlayerControlState.Inspection);entryGate=true;handoff.Arm();
+            InputContext.Select(InputContextId.Inspection,PlayerControlState.Inspection);InputContext.Handoff();
             leftHeld=rightHeld=false;gesture=Gesture.None;pendingPart=null;pendingDelta=Vector2.zero;Advance(0);return true;
         }
         public void Close()
@@ -106,8 +109,10 @@ namespace MemoryWhitebox
             DisableBackdrop();
             if(inspectionLight!=null)inspectionLight.enabled=false;
             if(feedback!=null)feedback.Stop();
-            PlayerInputPolicy.SetCursor(cursor!=CursorLockMode.Locked);Cursor.visible=cursorVisible;
             releaseGate=true;entryGate=false;handoff.Arm();closeFrame=Time.frameCount;
+            InputContext.Handoff();
+            if(RestoreInputContext!=null)RestoreInputContext();
+            else InputContext.Select(focused?InputContextId.Exploration:InputContextId.Unfocused,focused?PlayerControlState.Exploration:PlayerControlState.Unfocused);
         }
         public void Rotate(Vector2 delta)
         {if(Active && HeldPart==null && !Resetting && !Current.fixedDevice)spin=Quaternion.AngleAxis(-delta.x*Mathf.Max(0,rotationSensitivity),Vector3.up)*Quaternion.AngleAxis(delta.y*Mathf.Max(0,rotationSensitivity),Vector3.right)*spin;}
@@ -142,7 +147,13 @@ namespace MemoryWhitebox
         }
         public void ReleasePart(){if(HeldPart==null)return;var part=HeldPart;part.Release();HeldPart=null;Sound(part);}
         void Sound(SafeInspectionPart part){if(feedback!=null && part.contact!=null)feedback.PlayOneShot(part.contact,.35f);}
-        public void SetFocus(bool focus){focused=focus;if(!focus)Close();}
+        public void SetFocus(bool focus){focused=focus;if(!focus)Close();InputContext.Handoff();}
+        bool CancelGesture()
+        {
+            if(HeldPart==null && gesture==Gesture.None && !leftHeld && !rightHeld)return false;
+            tapeSession?.Cancel();ReleasePart();SetHover(null);pendingPart=null;pendingDelta=Vector2.zero;
+            leftHeld=rightHeld=false;gesture=Gesture.None;entryGate=true;handoff.Arm();return true;
+        }
         public void ReleaseInputGate(bool allReleased)
         {if(!Active && allReleased && Time.frameCount>closeFrame+1)releaseGate=false;}
         void Update()
@@ -153,7 +164,8 @@ namespace MemoryWhitebox
                 ReleaseInputGate(handoff.Ready);return;
             }
             if(entryGate){if(handoff.Ready)entryGate=false;return;}
-            if(Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Escape)){Close();return;}
+            if(!InputContext.Allows(InputContextId.Inspection))return;
+            if(InputContext.ExitPressed(InputContextId.Inspection,CancelGesture,Close,true))return;
             if(Input.GetKeyDown(KeyCode.F))Flip();
             if(Input.GetKeyDown(KeyCode.R))ResetView();
             UpdateHover(Input.mousePosition);
@@ -183,7 +195,7 @@ namespace MemoryWhitebox
         // Event positions also preserve fast down/drag/up sequences arriving within one frame.
         public void PointerEvent(EventType type,int button,Vector2 screenPoint,Vector2 delta,float wheel=0)
         {
-            if(!Active)return;
+            if(!Active || entryGate || !InputContext.Allows(InputContextId.Inspection))return;
             bool overUI=PointerOverUI(screenPoint);
             if(tapeSession!=null && tapeSession.Preparing)
             {
@@ -302,7 +314,7 @@ namespace MemoryWhitebox
         }
         void OnGUI()
         {
-            if(!Active || entryGate)return;
+            if(!Active || entryGate || !InputContext.Allows(InputContextId.Inspection))return;
             var e=Event.current;
             if(!entryGate && (e.type==EventType.MouseDown || e.type==EventType.MouseUp || e.type==EventType.MouseDrag || e.type==EventType.ScrollWheel))
             {
@@ -325,7 +337,7 @@ namespace MemoryWhitebox
             button.normal.textColor=new Color(.88f,.88f,.85f);
             button.hover.textColor=button.active.textColor=Color.white;
             if(DrawInspectionButton(ResetButtonRect,"Reset View   R",button))ResetView();
-            if(DrawInspectionButton(ExitButtonRect,"Exit     E / Esc",button)){Close();return;}
+            if(DrawInspectionButton(ExitButtonRect,"Exit     E / Esc",button)){InputContext.RequestExit(InputContextId.Inspection,null,Close);return;}
             string hint=Resetting?"Resetting...":tapeSession!=null?tapeSession.ActionHint:hovered==null?"":
                 hovered.motion==SafeInspectionPart.Motion.Button?"Hold LMB to press":
                 hovered.motion==SafeInspectionPart.Motion.Dial?"LMB drag / Hold LMB + Scroll to turn":"LMB drag to move";

@@ -35,6 +35,10 @@ namespace MemoryWhitebox.EditorTools
             // This event runs before scene Awake/Start, including when Domain
             // Reload is disabled. Scene loads and script reloads do not reset saves.
             if(state!=PlayModeStateChange.ExitingEditMode || !GameSavePaths.ResetOnEditorPlay)return;
+            // Art-only preview must not reset gameplay test progress.
+            var startScene=UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene;
+            string startPath=startScene!=null?AssetDatabase.GetAssetPath(startScene):UnityEngine.SceneManagement.SceneManager.GetActiveScene().path;
+            if(startPath=="Assets/Scenes/ParkSceneDev.unity")return;
             try
             {
                 string parent=Path.GetFullPath(Application.persistentDataPath).TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar);

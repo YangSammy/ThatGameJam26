@@ -9,11 +9,13 @@ namespace MemoryWhitebox
     [Serializable]
     public sealed class FiveDaySave
     {
-        public int version=1;
+        public int version=2;
         public int currentDay;
         public bool finished;
         public bool[] completed=new bool[5];
         public string[] checkpoints=new string[5];
+        public ChapterSaveRecord[] chapters;
+        public System.Collections.Generic.List<ArtifactReference> artifacts=new System.Collections.Generic.List<ArtifactReference>();
         public bool returnFromPark;
         public Vector3 housePosition;
         public Quaternion houseRotation=Quaternion.identity;
@@ -33,17 +35,36 @@ namespace MemoryWhitebox
         public string Error {get;private set;}="";
         string FilePath=>Path.Combine(GameSavePaths.Root,development?"five-day-development-v1.json":"five-day-progress-v1.json");
         public bool CanEnter(int index)=>!blocked && index>=0 && index<5 && (development || index<=data.currentDay);
-        public bool IsComplete(int index)=>data.completed[index];
-        public string Checkpoint(int index)=>data.checkpoints[index];
+        ChapterSaveRecord Record(FiveDaySave save,int index)=>Array.Find(save.chapters,r=>r.chapterId==ChapterIds.At(index));
+        public bool IsComplete(int index)=>Record(data,index).completed;
+        public string Checkpoint(int index)=>Record(data,index).payload;
+        public string Checkpoint(string id)=>Checkpoint(ChapterIds.Index(id));
+        public FiveDayProgress(){Normalize(data);}
+        static void Normalize(FiveDaySave save)
+        {
+            if(save.chapters==null)
+            {
+                if(save.completed==null || save.completed.Length!=5 || save.checkpoints==null || save.checkpoints.Length!=5)
+                    throw new InvalidDataException("Invalid legacy chapter arrays.");
+                save.chapters=new ChapterSaveRecord[5];
+                for(int i=0;i<5;i++)save.chapters[i]=new ChapterSaveRecord{chapterId=ChapterIds.At(i),completed=save.completed[i],payload=save.checkpoints[i]};
+            }
+            if(save.chapters.Length!=5)throw new InvalidDataException("Invalid chapter records.");
+            var ids=new System.Collections.Generic.HashSet<string>();
+            foreach(var record in save.chapters)
+            {if(record==null || record.schemaVersion!=1 || !ids.Add(record.chapterId))throw new InvalidDataException("Invalid chapter identity.");ChapterIds.Index(record.chapterId);}
+            if(save.artifacts==null)save.artifacts=new System.Collections.Generic.List<ArtifactReference>();
+            save.version=2;save.completed=null;save.checkpoints=null;
+        }
 
         FiveDaySave Parse(string text)
         {
             var save=JsonUtility.FromJson<FiveDaySave>(text);
-            if(save==null || save.version!=1 || save.currentDay<0 || save.currentDay>4 ||
-               save.completed==null || save.completed.Length!=5 || save.checkpoints==null || save.checkpoints.Length!=5)
+            if(save==null || (save.version!=1 && save.version!=2) || save.currentDay<0 || save.currentDay>4 || (save.version==2 && save.chapters==null))
                 throw new InvalidDataException("Unsupported or damaged five-day save.");
+            Normalize(save);
             for(int i=0;i<5;i++)
-                if(!development && save.completed[i]!=(i<save.currentDay || (i==4 && save.finished)))
+                if(!development && Record(save,i).completed!=(i<save.currentDay || (i==4 && save.finished)))
                     throw new InvalidDataException("Non-sequential chapter progress.");
             if(save.finished && save.currentDay!=4)throw new InvalidDataException("Invalid ending state.");
             if(save.returnFromPark && (!Finite(save.housePosition.x) || !Finite(save.housePosition.y) || !Finite(save.housePosition.z) ||
@@ -93,23 +114,36 @@ namespace MemoryWhitebox
         }
         public bool SaveCheckpoint(int index,string snapshot)
         {
-            if(!CanEnter(index) || data.completed[index])return false;
-            if(data.checkpoints[index]==snapshot)return true;
-            var next=Copy();next.checkpoints[index]=snapshot;return Commit(next);
+            if(!CanEnter(index) || IsComplete(index))return false;
+            if(Checkpoint(index)==snapshot)return true;
+            var next=Copy();Record(next,index).payload=snapshot;return Commit(next);
         }
         public bool Complete(int index,string snapshot)
         {
-            if(!CanEnter(index))return false;
-            if(data.completed[index])return true;
-            if(!development && index!=data.currentDay)return false;
-            var next=Copy();next.checkpoints[index]=snapshot;next.completed[index]=true;
+            return CommitChapter(ChapterIds.At(index),snapshot,true).Success;
+        }
+        public SaveResult CommitChapter(string chapterId,string snapshot,bool complete,ArtifactReference artifact=null)
+        {
+            int index=ChapterIds.Index(chapterId);
+            if(!CanEnter(index))return SaveResult.Failed(Error!=""?Error:"Chapter is unavailable.");
+            if(IsComplete(index))return SaveResult.Ok();
+            if(complete && !development && index!=data.currentDay)return SaveResult.Failed("Previous chapter is incomplete.");
+            var next=Copy();var record=Record(next,index);record.payload=snapshot;record.completed=complete;
+            if(artifact!=null)
+            {
+                if(artifact.chapterId!=chapterId || string.IsNullOrEmpty(artifact.artifactId) || string.IsNullOrEmpty(artifact.relativePath))return SaveResult.Failed("Invalid artifact reference.");
+                next.artifacts.RemoveAll(a=>a.artifactId==artifact.artifactId);next.artifacts.Add(artifact);
+            }
+            if(complete)
+            {
             if(development)
             {
-                next.currentDay=0;while(next.currentDay<4 && next.completed[next.currentDay])next.currentDay++;
-                next.finished=System.Array.TrueForAll(next.completed,value=>value);
+                next.currentDay=0;while(next.currentDay<4 && Record(next,next.currentDay).completed)next.currentDay++;
+                next.finished=System.Array.TrueForAll(next.chapters,value=>value.completed);
             }
             else if(index==4)next.finished=true;else next.currentDay++;
-            return Commit(next);
+            }
+            return Commit(next)?SaveResult.Ok():SaveResult.Failed(Error);
         }
         public bool RememberReturn(Vector3 position,Quaternion rotation,float fov)
         {
