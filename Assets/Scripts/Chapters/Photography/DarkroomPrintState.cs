@@ -6,6 +6,7 @@ namespace MemoryWhitebox
     {
         public int version=1;
         public bool frameClosed;
+        public bool negativeRemoved;
         public ItemSaveRecord negative=new ItemSaveRecord{instanceId="darkroom.negative",definitionId="photo.negative",ownerChapterId=ChapterIds.Photography,locationId="print-negative-home"};
         public ItemSaveRecord paper=new ItemSaveRecord{instanceId="darkroom.paper",definitionId="photo.contact-sheet",ownerChapterId=ChapterIds.Photography,locationId="print-paper-home"};
         public void Validate()
@@ -34,6 +35,7 @@ namespace MemoryWhitebox
         public void ValidateProgress(ParkPrintStage stage,bool processing)
         {
             Validate();
+            if(negative.locationId!="print-negative-home")negativeRemoved=true;
             if(frameClosed && (negative.locationId!="print-frame" || paper.locationId!="print-frame"))throw new InvalidDataException("Closed contact frame is incomplete.");
             if(stage>=ParkPrintStage.PaperDeveloper && negative.locationId!="print-frame")throw new InvalidDataException("Negative was not contact printed.");
             if(stage==ParkPrintStage.Complete && paper.locationId!="print-photo-clip")throw new InvalidDataException("Finished print must be hung.");

@@ -54519,7 +54519,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 71b23018f8504394b85d33984a4f64fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  instanceId: house.entry.spring.tape
+  instanceId: house.entry.spring.tape.cassettes
   definition: {fileID: 11400000, guid: 5f3fe0c90e87430290c68880a0aea9cb, type: 2}
   ownerChapterId: spring.tape
   model: {fileID: 34254714}
@@ -54880,6 +54880,14 @@ MonoBehaviour:
   - {fileID: 2145194740}
   - {fileID: 2145194765}
   - {fileID: 2145194774}
+  - {fileID: 2145195006}
+  - {fileID: 2145195023}
+  - {fileID: 2145195036}
+  - {fileID: 2145195041}
+  - {fileID: 2145195054}
+  - {fileID: 2145195067}
+  - {fileID: 2145195080}
+  - {fileID: 2145195092}
 --- !u!114 &2145194486
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -54921,47 +54929,9 @@ Transform:
   m_LocalScale: {x: 0.6711409395973155, y: 20.0, z: 0.4366812227074236}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2145194590}
-  - {fileID: 2145194595}
-  - {fileID: 2145194599}
-  - {fileID: 2145194604}
-  - {fileID: 2145194608}
-  - {fileID: 2145194610}
-  - {fileID: 2145194612}
-  - {fileID: 2145194617}
-  - {fileID: 2145194621}
-  - {fileID: 2145194626}
-  - {fileID: 2145194630}
-  - {fileID: 2145194634}
-  - {fileID: 2145194638}
-  - {fileID: 2145194643}
-  - {fileID: 2145194647}
-  - {fileID: 2145194670}
-  - {fileID: 2145194675}
-  - {fileID: 2145194679}
-  - {fileID: 2145194683}
-  - {fileID: 2145194688}
-  - {fileID: 2145194692}
-  - {fileID: 2145194696}
-  - {fileID: 2145194700}
-  - {fileID: 2145194704}
-  - {fileID: 2145194708}
-  - {fileID: 2145194713}
-  - {fileID: 2145194717}
-  - {fileID: 2145194721}
-  - {fileID: 2145194725}
-  - {fileID: 2145194729}
-  - {fileID: 2145194733}
-  - {fileID: 2145194738}
-  - {fileID: 2145194742}
-  - {fileID: 2145194746}
-  - {fileID: 2145194750}
-  - {fileID: 2145194754}
-  - {fileID: 2145194758}
-  - {fileID: 2145194763}
-  - {fileID: 2145194767}
-  - {fileID: 2145194772}
-  - {fileID: 2145194776}
+  - {fileID: 2145194885}
+  - {fileID: 2145194883}
+  - {fileID: 2145194881}
   m_Father: {fileID: 892821582}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2145194589
@@ -54988,11 +54958,11 @@ Transform:
   m_GameObject: {fileID: 2145194589}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.2, y: 0.37, z: 0.53}
+  m_LocalPosition: {x: -0.65, y: 0.055, z: -0.43}
   m_LocalScale: {x: 0.08, y: 0.006, z: 0.28}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194881}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194591
 MeshFilter:
@@ -55015,7 +54985,7 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 1.4, y: 5, z: 1.15}
   m_Center: {x: 0, y: 0, z: 0}
   m_GameObject: {fileID: 2145194589}
 --- !u!1 &2145194594
@@ -55037,11 +55007,11 @@ Transform:
   m_GameObject: {fileID: 2145194594}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.2, y: 0.41, z: 0.53}
+  m_LocalPosition: {x: -0.65, y: 0.055, z: -0.43}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194881}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2145194596
 MonoBehaviour:
@@ -55093,11 +55063,11 @@ Transform:
   m_GameObject: {fileID: 2145194598}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.57, y: 0.035, z: -0.35}
+  m_LocalPosition: {x: -0.32, y: 0.035, z: -0.2}
   m_LocalScale: {x: 0.34, y: 0.006, z: 0.19}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194883}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194600
 MeshFilter:
@@ -55120,7 +55090,7 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 1.12, y: 5, z: 1.12}
   m_Center: {x: 0, y: 0, z: 0}
   m_GameObject: {fileID: 2145194598}
 --- !u!1 &2145194603
@@ -55142,11 +55112,11 @@ Transform:
   m_GameObject: {fileID: 2145194603}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.57, y: 0.07500000000000001, z: -0.35}
+  m_LocalPosition: {x: -0.32, y: 0.075, z: -0.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194883}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2145194605
 MonoBehaviour:
@@ -55193,11 +55163,11 @@ Transform:
   m_GameObject: {fileID: 2145194607}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.2, y: 0.37, z: 0.53}
+  m_LocalPosition: {x: -0.65, y: 0.055, z: -0.43}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194881}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2145194609
 GameObject:
@@ -55218,11 +55188,11 @@ Transform:
   m_GameObject: {fileID: 2145194609}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.57, y: 0.035, z: -0.35}
+  m_LocalPosition: {x: -0.32, y: 0.035, z: -0.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194883}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2145194611
 GameObject:
@@ -55248,11 +55218,12 @@ Transform:
   m_GameObject: {fileID: 2145194611}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.58, y: 0.68, z: 0.55}
+  m_LocalPosition: {x: 0.55, y: 0.68, z: -0.14}
   m_LocalScale: {x: 0.08, y: 0.07, z: 0.05}
   m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Children:
+  - {fileID: 2145194617}
+  m_Father: {fileID: 2145194881}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194613
 MeshFilter:
@@ -55275,7 +55246,7 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 1.6, y: 1.3, z: 1.6}
   m_Center: {x: 0, y: 0, z: 0}
   m_GameObject: {fileID: 2145194611}
 --- !u!1 &2145194616
@@ -55296,13 +55267,13 @@ Transform:
   m_ObjectHideFlags: 0
   m_GameObject: {fileID: 2145194616}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071067811865476, y: 0, z: 0, w: 0.7071067811865476}
-  m_LocalPosition: {x: -0.58, y: 0.53, z: 0.55}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: 0.5, y: 0.5, z: -0.5, w: 0.5}
+  m_LocalPosition: {x: 0.0, y: -2.142857143, z: 0.0}
+  m_LocalScale: {x: 12.5, y: 14.285714286, z: 20.0}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+  m_Father: {fileID: 2145194612}
+  m_LocalEulerAnglesHint: {x: 90, y: 90, z: 0}
 --- !u!114 &2145194618
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -55353,11 +55324,12 @@ Transform:
   m_GameObject: {fileID: 2145194620}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0.23, y: 0.68, z: 0.72}
+  m_LocalPosition: {x: 0.55, y: 0.68, z: 1.02}
   m_LocalScale: {x: 0.08, y: 0.07, z: 0.05}
   m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Children:
+  - {fileID: 2145194626}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194622
 MeshFilter:
@@ -55380,7 +55352,7 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 1.6, y: 1.3, z: 1.6}
   m_Center: {x: 0, y: 0, z: 0}
   m_GameObject: {fileID: 2145194620}
 --- !u!1 &2145194625
@@ -55401,13 +55373,13 @@ Transform:
   m_ObjectHideFlags: 0
   m_GameObject: {fileID: 2145194625}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071067811865476, y: 0, z: 0, w: 0.7071067811865476}
-  m_LocalPosition: {x: 0.23, y: 0.53, z: 0.72}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: 0.5, y: 0.5, z: -0.5, w: 0.5}
+  m_LocalPosition: {x: 0.0, y: -2.142857143, z: 0.0}
+  m_LocalScale: {x: 12.5, y: 14.285714286, z: 20.0}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
-  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
+  m_Father: {fileID: 2145194621}
+  m_LocalEulerAnglesHint: {x: 90, y: 90, z: 0}
 --- !u!114 &2145194627
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -55455,11 +55427,11 @@ Transform:
   m_GameObject: {fileID: 2145194629}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.18, y: 0.75, z: 0.64}
-  m_LocalScale: {x: 0.95, y: 0.025, z: 0.025}
+  m_LocalPosition: {x: 0.65, y: 0.75, z: 0.44}
+  m_LocalScale: {x: 0.025, y: 0.025, z: 1.4}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194631
 MeshFilter:
@@ -55496,11 +55468,11 @@ Transform:
   m_GameObject: {fileID: 2145194633}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.62, y: 0.37, z: 0.64}
+  m_LocalPosition: {x: 0.65, y: 0.37, z: -0.23}
   m_LocalScale: {x: 0.025, y: 0.76, z: 0.025}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194635
 MeshFilter:
@@ -55540,11 +55512,12 @@ Transform:
   m_GameObject: {fileID: 2145194637}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.46, y: 0.025, z: 0.03}
+  m_LocalPosition: {x: -0.32, y: 0.025, z: 0.12}
   m_LocalScale: {x: 0.43, y: 0.035, z: 0.34}
   m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Children:
+  - {fileID: 2145194643}
+  m_Father: {fileID: 2145194883}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194639
 MeshFilter:
@@ -55588,12 +55561,12 @@ Transform:
   m_ObjectHideFlags: 0
   m_GameObject: {fileID: 2145194642}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.46, y: 0.052000000000000005, z: 0.03}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
+  m_LocalPosition: {x: 0.0, y: 0.771428571, z: 0.0}
+  m_LocalScale: {x: 2.325581395, y: 28.571428571, z: 2.941176471}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194638}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2145194644
 MonoBehaviour:
@@ -55641,7 +55614,7 @@ Transform:
   m_GameObject: {fileID: 2145194646}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.46, y: 0.065, z: 0.2}
+  m_LocalPosition: {x: -0.32, y: 0.065, z: 0.29}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -55649,7 +55622,7 @@ Transform:
   - {fileID: 2145194654}
   - {fileID: 2145194659}
   - {fileID: 2145194664}
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194883}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2145194648
 GameObject:
@@ -55700,7 +55673,7 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 1.3, y: 2, z: 1.3}
   m_Center: {x: 0, y: 0, z: 0}
   m_GameObject: {fileID: 2145194648}
 --- !u!1 &2145194653
@@ -55752,7 +55725,7 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 1.3, y: 2, z: 1.3}
   m_Center: {x: 0, y: 0, z: 0}
   m_GameObject: {fileID: 2145194653}
 --- !u!1 &2145194658
@@ -55804,7 +55777,7 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 1.3, y: 2, z: 1.3}
   m_Center: {x: 0, y: 0, z: 0}
   m_GameObject: {fileID: 2145194658}
 --- !u!1 &2145194663
@@ -55856,7 +55829,7 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 1.3, y: 2, z: 1.3}
   m_Center: {x: 0, y: 0, z: 0}
   m_GameObject: {fileID: 2145194663}
 --- !u!114 &2145194668
@@ -55895,11 +55868,11 @@ Transform:
   m_GameObject: {fileID: 2145194669}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.46, y: 0.045, z: 0.31}
+  m_LocalPosition: {x: 0.25, y: 0.045, z: 0.15}
   m_LocalScale: {x: 0.12, y: 0.06, z: 0.08}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194883}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194671
 MeshFilter:
@@ -55922,7 +55895,7 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 1.3, y: 1.2, z: 1.5}
   m_Center: {x: 0, y: 0, z: 0}
   m_GameObject: {fileID: 2145194669}
 --- !u!1 &2145194674
@@ -55944,11 +55917,11 @@ Transform:
   m_GameObject: {fileID: 2145194674}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.46, y: 0.045, z: 0.31}
+  m_LocalPosition: {x: 0.25, y: 0.045, z: 0.15}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194883}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2145194676
 MonoBehaviour:
@@ -55997,11 +55970,11 @@ Transform:
   m_GameObject: {fileID: 2145194678}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.46, y: 0.16, z: 0.31}
+  m_LocalPosition: {x: 0.25, y: 0.16, z: 0.15}
   m_LocalScale: {x: 0.04, y: 0.04, z: 0.04}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194883}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194680
 MeshFilter:
@@ -56041,11 +56014,12 @@ Transform:
   m_GameObject: {fileID: 2145194682}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.48, y: 0.03, z: -0.99}
+  m_LocalPosition: {x: -0.35, y: 0.03, z: 0.52}
   m_LocalScale: {x: 0.42, y: 0.035, z: 0.28}
   m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Children:
+  - {fileID: 2145194688}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194684
 MeshFilter:
@@ -56089,12 +56063,12 @@ Transform:
   m_ObjectHideFlags: 0
   m_GameObject: {fileID: 2145194687}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.48, y: 0.055, z: -0.99}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
+  m_LocalPosition: {x: 0.0, y: 0.714285714, z: 0.0}
+  m_LocalScale: {x: 2.380952381, y: 28.571428571, z: 3.571428571}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194683}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2145194689
 MonoBehaviour:
@@ -56143,11 +56117,11 @@ Transform:
   m_GameObject: {fileID: 2145194691}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.6849999999999999, y: 0.065, z: -0.99}
+  m_LocalPosition: {x: -0.555, y: 0.065, z: 0.52}
   m_LocalScale: {x: 0.015, y: 0.05, z: 0.28}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194693
 MeshFilter:
@@ -56184,11 +56158,11 @@ Transform:
   m_GameObject: {fileID: 2145194695}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.275, y: 0.065, z: -0.99}
+  m_LocalPosition: {x: -0.145, y: 0.065, z: 0.52}
   m_LocalScale: {x: 0.015, y: 0.05, z: 0.28}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194697
 MeshFilter:
@@ -56225,11 +56199,11 @@ Transform:
   m_GameObject: {fileID: 2145194699}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.48, y: 0.065, z: -1.125}
+  m_LocalPosition: {x: -0.35, y: 0.065, z: 0.385}
   m_LocalScale: {x: 0.42, y: 0.05, z: 0.015}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194701
 MeshFilter:
@@ -56266,11 +56240,11 @@ Transform:
   m_GameObject: {fileID: 2145194703}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.48, y: 0.065, z: -0.855}
+  m_LocalPosition: {x: -0.35, y: 0.065, z: 0.655}
   m_LocalScale: {x: 0.42, y: 0.05, z: 0.015}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194705
 MeshFilter:
@@ -56310,11 +56284,12 @@ Transform:
   m_GameObject: {fileID: 2145194707}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0, y: 0.03, z: -0.99}
+  m_LocalPosition: {x: -0.35, y: 0.03, z: 0.87}
   m_LocalScale: {x: 0.42, y: 0.035, z: 0.28}
   m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Children:
+  - {fileID: 2145194713}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194709
 MeshFilter:
@@ -56358,12 +56333,12 @@ Transform:
   m_ObjectHideFlags: 0
   m_GameObject: {fileID: 2145194712}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0, y: 0.055, z: -0.99}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
+  m_LocalPosition: {x: 0.0, y: 0.714285714, z: 0.0}
+  m_LocalScale: {x: 2.380952381, y: 28.571428571, z: 3.571428571}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194708}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2145194714
 MonoBehaviour:
@@ -56412,11 +56387,11 @@ Transform:
   m_GameObject: {fileID: 2145194716}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: -0.205, y: 0.065, z: -0.99}
+  m_LocalPosition: {x: -0.555, y: 0.065, z: 0.87}
   m_LocalScale: {x: 0.015, y: 0.05, z: 0.28}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194718
 MeshFilter:
@@ -56453,11 +56428,11 @@ Transform:
   m_GameObject: {fileID: 2145194720}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0.205, y: 0.065, z: -0.99}
+  m_LocalPosition: {x: -0.145, y: 0.065, z: 0.87}
   m_LocalScale: {x: 0.015, y: 0.05, z: 0.28}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194722
 MeshFilter:
@@ -56494,11 +56469,11 @@ Transform:
   m_GameObject: {fileID: 2145194724}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0, y: 0.065, z: -1.125}
+  m_LocalPosition: {x: -0.35, y: 0.065, z: 0.735}
   m_LocalScale: {x: 0.42, y: 0.05, z: 0.015}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194726
 MeshFilter:
@@ -56535,11 +56510,11 @@ Transform:
   m_GameObject: {fileID: 2145194728}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0, y: 0.065, z: -0.855}
+  m_LocalPosition: {x: -0.35, y: 0.065, z: 1.005}
   m_LocalScale: {x: 0.42, y: 0.05, z: 0.015}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194730
 MeshFilter:
@@ -56579,11 +56554,12 @@ Transform:
   m_GameObject: {fileID: 2145194732}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0.48, y: 0.03, z: -0.99}
+  m_LocalPosition: {x: 0.23, y: 0.03, z: 0.52}
   m_LocalScale: {x: 0.42, y: 0.035, z: 0.28}
   m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Children:
+  - {fileID: 2145194738}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194734
 MeshFilter:
@@ -56627,12 +56603,12 @@ Transform:
   m_ObjectHideFlags: 0
   m_GameObject: {fileID: 2145194737}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0.48, y: 0.055, z: -0.99}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
+  m_LocalPosition: {x: 0.0, y: 0.714285714, z: 0.0}
+  m_LocalScale: {x: 2.380952381, y: 28.571428571, z: 3.571428571}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194733}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2145194739
 MonoBehaviour:
@@ -56681,11 +56657,11 @@ Transform:
   m_GameObject: {fileID: 2145194741}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0.275, y: 0.065, z: -0.99}
+  m_LocalPosition: {x: 0.025, y: 0.065, z: 0.52}
   m_LocalScale: {x: 0.015, y: 0.05, z: 0.28}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194743
 MeshFilter:
@@ -56722,11 +56698,11 @@ Transform:
   m_GameObject: {fileID: 2145194745}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0.6849999999999999, y: 0.065, z: -0.99}
+  m_LocalPosition: {x: 0.435, y: 0.065, z: 0.52}
   m_LocalScale: {x: 0.015, y: 0.05, z: 0.28}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194747
 MeshFilter:
@@ -56763,11 +56739,11 @@ Transform:
   m_GameObject: {fileID: 2145194749}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0.48, y: 0.065, z: -1.125}
+  m_LocalPosition: {x: 0.23, y: 0.065, z: 0.385}
   m_LocalScale: {x: 0.42, y: 0.05, z: 0.015}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194751
 MeshFilter:
@@ -56804,11 +56780,11 @@ Transform:
   m_GameObject: {fileID: 2145194753}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0.48, y: 0.065, z: -0.855}
+  m_LocalPosition: {x: 0.23, y: 0.065, z: 0.655}
   m_LocalScale: {x: 0.42, y: 0.05, z: 0.015}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194755
 MeshFilter:
@@ -56848,11 +56824,12 @@ Transform:
   m_GameObject: {fileID: 2145194757}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0.39, y: 0.03, z: 0.82}
-  m_LocalScale: {x: 0.48, y: 0.04, z: 0.32}
+  m_LocalPosition: {x: 0.23, y: 0.03, z: 0.87}
+  m_LocalScale: {x: 0.42, y: 0.04, z: 0.28}
   m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Children:
+  - {fileID: 2145194763}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194759
 MeshFilter:
@@ -56896,12 +56873,12 @@ Transform:
   m_ObjectHideFlags: 0
   m_GameObject: {fileID: 2145194762}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0.39, y: 0.06, z: 0.82}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
+  m_LocalPosition: {x: 0.0, y: 0.75, z: 0.0}
+  m_LocalScale: {x: 2.380952381, y: 25.0, z: 3.571428571}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194758}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2145194764
 MonoBehaviour:
@@ -56953,11 +56930,11 @@ Transform:
   m_GameObject: {fileID: 2145194766}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0.62, y: 0.22, z: 0.85}
+  m_LocalPosition: {x: 0.59, y: 0.22, z: 0.87}
   m_LocalScale: {x: 0.08, y: 0.08, z: 0.14}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194768
 MeshFilter:
@@ -57002,11 +56979,11 @@ Transform:
   m_GameObject: {fileID: 2145194771}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0.62, y: 0.22, z: 0.85}
+  m_LocalPosition: {x: 0.59, y: 0.22, z: 0.87}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2145194773
 MonoBehaviour:
@@ -57055,11 +57032,11 @@ Transform:
   m_GameObject: {fileID: 2145194775}
   serializedVersion: 2
   m_LocalRotation: {x: 0.0, y: 0, z: 0, w: 1.0}
-  m_LocalPosition: {x: 0.39, y: 0.18, z: 0.82}
+  m_LocalPosition: {x: 0.23, y: 0.18, z: 0.87}
   m_LocalScale: {x: 0.025, y: 0.25, z: 0.025}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2145194588}
+  m_Father: {fileID: 2145194885}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2145194777
 MeshFilter:
@@ -57126,9 +57103,1501 @@ MonoBehaviour:
   - id: print-tap
     target: {fileID: 2145194767}
     placement: {fileID: 2145194772}
+  - id: film-bag
+    target: {fileID: 2145194887}
+    placement: {fileID: 2145194887}
+  - id: film-tank
+    target: {fileID: 2145194889}
+    placement: {fileID: 2145194889}
+  - id: film-chemical-0
+    target: {fileID: 2145194891}
+    placement: {fileID: 2145194891}
+  - id: film-chemical-1
+    target: {fileID: 2145194893}
+    placement: {fileID: 2145194893}
+  - id: film-chemical-2
+    target: {fileID: 2145194895}
+    placement: {fileID: 2145194895}
+  - id: film-sink
+    target: {fileID: 2145194897}
+    placement: {fileID: 2145194897}
+  - id: film-tap
+    target: {fileID: 2145194899}
+    placement: {fileID: 2145194899}
+  - id: film-clock
+    target: {fileID: 2145194901}
+    placement: {fileID: 2145194901}
+  - id: bag
+    target: {fileID: 2145195003}
+    placement: {fileID: 2145194887}
+  - id: bag-grip
+    target: {fileID: 2145195016}
+    placement: {fileID: 2145195016}
+  - id: tank
+    target: {fileID: 2145195020}
+    placement: {fileID: 2145194889}
+  - id: tank-lid
+    target: {fileID: 2145195029}
+    placement: {fileID: 2145195029}
+  - id: chemical-0
+    target: {fileID: 2145195038}
+    placement: {fileID: 2145194891}
+  - id: chemical-1
+    target: {fileID: 2145195051}
+    placement: {fileID: 2145194893}
+  - id: chemical-2
+    target: {fileID: 2145195064}
+    placement: {fileID: 2145194895}
+  - id: water
+    target: {fileID: 2145195077}
+    placement: {fileID: 2145194899}
+  - id: film-drain-basin
+    target: {fileID: 2145195090}
+    placement: {fileID: 2145194897}
+  - id: film-clock-hand
+    target: {fileID: 2145195104}
+    placement: {fileID: 2145195104}
   paperSurface: {fileID: 2145194601}
   negativeSurface: {fileID: 2145194592}
   frameLid: {fileID: 2145194647}
   exposureLight: {fileID: 2145194678}
   waterStream: {fileID: 2145194775}
   m_GameObject: {fileID: 2145194587}
+  frameOpenEuler: {x: -100, y: 0, z: 0}
+  tankLidOpenOffset: {x: 0, y: 0.16, z: 0}
+  bagWorkingScale: {x: 1, y: 1.4375, z: 1}
+  bagGripAxis: {x: 1, y: 0, z: 0}
+  bagGripTurns: 2
+  tankAgitationEuler: {x: 9, y: 0, z: 8}
+  tankDrainEuler: {x: 0, y: 0, z: 100}
+  bottlePourEuler: {x: 60, y: 0, z: -35}
+  negativeOnFrameOffset: {x: 0, y: 0.008, z: 0}
+--- !u!1 &2145194880
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145194881}
+  m_Layer: 8
+  m_Name: Film Processing
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145194881
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145194880}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 2145195098}
+  - {fileID: 2145195090}
+  - {fileID: 2145195077}
+  - {fileID: 2145195064}
+  - {fileID: 2145195051}
+  - {fileID: 2145195038}
+  - {fileID: 2145195020}
+  - {fileID: 2145195003}
+  - {fileID: 2145194901}
+  - {fileID: 2145194899}
+  - {fileID: 2145194897}
+  - {fileID: 2145194895}
+  - {fileID: 2145194893}
+  - {fileID: 2145194891}
+  - {fileID: 2145194889}
+  - {fileID: 2145194887}
+  - {fileID: 2145194612}
+  - {fileID: 2145194608}
+  - {fileID: 2145194595}
+  - {fileID: 2145194590}
+  m_Father: {fileID: 2145194588}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2145194882
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145194883}
+  m_Layer: 8
+  m_Name: Contact Printing
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145194883
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145194882}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 2145194679}
+  - {fileID: 2145194675}
+  - {fileID: 2145194670}
+  - {fileID: 2145194647}
+  - {fileID: 2145194638}
+  - {fileID: 2145194610}
+  - {fileID: 2145194604}
+  - {fileID: 2145194599}
+  m_Father: {fileID: 2145194588}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2145194884
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145194885}
+  m_Layer: 8
+  m_Name: Paper Processing and Drying
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145194885
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145194884}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 2145194776}
+  - {fileID: 2145194772}
+  - {fileID: 2145194767}
+  - {fileID: 2145194758}
+  - {fileID: 2145194754}
+  - {fileID: 2145194750}
+  - {fileID: 2145194746}
+  - {fileID: 2145194742}
+  - {fileID: 2145194733}
+  - {fileID: 2145194729}
+  - {fileID: 2145194725}
+  - {fileID: 2145194721}
+  - {fileID: 2145194717}
+  - {fileID: 2145194708}
+  - {fileID: 2145194704}
+  - {fileID: 2145194700}
+  - {fileID: 2145194696}
+  - {fileID: 2145194692}
+  - {fileID: 2145194683}
+  - {fileID: 2145194634}
+  - {fileID: 2145194630}
+  - {fileID: 2145194621}
+  m_Father: {fileID: 2145194588}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2145194886
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145194887}
+  m_Layer: 8
+  m_Name: film-bag Anchor
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145194887
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145194886}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.35, y: 0.09, z: -0.85}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2145194888
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145194889}
+  m_Layer: 8
+  m_Name: film-tank Anchor
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145194889
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145194888}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.35, y: 0.2, z: -0.43}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2145194890
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145194891}
+  m_Layer: 8
+  m_Name: film-chemical-0 Anchor
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145194891
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145194890}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.48, y: 0.21, z: -0.95}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2145194892
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145194893}
+  m_Layer: 8
+  m_Name: film-chemical-1 Anchor
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145194893
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145194892}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.48, y: 0.21, z: -0.7}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2145194894
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145194895}
+  m_Layer: 8
+  m_Name: film-chemical-2 Anchor
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145194895
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145194894}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.48, y: 0.21, z: -0.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2145194896
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145194897}
+  m_Layer: 8
+  m_Name: film-sink Anchor
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145194897
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145194896}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.1, y: 0.04, z: -0.9}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2145194898
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145194899}
+  m_Layer: 8
+  m_Name: film-tap Anchor
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145194899
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145194898}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.15, y: 0.52, z: -0.9}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2145194900
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145194901}
+  m_Layer: 8
+  m_Name: film-clock Anchor
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145194901
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145194900}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.6, y: 0.74, z: -0.65}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2145195002
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195003}
+  - component: {fileID: 2145195004}
+  - component: {fileID: 2145195005}
+  - component: {fileID: 2145195006}
+  m_Layer: 8
+  m_Name: Dark Bag
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195003
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195002}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.35, y: 0.09, z: -0.85}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 2145195008}
+  - {fileID: 2145195012}
+  - {fileID: 2145195016}
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &2145195004
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.5, y: 0.16, z: 0.32}
+  m_Center: {x: 0, y: 0, z: 0}
+  m_GameObject: {fileID: 2145195002}
+--- !u!114 &2145195005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: dacb8c47e609d0841bdf82fac338216f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  text: Dark bag
+  target: {fileID: 2145195003}
+  prefix: 
+  mirror: {fileID: 0}
+  m_GameObject: {fileID: 2145195002}
+--- !u!114 &2145195006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: 71b23018f8504394b85d33984a4f64fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  instanceId: darkroom.film.bag
+  definition: {fileID: 11400000, guid: ebfd87d9049a416283a1a3753e77dc76, type: 2}
+  ownerChapterId: summer.photography
+  model: {fileID: 2145195003}
+  homeAnchor: {fileID: 2145194887}
+  hitSurfaces: []
+  m_GameObject: {fileID: 2145195002}
+--- !u!1 &2145195007
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195008}
+  - component: {fileID: 2145195009}
+  - component: {fileID: 2145195010}
+  m_Layer: 8
+  m_Name: Bag Body
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195008
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195007}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.5, y: 0.16, z: 0.32}
+  m_Children: []
+  m_Father: {fileID: 2145195003}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195009
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195007}
+--- !u!23 &2145195010
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: 09f9a097ea2a43059aa7c20a266f1672, type: 2}
+  m_GameObject: {fileID: 2145195007}
+--- !u!1 &2145195011
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195012}
+  - component: {fileID: 2145195013}
+  - component: {fileID: 2145195014}
+  m_Layer: 8
+  m_Name: Bag Sleeve
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195012
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195011}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
+  m_LocalPosition: {x: -0.22, y: 0.02, z: -0.08}
+  m_LocalScale: {x: 0.18, y: 0.15, z: 0.16}
+  m_Children: []
+  m_Father: {fileID: 2145195003}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195013
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195011}
+--- !u!23 &2145195014
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: f8c08cbc49c641f98d55a20a645a4f60, type: 2}
+  m_GameObject: {fileID: 2145195011}
+--- !u!1 &2145195015
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195016}
+  - component: {fileID: 2145195017}
+  - component: {fileID: 2145195018}
+  m_Layer: 8
+  m_Name: Bag Grip
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195016
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195015}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.22, y: 0.025, z: -0.05}
+  m_LocalScale: {x: 0.16, y: 0.12, z: 0.16}
+  m_Children: []
+  m_Father: {fileID: 2145195003}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195017
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195015}
+--- !u!23 &2145195018
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: b1da2fca89224e85b5aef5f33eaa2606, type: 2}
+  m_GameObject: {fileID: 2145195015}
+--- !u!1 &2145195019
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195020}
+  - component: {fileID: 2145195021}
+  - component: {fileID: 2145195022}
+  - component: {fileID: 2145195023}
+  m_Layer: 8
+  m_Name: Film Developing Tank
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195020
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195019}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.35, y: 0.2, z: -0.43}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 2145195025}
+  - {fileID: 2145195029}
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &2145195021
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.38, y: 0.38, z: 0.38}
+  m_Center: {x: 0, y: 0, z: 0}
+  m_GameObject: {fileID: 2145195019}
+--- !u!114 &2145195022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: dacb8c47e609d0841bdf82fac338216f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  text: Developing tank
+  target: {fileID: 2145195020}
+  prefix: 
+  mirror: {fileID: 0}
+  m_GameObject: {fileID: 2145195019}
+--- !u!114 &2145195023
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: 71b23018f8504394b85d33984a4f64fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  instanceId: darkroom.film.tank
+  definition: {fileID: 11400000, guid: ebfd87d9049a416283a1a3753e77dc76, type: 2}
+  ownerChapterId: summer.photography
+  model: {fileID: 2145195020}
+  homeAnchor: {fileID: 2145194889}
+  hitSurfaces: []
+  m_GameObject: {fileID: 2145195019}
+--- !u!1 &2145195024
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195025}
+  - component: {fileID: 2145195026}
+  - component: {fileID: 2145195027}
+  m_Layer: 8
+  m_Name: Tank Body
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195025
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195024}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.38, y: 0.19, z: 0.38}
+  m_Children: []
+  m_Father: {fileID: 2145195020}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195026
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195024}
+--- !u!23 &2145195027
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: f8c08cbc49c641f98d55a20a645a4f60, type: 2}
+  m_GameObject: {fileID: 2145195024}
+--- !u!1 &2145195028
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195029}
+  - component: {fileID: 2145195034}
+  - component: {fileID: 2145195035}
+  - component: {fileID: 2145195036}
+  m_Layer: 8
+  m_Name: Tank Lid
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195029
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195028}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.2, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 2145195031}
+  m_Father: {fileID: 2145195020}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2145195030
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195031}
+  - component: {fileID: 2145195032}
+  - component: {fileID: 2145195033}
+  m_Layer: 8
+  m_Name: Lid Surface
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195031
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195030}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.4, y: 0.025, z: 0.4}
+  m_Children: []
+  m_Father: {fileID: 2145195029}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195032
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195030}
+--- !u!23 &2145195033
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: 5ca001e155d94fd8978481909a46ad04, type: 2}
+  m_GameObject: {fileID: 2145195030}
+--- !u!65 &2145195034
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.4, y: 0.05, z: 0.4}
+  m_Center: {x: 0, y: 0, z: 0}
+  m_GameObject: {fileID: 2145195028}
+--- !u!114 &2145195035
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: dacb8c47e609d0841bdf82fac338216f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  text: Tank lid
+  target: {fileID: 2145195029}
+  prefix: 
+  mirror: {fileID: 0}
+  m_GameObject: {fileID: 2145195028}
+--- !u!114 &2145195036
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: 71b23018f8504394b85d33984a4f64fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  instanceId: darkroom.film.tank-lid
+  definition: {fileID: 11400000, guid: ebfd87d9049a416283a1a3753e77dc76, type: 2}
+  ownerChapterId: summer.photography
+  model: {fileID: 2145195029}
+  homeAnchor: {fileID: 2145195029}
+  hitSurfaces: []
+  m_GameObject: {fileID: 2145195028}
+--- !u!1 &2145195037
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195038}
+  - component: {fileID: 2145195039}
+  - component: {fileID: 2145195040}
+  - component: {fileID: 2145195041}
+  m_Layer: 8
+  m_Name: Film Developer Bottle
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195038
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195037}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.48, y: 0.21, z: -0.95}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 2145195043}
+  - {fileID: 2145195047}
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &2145195039
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.2, y: 0.4, z: 0.2}
+  m_Center: {x: 0, y: 0, z: 0}
+  m_GameObject: {fileID: 2145195037}
+--- !u!114 &2145195040
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: dacb8c47e609d0841bdf82fac338216f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  text: Film Developer Bottle
+  target: {fileID: 2145195038}
+  prefix: 
+  mirror: {fileID: 0}
+  m_GameObject: {fileID: 2145195037}
+--- !u!114 &2145195041
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: 71b23018f8504394b85d33984a4f64fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  instanceId: darkroom.film.chemical-0
+  definition: {fileID: 11400000, guid: ebfd87d9049a416283a1a3753e77dc76, type: 2}
+  ownerChapterId: summer.photography
+  model: {fileID: 2145195038}
+  homeAnchor: {fileID: 2145194891}
+  hitSurfaces: []
+  m_GameObject: {fileID: 2145195037}
+--- !u!1 &2145195042
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195043}
+  - component: {fileID: 2145195044}
+  - component: {fileID: 2145195045}
+  m_Layer: 8
+  m_Name: Bottle Body
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195043
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195042}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
+  m_Children: []
+  m_Father: {fileID: 2145195038}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195044
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195042}
+--- !u!23 &2145195045
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: 04ff8873eda44dcc897b4f80a7d4a8cf, type: 2}
+  m_GameObject: {fileID: 2145195042}
+--- !u!1 &2145195046
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195047}
+  - component: {fileID: 2145195048}
+  - component: {fileID: 2145195049}
+  m_Layer: 8
+  m_Name: Bottle Cap
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195047
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195046}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.24, z: 0}
+  m_LocalScale: {x: 0.12, y: 0.04, z: 0.12}
+  m_Children: []
+  m_Father: {fileID: 2145195038}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195048
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195046}
+--- !u!23 &2145195049
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: b1da2fca89224e85b5aef5f33eaa2606, type: 2}
+  m_GameObject: {fileID: 2145195046}
+--- !u!1 &2145195050
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195051}
+  - component: {fileID: 2145195052}
+  - component: {fileID: 2145195053}
+  - component: {fileID: 2145195054}
+  m_Layer: 8
+  m_Name: Film Stop Bath Bottle
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195051
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195050}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.48, y: 0.21, z: -0.7}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 2145195056}
+  - {fileID: 2145195060}
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &2145195052
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.2, y: 0.4, z: 0.2}
+  m_Center: {x: 0, y: 0, z: 0}
+  m_GameObject: {fileID: 2145195050}
+--- !u!114 &2145195053
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: dacb8c47e609d0841bdf82fac338216f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  text: Film Stop Bath Bottle
+  target: {fileID: 2145195051}
+  prefix: 
+  mirror: {fileID: 0}
+  m_GameObject: {fileID: 2145195050}
+--- !u!114 &2145195054
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: 71b23018f8504394b85d33984a4f64fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  instanceId: darkroom.film.chemical-1
+  definition: {fileID: 11400000, guid: ebfd87d9049a416283a1a3753e77dc76, type: 2}
+  ownerChapterId: summer.photography
+  model: {fileID: 2145195051}
+  homeAnchor: {fileID: 2145194893}
+  hitSurfaces: []
+  m_GameObject: {fileID: 2145195050}
+--- !u!1 &2145195055
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195056}
+  - component: {fileID: 2145195057}
+  - component: {fileID: 2145195058}
+  m_Layer: 8
+  m_Name: Bottle Body
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195056
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195055}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
+  m_Children: []
+  m_Father: {fileID: 2145195051}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195057
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195055}
+--- !u!23 &2145195058
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: 72c2e9a51d5749c1bd9a0aa81dd2cb3a, type: 2}
+  m_GameObject: {fileID: 2145195055}
+--- !u!1 &2145195059
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195060}
+  - component: {fileID: 2145195061}
+  - component: {fileID: 2145195062}
+  m_Layer: 8
+  m_Name: Bottle Cap
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195060
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195059}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.24, z: 0}
+  m_LocalScale: {x: 0.12, y: 0.04, z: 0.12}
+  m_Children: []
+  m_Father: {fileID: 2145195051}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195061
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195059}
+--- !u!23 &2145195062
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: b1da2fca89224e85b5aef5f33eaa2606, type: 2}
+  m_GameObject: {fileID: 2145195059}
+--- !u!1 &2145195063
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195064}
+  - component: {fileID: 2145195065}
+  - component: {fileID: 2145195066}
+  - component: {fileID: 2145195067}
+  m_Layer: 8
+  m_Name: Film Fixer Bottle
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195064
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195063}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.48, y: 0.21, z: -0.45}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 2145195069}
+  - {fileID: 2145195073}
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &2145195065
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.2, y: 0.4, z: 0.2}
+  m_Center: {x: 0, y: 0, z: 0}
+  m_GameObject: {fileID: 2145195063}
+--- !u!114 &2145195066
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: dacb8c47e609d0841bdf82fac338216f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  text: Film Fixer Bottle
+  target: {fileID: 2145195064}
+  prefix: 
+  mirror: {fileID: 0}
+  m_GameObject: {fileID: 2145195063}
+--- !u!114 &2145195067
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: 71b23018f8504394b85d33984a4f64fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  instanceId: darkroom.film.chemical-2
+  definition: {fileID: 11400000, guid: ebfd87d9049a416283a1a3753e77dc76, type: 2}
+  ownerChapterId: summer.photography
+  model: {fileID: 2145195064}
+  homeAnchor: {fileID: 2145194895}
+  hitSurfaces: []
+  m_GameObject: {fileID: 2145195063}
+--- !u!1 &2145195068
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195069}
+  - component: {fileID: 2145195070}
+  - component: {fileID: 2145195071}
+  m_Layer: 8
+  m_Name: Bottle Body
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195069
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195068}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
+  m_Children: []
+  m_Father: {fileID: 2145195064}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195070
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195068}
+--- !u!23 &2145195071
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: 3cc6bd3c077d406bbeaa8b53de52f3f0, type: 2}
+  m_GameObject: {fileID: 2145195068}
+--- !u!1 &2145195072
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195073}
+  - component: {fileID: 2145195074}
+  - component: {fileID: 2145195075}
+  m_Layer: 8
+  m_Name: Bottle Cap
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195073
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195072}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.24, z: 0}
+  m_LocalScale: {x: 0.12, y: 0.04, z: 0.12}
+  m_Children: []
+  m_Father: {fileID: 2145195064}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195074
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195072}
+--- !u!23 &2145195075
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: b1da2fca89224e85b5aef5f33eaa2606, type: 2}
+  m_GameObject: {fileID: 2145195072}
+--- !u!1 &2145195076
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195077}
+  - component: {fileID: 2145195078}
+  - component: {fileID: 2145195079}
+  - component: {fileID: 2145195080}
+  m_Layer: 8
+  m_Name: Film Rinse Tap
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195077
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195076}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.15, y: 0.52, z: -0.9}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 2145195082}
+  - {fileID: 2145195086}
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &2145195078
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.28, y: 0.065, z: 0.065}
+  m_Center: {x: 0, y: 0, z: 0}
+  m_GameObject: {fileID: 2145195076}
+--- !u!114 &2145195079
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: dacb8c47e609d0841bdf82fac338216f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  text: Tank rinse / drain
+  target: {fileID: 2145195077}
+  prefix: 
+  mirror: {fileID: 0}
+  m_GameObject: {fileID: 2145195076}
+--- !u!114 &2145195080
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: 71b23018f8504394b85d33984a4f64fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  instanceId: darkroom.film.water
+  definition: {fileID: 11400000, guid: ebfd87d9049a416283a1a3753e77dc76, type: 2}
+  ownerChapterId: summer.photography
+  model: {fileID: 2145195077}
+  homeAnchor: {fileID: 2145194899}
+  hitSurfaces: []
+  m_GameObject: {fileID: 2145195076}
+--- !u!1 &2145195081
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195082}
+  - component: {fileID: 2145195083}
+  - component: {fileID: 2145195084}
+  m_Layer: 8
+  m_Name: Tap Spout
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195082
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195081}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.28, y: 0.065, z: 0.065}
+  m_Children: []
+  m_Father: {fileID: 2145195077}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195083
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195081}
+--- !u!23 &2145195084
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: 985890b4124d4c3594dfa44f1675e2cc, type: 2}
+  m_GameObject: {fileID: 2145195081}
+--- !u!1 &2145195085
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195086}
+  - component: {fileID: 2145195087}
+  - component: {fileID: 2145195088}
+  m_Layer: 8
+  m_Name: Tap Stem
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195086
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195085}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.13, y: -0.23, z: 0}
+  m_LocalScale: {x: 0.065, y: 0.48, z: 0.065}
+  m_Children: []
+  m_Father: {fileID: 2145195077}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195087
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195085}
+--- !u!23 &2145195088
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: 985890b4124d4c3594dfa44f1675e2cc, type: 2}
+  m_GameObject: {fileID: 2145195085}
+--- !u!1 &2145195089
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195090}
+  - component: {fileID: 2145195091}
+  - component: {fileID: 2145195092}
+  - component: {fileID: 2145195211}
+  m_Layer: 8
+  m_Name: Film Drain Basin
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195090
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195089}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.1, y: 0.04, z: -0.9}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 2145195094}
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2145195091
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: dacb8c47e609d0841bdf82fac338216f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  text: Film drain basin
+  target: {fileID: 2145195090}
+  prefix: 
+  mirror: {fileID: 0}
+  m_GameObject: {fileID: 2145195089}
+--- !u!114 &2145195092
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_Script: {fileID: 11500000, guid: 71b23018f8504394b85d33984a4f64fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  instanceId: darkroom.film.film-drain-basin
+  definition: {fileID: 11400000, guid: ebfd87d9049a416283a1a3753e77dc76, type: 2}
+  ownerChapterId: summer.photography
+  model: {fileID: 2145195090}
+  homeAnchor: {fileID: 2145194897}
+  hitSurfaces: []
+  m_GameObject: {fileID: 2145195089}
+--- !u!1 &2145195093
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195094}
+  - component: {fileID: 2145195095}
+  - component: {fileID: 2145195096}
+  m_Layer: 8
+  m_Name: Basin Surface
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195094
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195093}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.4, y: 0.055, z: 0.28}
+  m_Children: []
+  m_Father: {fileID: 2145195090}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195095
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195093}
+--- !u!23 &2145195096
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: 040003a9073a4eba84cd21c4f60212f0, type: 2}
+  m_GameObject: {fileID: 2145195093}
+--- !u!1 &2145195097
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195098}
+  m_Layer: 8
+  m_Name: Film Processing Timer
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195098
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195097}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.6, y: 0.74, z: -0.65}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 2145195100}
+  - {fileID: 2145195104}
+  - {fileID: 2145195108}
+  m_Father: {fileID: 2145194881}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2145195099
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195100}
+  - component: {fileID: 2145195101}
+  - component: {fileID: 2145195102}
+  m_Layer: 8
+  m_Name: Timer Face
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195100
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195099}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.31, y: 0.025, z: 0.31}
+  m_Children: []
+  m_Father: {fileID: 2145195098}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195101
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195099}
+--- !u!23 &2145195102
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: cc512947c2af4b7d99db0b50b5827b06, type: 2}
+  m_GameObject: {fileID: 2145195099}
+--- !u!1 &2145195103
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195104}
+  - component: {fileID: 2145195105}
+  - component: {fileID: 2145195106}
+  m_Layer: 8
+  m_Name: Timer Hand
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195104
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195103}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -0.023}
+  m_LocalScale: {x: 0.012, y: 0.115, z: 0.009}
+  m_Children: []
+  m_Father: {fileID: 2145195098}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195105
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195103}
+--- !u!23 &2145195106
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: f8c08cbc49c641f98d55a20a645a4f60, type: 2}
+  m_GameObject: {fileID: 2145195103}
+--- !u!1 &2145195107
+GameObject:
+  m_ObjectHideFlags: 0
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2145195108}
+  - component: {fileID: 2145195109}
+  - component: {fileID: 2145195110}
+  m_Layer: 8
+  m_Name: Timer Stand
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2145195108
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195107}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.44, z: 0}
+  m_LocalScale: {x: 0.035, y: 0.57, z: 0.035}
+  m_Children: []
+  m_Father: {fileID: 2145195098}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2145195109
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_GameObject: {fileID: 2145195107}
+--- !u!23 &2145195110
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_Materials:
+  - {fileID: 2100000, guid: f8c08cbc49c641f98d55a20a645a4f60, type: 2}
+  m_GameObject: {fileID: 2145195107}
+--- !u!65 &2145195211
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2145195089}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.4, y: 0.065, z: 0.28}
+  m_Center: {x: 0, y: 0, z: 0}

@@ -58,6 +58,7 @@ def migrate(path):
     def transform(go):
         return next(i for i,b in blocks.items() if b.startswith('--- !u!4 ') and field(b,'m_GameObject')==go)
     items={};chapters={};config={}
+    entry_ids=set()
     def item(tr,id,kind,chapter,home=0):
         if not tr:return
         go=field(blocks[tr],'m_GameObject')
@@ -86,7 +87,12 @@ def migrate(path):
         if f'guid: {entry_guid}' in b:
             index=int(re.search(r'  chapter: (\d+)',b).group(1));go=field(b,'m_GameObject');tr=transform(go)
             if 0<=index<5:
-                item(tr,'house.entry.'+CHAPTERS[index], 'chapter.entry.'+CHAPTERS[index],CHAPTERS[index])
+                entry_id='house.entry.'+CHAPTERS[index]
+                # Several physical entry objects may route to the same chapter.
+                # Chapter identity is shared; item instance identity must not be.
+                if entry_id in entry_ids:entry_id+='.'+str(go)
+                entry_ids.add(entry_id)
+                item(tr,entry_id, 'chapter.entry.'+CHAPTERS[index],CHAPTERS[index])
                 if index not in chapters:chapters[index]=(go,tr,0)
     for b in list(blocks.values()):
         if f'guid: {subject_guid}' not in b:continue

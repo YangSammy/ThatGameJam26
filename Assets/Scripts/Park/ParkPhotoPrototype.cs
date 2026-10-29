@@ -134,6 +134,10 @@ namespace MemoryWhitebox
         {
             SyncParkInput();
             if(!focused || applicationPaused || changingScene)return;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if(Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+            {DebugFillCurrentRoll();return;}
+#endif
             // The final shutter press must be released before it can activate UI.
             if(returnUiGate && handoff.Ready)returnUiGate=false;
             var controls=PlayerControlSettings.Current;

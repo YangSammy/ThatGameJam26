@@ -101,7 +101,7 @@ namespace MemoryWhitebox
         {
             Done[index]=true;
             DayChanged?.Invoke(story.Day);
-            leaveCompletedChapter=InStation && ChapterIndex==index;
+            leaveCompletedChapter=index!=1 && InStation && ChapterIndex==index;
             if(index==0)radioDeck.SuspendInput();
         }
         public SaveResult CommitPreparedChapter(string id,string payload,bool completed,ArtifactReference artifact)

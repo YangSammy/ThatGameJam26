@@ -5,7 +5,7 @@ namespace MemoryWhitebox
     public enum InputContextId
     {
         Exploration, Station, TapeWorkbench, TapeTransport, Inspection, Gallery,
-        Modal, Paused, Transition, Unfocused, ParkViewfinder, ParkBody, ParkMeter, ParkAperture, ParkShutter
+        Modal, Paused, Transition, Unfocused, ParkViewfinder, ParkBody, ParkMeter, ParkAperture, ParkShutter, Darkroom
     }
     // One session per player/scene. Controllers own gestures; this owns permission,
     // handoff and consumption, so an exit cannot reach two controllers in one frame.

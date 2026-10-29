@@ -56,6 +56,8 @@ namespace MemoryWhitebox
                 if(d.workflowVersion==2 && active.state!=ParkFilmState.Developed){d.printObjects=DarkroomPrintState.FromLegacy(d.printStage,d.printProcessing);d.workflowVersion=3;}
                 darkroomWorkflow=d.workflowVersion;tankSealed=d.tankSealed;needsDrain=d.needsDrain;
                 printObjectsState=d.printObjects ?? new DarkroomPrintState();printObjectsState.Validate();
+                if(d.printStage>ParkPrintStage.NegativeDrying || printObjectsState.negative.locationId!="print-negative-home")printObjectsState.negativeRemoved=true;
+                resumedDarkroom=active.darkroom!=null;
                 printStage=d.printStage;printRemaining=d.printRemaining;printProcessing=d.printProcessing;
                 if(printStage==ParkPrintStage.Exposing){printStage=ParkPrintStage.ContactReady;if(darkroomWorkflow<3)printRemaining=0;printProcessing=false;}
                 RewindTurns=d.rewindTurns;RewoundBackOpen=d.backOpen;
@@ -122,7 +124,7 @@ namespace MemoryWhitebox
                 if(ParkPrintsReady)
                 {
                     Photo.RestoreCompleted(true);
-                    if(!wasReady){CancelInteraction();LoadParkFrame();parkGallery=true;Host.SuspendHouseInput();}
+                    if(!wasReady){CancelInteraction();LoadParkFrame();if(!DirectDarkroom){parkGallery=true;Host.SuspendHouseInput();}else DarkroomNotice("Prints ready. Click the hanging print to view.");}
                 }
                 return true;
             }
@@ -173,7 +175,7 @@ namespace MemoryWhitebox
         {
             if(!Printing || !printProcessing || (PhysicalPrinting && printObjects==null) || (printStage==ParkPrintStage.Exposing && !printHeld))return;
             printRemaining=Mathf.Max(0,printRemaining-Mathf.Max(0,dt));
-            clockHand.localRotation=Quaternion.Euler(0,0,-printRemaining*120);
+            clockHand.localRotation=clockHomeRotation*Quaternion.Euler(0,0,-printRemaining*120);
             if(printRemaining>0)return;
             printProcessing=false;
             if(printStage==ParkPrintStage.NegativeDrying)printStage=ParkPrintStage.ContactReady;
@@ -228,7 +230,7 @@ namespace MemoryWhitebox
             {
 
                 string hint=ProgressHint;
-                if(ParkPrintsReady && saveNotice=="")hint="Roll: " + parkFilm.Capacity + " frames developed  /  Esc  Back";
+                if(ParkPrintsReady && saveNotice=="")hint="Roll: " + parkFilm.Capacity + (DirectDarkroom?" frames developed / Click the print to view.":" frames developed  /  Esc  Back");
                 InteractionUI.Label(new Rect(28,Screen.height-100,Screen.width-56,42),"Film  " + parkFilm.Capacity + " / " + parkFilm.Capacity + " frames\n"+hint,style);
                 if(ParkPrintsReady && InteractionUI.Button(ProgressActionRect,"View prints"))OpenParkGallery();
                 return;

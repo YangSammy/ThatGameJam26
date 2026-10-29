@@ -15,10 +15,11 @@ namespace MemoryWhitebox
             var hits=Physics.RaycastAll(ray,2.5f,(1<<8)|(1<<25)|1,QueryTriggerInteraction.Ignore);
             Array.Sort(hits,(a,b)=>a.distance.CompareTo(b.distance));
             foreach(var hit in hits) {
+                if(hit.collider.name.StartsWith("Walk blocker") && hit.collider.GetComponent<Renderer>()==null)continue;
                 var node=hit.collider.GetComponent<WorldHotspot>();
                 if(node!=null && node.Owner==this)return node.Id;
                 // Room navigation volumes and curtains are also physical occluders.
-                if(hit.collider.gameObject.layer==25 || hit.collider.name.StartsWith("Walk blocker"))return "";
+                if(hit.collider.gameObject.layer==25 || hit.collider.GetComponent<Renderer>()!=null)return "";
             }
             return "";
         }
@@ -53,7 +54,8 @@ namespace MemoryWhitebox
         }
         public string ProgressHint {
             get {
-                if(saveNotice!="")return saveNotice;
+                if(saveNotice!="")return saveNotice+(DirectDarkroom?" / Progress kept in memory; saving will retry.":" / Esc: retry save and exit");
+                if(Time.unscaledTime<darkroomNoticeUntil)return darkroomNotice+"\n"+DarkroomTask;
                 string task=DarkroomTask;if(!string.IsNullOrEmpty(task))return task;
                 if(Printing)return PrintHint;
                 if(Photo.Completed)return "Photo saved  /  Esc  Back";

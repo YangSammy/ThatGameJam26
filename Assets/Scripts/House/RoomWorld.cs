@@ -227,6 +227,12 @@ namespace MemoryWhitebox
             if(enable && Camera!=null){var e=Camera.transform.eulerAngles;yaw=e.y;pitch=e.x>180?e.x-360:e.x;}
             StopMotion();looking = enable;PlayerInputPolicy.SetCursor(!enable);
         }
+        public void StepFreePointer(Vector2 axes,Vector2 look,float dt)
+        {
+            bool previous=looking;looking=true;
+            StepInput(axes,look,dt);
+            looking=previous;
+        }
         public void CreateShared(Camera camera,GameObject savedRoom=null)
         {
             shared=true;Camera=camera;Root=savedRoom;

@@ -28,8 +28,9 @@ namespace MemoryWhitebox
         {
             bubble.gameObject.SetActive(false);
             if(guidedPhoto!=null)guidedPhoto.ClearDarkroomHighlight();
-            guidedPhoto=house!=null && house.InStation?house.CurrentWorld as PhotoWorld3D:null;
+            guidedPhoto=house!=null?(house.DirectDarkroomActive?house.DarkroomWorld:house.InStation?house.CurrentWorld as PhotoWorld3D:null):null;
             if(guidedPhoto!=null)guidedPhoto.RefreshDarkroomHighlight();
+            if(house!=null && house.DirectDarkroomActive && house.DarkroomWorld.ParkGalleryOpen)return;
             if(house!=null && (house.ShowHelp || (house.radioDeck!=null && house.radioDeck.SuccessPopupOpen)))return;
             Vector2 point=Cursor.lockState==CursorLockMode.Locked?new Vector2(Screen.width*.5f,Screen.height*.5f):(Vector2)Input.mousePosition;
             Camera view=house!=null?house.playerCamera:park!=null?park.view:fallback;
@@ -40,7 +41,7 @@ namespace MemoryWhitebox
             Collider hit=null;
             if(park!=null && park.PhotoMode!=ParkPhotoPrototype.PhotographyMode.Exploration)
             {point=park.TooltipPoint;hit=park.TooltipTarget;}
-            else if(house!=null && !house.InStation && !inspection)hit=StudyEntry.PickVisible(view.ScreenPointToRay(point));
+            else if(house!=null && !house.InStation && !house.DirectDarkroomActive && !inspection)hit=StudyEntry.PickVisible(view.ScreenPointToRay(point));
             else
             {
                 RaycastHit info;

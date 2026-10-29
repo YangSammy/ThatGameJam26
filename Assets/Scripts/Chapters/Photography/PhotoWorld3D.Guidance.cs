@@ -10,7 +10,7 @@ namespace MemoryWhitebox
         readonly Dictionary<Renderer, int> guideProperties=new Dictionary<Renderer, int>();
         readonly Dictionary<string, Renderer[]> guideRenderers=new Dictionary<string, Renderer[]>();
         readonly MaterialPropertyBlock guideBlock=new MaterialPropertyBlock();
-        public bool DarkroomGuidanceActive=>Active && ParkMode && !parkFilmUnavailable && !parkGallery;
+        public bool DarkroomGuidanceActive=>(Active || DirectDarkroom) && ParkMode && !parkFilmUnavailable && !parkGallery;
 
         void Guide(string source,string target,string action,string task)
         {guideSource=source;guideTarget=target;guideAction=action;guideTask=task;}
@@ -29,13 +29,15 @@ namespace MemoryWhitebox
                 }
                 switch(printStage)
                 {
-                    case ParkPrintStage.NegativeDrying:Guide("print-negative","print-negative-clip","Drag to drying clip","Hang the negative on its drying clip.");break;
+                    case ParkPrintStage.NegativeDrying:
+                        if(!printObjectsState.negativeRemoved)Guide("tank-lid",null,"Click to take out negative","Open the tank lid and take out the negative.");
+                        else Guide("print-negative","print-negative-clip","Drag to drying clip","Hang the negative on its drying clip.");break;
                     case ParkPrintStage.ContactReady:
                     case ParkPrintStage.Exposing:
                         if(printObjectsState.paper.locationId!="print-frame")Guide("print-paper","print-frame","Drag to contact frame","Place paper in the contact frame.");
                         else if(printObjectsState.negative.locationId!="print-frame")Guide("print-negative","print-frame","Drag onto the paper","Place the dry negative over the paper.");
                         else if(!printObjectsState.frameClosed)Guide("print-frame-lid",null,"Click to close","Close the contact frame — click its rim.");
-                        else Guide("print-exposure",null,"Hold LMB to expose","Hold the exposure switch.");
+                        else Guide("print-exposure",null,"Hold LMB to expose",printRemaining>0?"Continue exposure — hold the switch ("+printRemaining.ToString("0.0")+"s).":"Hold the exposure switch.");
                         break;
                     case ParkPrintStage.PaperDeveloper:
                         if(printObjectsState.frameClosed)Guide("print-frame-lid",null,"Click to open","Open the contact frame — click its rim.");
@@ -53,15 +55,15 @@ namespace MemoryWhitebox
             }
             switch(Photo.Phase)
             {
-                case PhotoChapter.FilmPhase.Exposed:Guide("rewind",null,"Hold LMB + Scroll up","Rewind the film — hold knob + scroll up.");break;
+                case PhotoChapter.FilmPhase.Exposed:Guide("rewind",null,"Hold LMB + Scroll up","Rewind film — hold knob + scroll up ("+Mathf.RoundToInt(RewindTurns*100)+"%).");break;
                 case PhotoChapter.FilmPhase.Rewound:
                     if(!RewoundBackOpen)Guide("back",null,"Click to open","Open the camera back.");
                     else Guide("exposed-film","bag","Drag to dark bag","Move the film into the dark bag.");
                     break;
-                case PhotoChapter.FilmPhase.DarkBag:Guide("bag",null,"Hold LMB + Scroll up","Load the reel — hold bag + scroll up.");break;
+                case PhotoChapter.FilmPhase.DarkBag:Guide("bag",null,"Hold LMB + Scroll up","Load reel — hold bag + scroll up ("+Mathf.RoundToInt(Photo.BagTurns*100)+"%).");break;
                 case PhotoChapter.FilmPhase.Tank:
                     if(ManualTank && !tankSealed)Guide("tank-lid",null,"Click to seal","Seal the developing tank — click its lid.");
-                    else if(ManualTank && needsDrain)Guide("tank","water","Drag to sink; release to drain","Empty the tank into the sink.");
+                    else if(ManualTank && needsDrain)Guide("tank",DrainTarget,"Drag to basin; release to drain","Empty the tank into the drain basin.");
                     else if(Photo.Chemistry==3)Guide("water",null,"Click to rinse film","Rinse the negative — click the tank rinse tap.");
                     else Guide("chemical-"+Photo.Chemistry,"tank","Drag onto tank to pour","Pour "+(Photo.Chemistry==0?"developer":Photo.Chemistry==1?"stop bath":"fixer")+" into the tank.");
                     break;
@@ -72,7 +74,7 @@ namespace MemoryWhitebox
             }
         }
         string PrintProcessName()=>printStage==ParkPrintStage.NegativeDrying?"drying negative":printStage==ParkPrintStage.PaperDeveloper?"developing paper":printStage==ParkPrintStage.PaperStop?"stopping development":printStage==ParkPrintStage.PaperFixer?"fixing paper":printStage==ParkPrintStage.PaperWash?"washing paper":"drying print";
-        string DarkroomTask {get{ResolveDarkroomGuide();return guideTask;}}
+        string DarkroomTask {get{ResolveDarkroomGuide();string target=CurrentDropTarget();return target!=null?"Move to "+DarkroomName(target)+"; release LMB.":guideTask;}}
         static string DarkroomName(string id)
         {
             switch(id)
@@ -83,7 +85,8 @@ namespace MemoryWhitebox
                 case "bag":return "Dark bag";
                 case "tank":return "Developing tank";
                 case "tank-lid":return "Tank lid";
-                case "water":return "Tank rinse / drain";
+                case "water":return "Tank rinse tap";
+                case "film-drain-basin":return "Drain basin";
                 case "chemical-0":return "Film developer";
                 case "chemical-1":return "Film stop bath";
                 case "chemical-2":return "Film fixer";
@@ -106,10 +109,13 @@ namespace MemoryWhitebox
         {
             if(!DarkroomGuidanceActive)return "";
             ResolveDarkroomGuide();string id=Pick(ray),name=DarkroomName(id);
+            string drop=CurrentDropTarget();
+            if(drop!=null && CanDropDarkroom(ray,drop))return DarkroomName(drop)+"\nRelease LMB here";
             if(name==null)return "";
+            if(id=="tank-lid" && tankSealed && guideSource=="tank"){id="tank";name=DarkroomName(id);}
             bool carrying=printDrag!=null || dragged!=null;
             if(id==guideTarget || (id=="print-frame-lid" && guideTarget=="print-frame"))
-                return name+"\n"+(carrying?"Release LMB here":"Place "+DarkroomName(guideSource)+" here");
+                return name+"\n"+(carrying?"Move closer; keep target clear":"Place "+DarkroomName(guideSource)+" here");
             if(id==guideSource || (id=="tank" && guideSource=="tank-lid"))return name+"\n"+guideAction;
             if(printProcessing || Photo.Phase==PhotoChapter.FilmPhase.Processing)return name+"\nProcessing — please wait";
             return name+"\n"+(ParkPrintsReady?"Processing complete":"Not needed for this step");
@@ -128,9 +134,9 @@ namespace MemoryWhitebox
         public void RefreshDarkroomHighlight()
         {
             ClearDarkroomHighlight();
-            if(!DarkroomGuidanceActive || Host==null || !Host.InputContext.Allows(InputContextId.Station))return;
+            if(!DarkroomGuidanceActive || Host==null || !(Host.InputContext.Allows(InputContextId.Station) || Host.InputContext.Allows(InputContextId.Darkroom)))return;
             ResolveDarkroomGuide();
-            string id=(printDrag!=null || dragged!=null)?guideTarget:guideSource;
+            string id=(printDrag!=null || dragged!=null)?CurrentDropTarget():guideSource;
             if(string.IsNullOrEmpty(id) || !Nodes.ContainsKey(id))return;
             Renderer[] renderers;
             if(!guideRenderers.TryGetValue(id,out renderers)){renderers=Nodes[id].GetComponentsInChildren<Renderer>(true);guideRenderers[id]=renderers;}

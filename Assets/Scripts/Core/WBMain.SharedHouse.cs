@@ -30,7 +30,7 @@ namespace MemoryWhitebox
             safeInspection!=null && safeInspection.Active?PlayerControlState.Inspection:
             transition>0 || awaitRelease?PlayerControlState.Transition:ShowHelp?PlayerControlState.Paused:
             InStation && CurrentWorld is PhotoWorld3D && ((PhotoWorld3D)CurrentWorld).ParkGalleryOpen?PlayerControlState.Gallery:
-            InStation || DirectTapeHandling || (radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode || radioDeck.SuccessPopupOpen))?PlayerControlState.Operation:PlayerControlState.Exploration;
+            InStation || DirectDarkroomActive || DirectTapeHandling || (radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode || radioDeck.SuccessPopupOpen))?PlayerControlState.Operation:PlayerControlState.Exploration;
         public void SuspendHouseInput()
         {
             InputContext.Handoff();
@@ -60,7 +60,11 @@ namespace MemoryWhitebox
             if(safeInspection!=null){safeInspection.InputContext=InputContext;safeInspection.RestoreInputContext=()=>{SuspendHouseInput();SyncInputContext();};}
             chapters[0]=radioDeck.Chapter;
             worlds[0]=new RadioTapeWorld(radioDeck);
-            for(int i=1;i<5;i++)CreateHouseChapter(i);
+            for(int i=1;i<5;i++)
+            {
+                CreateHouseChapter(i);
+                if(deskStudy)worlds[i].Root.SetActive(false);
+            }
             BindChapterData();
             LoadStoryProgress();
             ((PaintingWorld3D)worlds[3]).BindSharedScarf((EndingWorld3D)worlds[4]);
@@ -74,7 +78,8 @@ namespace MemoryWhitebox
             ParkFilmRoute.RestoreHouseView(Room.Camera);
             story.ClearReturn();
             Room.EnableLook(true);houseReady=true;radioDeck.SetStationActive(true);SuspendHouseInput();
-            if(ParkFilmRoute.EnterDarkroomOnLoad){ParkFilmRoute.EnterDarkroomOnLoad=false;EnterHouseStation(1);}
+            if(ParkFilmRoute.EnterDarkroomOnLoad){ParkFilmRoute.EnterDarkroomOnLoad=false;if(Curtain!=null && !Curtain.IsOpen){Curtain.Toggle();Curtain.Advance(1);}}
+            PrepareContinuousDarkroom();
         }
         void CreateHouseChapter(int index)
         {
@@ -121,6 +126,7 @@ namespace MemoryWhitebox
         {
             if(!houseReady || InStation || DirectTapeHandling || transition>0 || index<=0 || index>=5)return;
             if(!CanEnterDay(index))return;
+            if(index==1 && DarkroomWorld!=null && DarkroomWorld.DirectDarkroomAvailable){PrepareContinuousDarkroom();return;}
             SaveStableProgress();
             radioDeck.SetStationActive(false);
             roomEye=Room.Camera.transform.position;roomRotation=Room.Camera.transform.rotation;roomFov=Room.Camera.fieldOfView;
@@ -165,6 +171,7 @@ namespace MemoryWhitebox
             if(!deskStudy)return;
             for(int i=1;i<5;i++)worlds[i].Root.SetActive(i==index || (index==3 && i==4));
             if(StudyEntries!=null){if(index>0 && radioDeck!=null)radioDeck.PrepareForHide();StudyEntries.gameObject.SetActive(index<0 || (index==0 && radioDeck!=null));}
+            if(index<0)PrepareContinuousDarkroom();
         }
         public bool TryToggleStudyCurtain(Ray ray)
         {
@@ -225,11 +232,16 @@ namespace MemoryWhitebox
         void ExitHouseStation()
         {
             if(!houseReady || !InStation || returningToRoom)return;
-            SaveStableProgress();
+            var photo=CurrentWorld as PhotoWorld3D;
+            if(photo!=null)photo.CancelInteraction();
+            if(!SaveStableProgress())
+            {
+                if(photo!=null)photo.NotifyDarkroomExitBlocked();
+                SuspendHouseInput();return;
+            }
             returningToRoom=true;ShowHelp=false;awaitRelease=false;houseReturnGate=false;
             InputState.Keys.Clear();InputState.Down=false;
-            var photo=CurrentWorld as PhotoWorld3D;if(photo!=null){photo.CancelInteraction();photo.SaveProgress();}
-            else CurrentWorld?.Release("",pointerRay);
+            if(photo==null)CurrentWorld?.Release("",pointerRay);
             BeginHouseTransition(roomEye,roomRotation,roomFov);
         }
         void CompleteHouseExit()
@@ -265,6 +277,10 @@ namespace MemoryWhitebox
             if(houseReturnGate){Room.StopMotion();ReleaseHouseReturnInput(houseHandoff.Ready);return;}
             if(awaitRelease){if(houseHandoff.Ready)ReleaseHouseEntryInput();return;}
             if(!InputContext.Ready){Room.StopMotion();return;}
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if(Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+            {DebugEnterDarkroom();return;}
+#endif
             if(radioDeck.RecordingMode){radioDeck.TickRecording();return;}
             if(radioDeck.WorkbenchMode){radioDeck.TickWorkbench();return;}
             if(ExitHouseContext())return;
@@ -278,6 +294,7 @@ namespace MemoryWhitebox
             if(transition>0){AdvanceHouseTransition(dt);return;}
             if(!InStation)
             {
+                if(TickContinuousDarkroom(dt))return;
                 if(!radioDeck.StationActive && CanEnterDay(0))radioDeck.SetStationActive(true);
                 if(!CanEnterDay(0) && radioDeck.StationActive)radioDeck.SetStationActive(false);
                 SyncTapePointer();
@@ -354,6 +371,12 @@ namespace MemoryWhitebox
                 return;
             }
             var style=new GUIStyle(GUI.skin.label){font=UIFont,fontSize=18,wordWrap=true};
+            if(DirectDarkroomActive)
+            {
+                if(ShowHelp)InteractionUI.Label(new Rect(28,60,Screen.width-56,80),"Paused / Esc: resume\nWASD: move / RMB: look / LMB: interact",style);
+                else {DarkroomWorld.DrawProgress(style);if(!DarkroomWorld.ParkGalleryOpen)InteractionUI.Label(new Rect(28,20,Screen.width-56,30),"WASD  Move / RMB  Look / Esc  Cancel or pause",style);}
+                return;
+            }
             if(InStation && Time.unscaledTime<cameraRouteNoticeUntil)
                 InteractionUI.Label(new Rect(28,60,Screen.width-56,60),cameraRouteNotice,style);
             if(!InStation && transition<=0)

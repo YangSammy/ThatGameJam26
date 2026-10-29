@@ -24,7 +24,7 @@ namespace MemoryWhitebox
                 foreach(var binding in root.GetComponentsInChildren<ItemSceneBinding>(true))
                 {
                     if(string.IsNullOrEmpty(binding.instanceId) || string.IsNullOrEmpty(binding.DefinitionId))throw new InvalidOperationException("Missing item identity on "+binding.name);
-                    if(itemBindings.ContainsKey(binding.instanceId))throw new InvalidOperationException("Duplicate item ID: "+binding.instanceId);
+                    if(itemBindings.ContainsKey(binding.instanceId))throw new InvalidOperationException("Duplicate item ID: "+binding.instanceId+" on '"+itemBindings[binding.instanceId].name+"' and '"+binding.name+"'. Each scene item needs its own instance ID.");
                     itemBindings.Add(binding.instanceId,binding);
                 }
             }

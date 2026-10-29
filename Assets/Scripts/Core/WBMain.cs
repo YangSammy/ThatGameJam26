@@ -41,7 +41,7 @@ namespace MemoryWhitebox
         public void SetHelpVisible(bool visible)
         {
             if(ShowHelp==visible)return;
-            var photo=CurrentWorld as PhotoWorld3D;
+            var photo=DirectDarkroomActive?DarkroomWorld:CurrentWorld as PhotoWorld3D;
             if(photo!=null)photo.CancelInteraction();else CurrentWorld?.Release("",pointerRay);
             InputState.Keys.Clear();InputState.Down=false;
             wasDown=Input.GetMouseButton(0);wasRightDown=Input.GetMouseButton(1);
@@ -54,7 +54,7 @@ namespace MemoryWhitebox
             PlayerInputPolicy.ApplyCursor(PlayerControlState.Unfocused);
             safeInspection?.Close();
             InputState.Keys.Clear();InputState.Down=false;wasDown=wasRightDown=false;
-            var photo=CurrentWorld as PhotoWorld3D;
+            var photo=DirectDarkroomActive?DarkroomWorld:CurrentWorld as PhotoWorld3D;
             if(photo!=null){photo.CancelInteraction();photo.SaveProgress();}
             else if(ChapterIndex==0)radioDeck?.SuspendInput();else CurrentWorld?.Release("",pointerRay);
             radioDeck?.SuspendInput();SaveStableProgress();

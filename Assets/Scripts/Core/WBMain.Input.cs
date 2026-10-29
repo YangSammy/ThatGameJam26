@@ -13,6 +13,7 @@ namespace MemoryWhitebox
                 transition>0?InputContextId.Transition:
                 radioDeck!=null && radioDeck.SuccessPopupOpen?InputContextId.Modal:
                 ShowHelp?InputContextId.Paused:
+                DirectDarkroomActive?(DarkroomWorld.ParkGalleryOpen?InputContextId.Gallery:InputContextId.Darkroom):
                 radioDeck!=null && radioDeck.WorkbenchMode?InputContextId.TapeWorkbench:
                 radioDeck!=null && radioDeck.RecordingMode?InputContextId.TapeTransport:
                 InStation && CurrentWorld is PhotoWorld3D && ((PhotoWorld3D)CurrentWorld).ParkGalleryOpen?InputContextId.Gallery:
@@ -24,7 +25,12 @@ namespace MemoryWhitebox
         {
             var id=InputContext.Current;
             if(id==InputContextId.Paused)return InputContext.ExitPressed(id,null,()=>SetHelpVisible(false));
-            if(id==InputContextId.Gallery)return InputContext.ExitPressed(id,null,()=>{((PhotoWorld3D)CurrentWorld).CloseParkGallery();SuspendHouseInput();});
+            if(id==InputContextId.Gallery)return InputContext.ExitPressed(id,null,()=>{(DirectDarkroomActive?DarkroomWorld:(PhotoWorld3D)CurrentWorld).CloseParkGallery();SuspendHouseInput();});
+            if(id==InputContextId.Darkroom)return InputContext.ExitPressed(id,()=>
+            {
+                if(!DarkroomWorld.HasActiveGesture)return false;
+                DarkroomWorld.CancelInteraction();DarkroomWorld.SaveProgress();darkroomWasLeft=false;SuspendHouseInput();return true;
+            },()=>SetHelpVisible(true));
             if(id==InputContextId.Station)return InputContext.ExitPressed(id,()=>
             {
                 var photo=CurrentWorld as PhotoWorld3D;

@@ -55,10 +55,12 @@ namespace MemoryWhitebox
         public PhotoWorld3D(WBMain host, PhotoChapter model) : base(host, model, 1)
         {
             Photo = model;
+            FindPrintObjects();
             if(SharedRoom)
             {
                 walkPosition=new Vector3(0,1.65f,-5);
                 bagAt=Processing(bagAt);tankAt=Processing(tankAt);
+                bagAt=ProcessingAnchor("film-bag",bagAt);tankAt=ProcessingAnchor("film-tank",tankAt);
                 Photo.Target.X=.15f-Origin.x;Photo.Target.Z=-2.6f;Photo.Target.Yaw=37.15f*Mathf.Deg2Rad;
                 Photo.FocusSubject=new Vector3(2.65f,.78f,2.61f)-Origin;
                 Photo.CompositionLandmarks=new[]{new Vector3(2.65f,1.25f,3.13f)-Origin,new Vector3(1.12f,.75f,1.8f)-Origin,new Vector3(3.68f,2.1f,2.7f)-Origin,new Vector3(2.65f,.78f,2.61f)-Origin};
@@ -70,8 +72,8 @@ namespace MemoryWhitebox
             BuildBenches();
             BuildCamera();
             BuildBody();
-            int processingStart=Root.transform.childCount;BuildProcessing();
-            if(SharedRoom && Host.deskStudy)
+            int processingStart=Root.transform.childCount;BuildProcessing();CaptureProcessingPose();
+            if(SharedRoom && Host.deskStudy && !sceneProcessing)
             {
                 var supplies=new GameObject("Darkroom supplies").transform;supplies.SetParent(Host.houseShell.transform,false);supplies.position=Origin;
                 // Preserve the original local frame so dragging/restoring bottles still uses the same coordinates.
@@ -173,28 +175,43 @@ namespace MemoryWhitebox
 
         void BuildProcessing()
         {
-            bag = Part("bag", bagAt, new Vector3(.69f, .16f, .48f), "#222b29");
-            Part("", bagAt + new Vector3(-.35f, .02f, -.08f), new Vector3(.18f, .15f, .16f), "#434e46", PrimitiveType.Capsule, new Vector3(0, 0, 90));
-            bagGrip = Part("", bagAt + new Vector3(.39f, .025f, -.05f), new Vector3(.16f, .12f, .16f), "#a6ac9b", PrimitiveType.Sphere).transform;
+            if(SharedRoom && Host.deskStudy)BindSceneProcessing();
+            else BuildGeneratedProcessing();
+            pour = Line("Liquid stream", new[] { tankAt, tankAt }, "#cadad0", .02f); pour.useWorldSpace = true; pour.gameObject.SetActive(false);
+            BuildLightMeter();
+        }
+
+        void BuildGeneratedProcessing()
+        {
+            bool compact=printObjects!=null && printObjects.Placement("film-bag")!=null;
+            bag = Part("bag", bagAt, compact?new Vector3(.5f,.16f,.32f):new Vector3(.69f, .16f, .48f), "#222b29");
+            Part("", bagAt + new Vector3(compact?-.22f:-.35f, .02f, -.08f), new Vector3(.18f, .15f, .16f), "#434e46", PrimitiveType.Capsule, new Vector3(0, 0, 90));
+            bagGrip = Part("", bagAt + new Vector3(compact?.22f:.39f, .025f, -.05f), new Vector3(.16f, .12f, .16f), "#a6ac9b", PrimitiveType.Sphere).transform;
             tankBody = Part("tank", tankAt, new Vector3(.38f, .19f, .38f), "#343f38", PrimitiveType.Cylinder).transform;
             Remember("tank");
             tankLid=Part("tank-lid", tankAt + Vector3.up * .2f, new Vector3(.4f, .025f, .4f), "#1e2a25", PrimitiveType.Cylinder).transform;
             tankLid.SetParent(tankBody,true);
             for (int i = 0; i < 3; i++)
             {
-                Vector3 at = Processing(new Vector3(2.68f, 1.16f, -3.53f + i * .43f));
+                Vector3 at = ProcessingAnchor("film-chemical-"+i,Processing(new Vector3(2.68f, 1.16f, -3.53f + i * .43f)));
                 var bottle = Part("chemical-" + i, at, new Vector3(.2f, .2f, .2f), i == 0 ? "#c2b88c" : i == 1 ? "#b5bdad" : "#8ca6a7", PrimitiveType.Cylinder);
                 chemistry.Add(bottle); Remember("chemical-" + i);
                 var number = Label((i + 1).ToString(), at + new Vector3(0, 0, -.108f), .053f, "#27352e"); number.transform.SetParent(bottle.transform, true);
-                Part("", at + Vector3.up * .24f, new Vector3(.12f, .04f, .12f), "#646e61", PrimitiveType.Cylinder);
+                var cap=Part("", at + Vector3.up * .24f, new Vector3(.12f, .04f, .12f), "#646e61", PrimitiveType.Cylinder);cap.transform.SetParent(bottle.transform,true);
             }
-            Part("", Processing(new Vector3(2.45f, 1.24f, -1.85f)), new Vector3(.065f, .48f, .065f), "#aab8b1");
-            Part("water", Processing(new Vector3(2.32f, 1.47f, -1.85f)), new Vector3(.28f, .065f, .065f), "#bac8bf");
-            Part("", Processing(new Vector3(2.14f, .99f, -1.81f)), new Vector3(.75f, .055f, .42f), "#6c7e79");
-            Part("", Processing(new Vector3(2, 1.69f, -2.15f)), new Vector3(.31f, .025f, .31f), "#dad7c6", PrimitiveType.Cylinder, new Vector3(90, 0, 0));
-            clockHand = Part("", Processing(new Vector3(2, 1.69f, -2.173f)), new Vector3(.012f, .115f, .009f), "#56604f").transform;
-            if(SharedRoom)Part("",Processing(new Vector3(2,1.25f,-2.15f)),new Vector3(.035f,.57f,.035f),"#56604f");
-            pour = Line("Liquid stream", new[] { tankAt, tankAt }, "#cadad0", .02f); pour.useWorldSpace = true; pour.gameObject.SetActive(false);
+            Vector3 tap=ProcessingAnchor("film-tap",Processing(new Vector3(2.32f,1.47f,-1.85f)));
+            Vector3 sink=ProcessingAnchor("film-sink",Processing(new Vector3(2.14f,.99f,-1.81f)));
+            Vector3 clock=ProcessingAnchor("film-clock",Processing(new Vector3(2,1.69f,-2.15f)));
+            Part("",tap+new Vector3(.13f,-.23f,0), new Vector3(.065f,.48f,.065f),"#aab8b1");
+            Part("water",tap,new Vector3(.28f,.065f,.065f),"#bac8bf");
+            Part("",sink,compact?new Vector3(.4f,.055f,.28f):new Vector3(.75f,.055f,.42f),"#6c7e79");
+            Part("",clock,new Vector3(.31f,.025f,.31f),"#dad7c6",PrimitiveType.Cylinder,new Vector3(90,0,0));
+            clockHand=Part("",clock+new Vector3(0,0,-.023f),new Vector3(.012f,.115f,.009f),"#56604f").transform;
+            if(SharedRoom)Part("",clock+Vector3.down*.44f,new Vector3(.035f,.57f,.035f),"#56604f");
+        }
+
+        void BuildLightMeter()
+        {
             meterFace = Group("Physical light meter", new Vector3(-1, 1.14f, -2.93f));
             Child(meterFace, "meter", Vector3.zero, new Vector3(.3f, .35f, .13f), "#657362");
             Child(meterFace, "", new Vector3(0, .1f, -.075f), new Vector3(.24f, .11f, .025f), "#d4d4b5");
@@ -225,6 +242,7 @@ namespace MemoryWhitebox
 
         void BuildPrints()
         {
+            int first=Root.transform.childCount;
             if(SharedRoom)foreach(float x in new[]{-.72f,.56f})Part("",new Vector3(x,1.07f,-2.43f),new Vector3(.055f,.25f,.055f),"#605e52");
             Part("", new Vector3(-.72f, 1.4f, -2.43f), new Vector3(.84f, .51f, .055f), "#b5ab92");
             referencePrint = Part("reference-photo", new Vector3(-.72f, 1.4f, -2.466f), new Vector3(.75f, .422f, .012f), "#e7e1cf");
@@ -232,11 +250,20 @@ namespace MemoryWhitebox
             developedPrint = Part("developed-photo", new Vector3(.56f, 1.4f, -2.466f), new Vector3(.75f, .422f, .012f), "#d6d4bd");
             printClip = Part("retry", new Vector3(.56f, 1.68f, -2.46f), new Vector3(.13f, .09f, .06f), "#68796c").transform;
             developedPrint.SetActive(false);
+            if(UsesProgress)
+            {
+                // The park roll uses authored darkroom paper and its gallery. Keep legacy
+                // references for old paths, but never show the old desk display in HouseScene.
+                var legacy=Group("Legacy photo display (inactive)",Vector3.zero);
+                for(int i=Root.transform.childCount-2;i>=first;i--)Root.transform.GetChild(i).SetParent(legacy,true);
+                legacy.gameObject.SetActive(false);
+            }
         }
 
         public override void Activate()
         {
             base.Activate();
+            if(ParkMode){if(resumedDarkroom)DarkroomNotice("Progress restored. Continue the highlighted step.");resumedDarkroom=true;}
             if(UsesProgress && (InDarkroomPhase || ParkMode) && Host.Curtain!=null){if(!Host.Curtain.IsOpen)Host.Curtain.Toggle();Host.Curtain.Advance(1);}
             if (!ParkMode && !parkLoading && !parkFilmUnavailable && referenceTexture == null) RenderReference();
             SyncProps();
@@ -279,7 +306,7 @@ namespace MemoryWhitebox
             }
             var previousPhase=Photo.Phase;
             if (Photo.Phase == PhotoChapter.FilmPhase.Processing)
-                Photo.Tick(dt, new WBInput());
+                AdvancePhotoChemistry(dt);
             if(ParkMode && darkroomWorkflow>=2 && previousPhase==PhotoChapter.FilmPhase.Processing && Photo.Phase==PhotoChapter.FilmPhase.Developed)BeginPrintWorkflow();
             TickPrintWorkflow(dt);
             if(ManualTank && !Printing && previousPhase==PhotoChapter.FilmPhase.Processing && Photo.Phase==PhotoChapter.FilmPhase.Tank)needsDrain=true;
@@ -319,13 +346,13 @@ namespace MemoryWhitebox
             {
                 cameraBody.localPosition = cameraDock; cameraBody.localRotation = Quaternion.identity; cameraBody.localScale = Vector3.one;
             }
-            if (tankHeld && Photo.Phase == PhotoChapter.FilmPhase.Processing) tankBody.rotation = Quaternion.Euler(Mathf.Sin(Time.unscaledTime * 14) * 9, 0, Mathf.Cos(Time.unscaledTime * 11) * 8);
-            else if(dragged!="tank")tankBody.localRotation = Quaternion.identity;
+            if (tankHeld && Photo.Phase == PhotoChapter.FilmPhase.Processing) tankBody.localRotation = homeRotations["tank"] * Quaternion.Euler(Vector3.Scale(sceneProcessing?printObjects.tankAgitationEuler:new Vector3(9,0,8),new Vector3(Mathf.Sin(Time.unscaledTime*14),Mathf.Sin(Time.unscaledTime*12),Mathf.Cos(Time.unscaledTime*11))));
+            else if(dragged!="tank")tankBody.localRotation = homeRotations["tank"];
             UpdateBody();
-            if (Photo.Phase == PhotoChapter.FilmPhase.Processing && clockDuration > 0) clockHand.localRotation = Quaternion.Euler(0, 0, -(1 - Photo.ProcessingTime / clockDuration) * 360);
+            if (Photo.Phase == PhotoChapter.FilmPhase.Processing && clockDuration > 0) clockHand.localRotation = clockHomeRotation * Quaternion.Euler(0, 0, -(1 - Photo.ProcessingTime / clockDuration) * 360);
             if (Photo.Phase == PhotoChapter.FilmPhase.Processing && Photo.Chemistry == 3)
             {
-                pour.gameObject.SetActive(true); pour.SetPosition(0, World(Processing(new Vector3(2.19f, 1.45f, -1.85f)))); pour.SetPosition(1, World(tankAt + Vector3.up * .2f));
+                pour.gameObject.SetActive(true); pour.SetPosition(0, Nodes["water"].transform.position+new Vector3(-.13f,-.02f,0)); pour.SetPosition(1, tankLid.position);
             }
             else if (dragged == null) pour.gameObject.SetActive(false);
             SyncProps();
@@ -339,7 +366,7 @@ namespace MemoryWhitebox
             handRight.gameObject.SetActive(right); armRight.gameObject.SetActive(right);
             Vector3 leftAt = Eye + lookRotation * new Vector3(-.05f, Photo.InViewfinder ? -.5f : -.33f, .64f);
             Vector3 rightAt = Eye + lookRotation * new Vector3(.48f, Photo.InViewfinder ? -.44f : -.22f, .54f);
-            if (bagHeld) { leftAt = World(bagAt + new Vector3(-.3f, .12f, -.1f)); rightAt = bagGrip.position; }
+            if (bagHeld) { leftAt = bag.transform.position + new Vector3(-.22f,.12f,-.1f); rightAt = bagGrip.position; }
             if (Rewinding) { leftAt = cameraBody.TransformPoint(new Vector3(-.3f, -.1f, -.2f)); rightAt = Nodes["rewind"].transform.position + Vector3.up * .04f; }
             if (dragged == "leader") rightAt = filmStrip.GetPosition(1) + Vector3.up * .03f;
             else if (dragged != null && Nodes.ContainsKey(dragged)) rightAt = Nodes[dragged].transform.position + new Vector3(.06f, .055f, 0);
@@ -374,8 +401,9 @@ namespace MemoryWhitebox
             if(id=="tank-lid" && (!ManualTank || tankSealed))id="tank";
             lastRay = ray;
             if(printDrag!=null || printHeld)return;
-            if (button == 1) { if (!Photo.InViewfinder) { looking = true; lastLookViewport = View.WorldToViewportPoint(ray.GetPoint(2)); } return; }
+            if (button == 1) { if (!Photo.InViewfinder && !HasActiveGesture) { looking = true; lastLookViewport = View.WorldToViewportPoint(ray.GetPoint(2)); } return; }
             if (button != 0) return;
+            looking=false;
             if(PressPrintWorkflow(id,ray))return;
             if(parkLoading && !id.StartsWith("film-") && id!="leader" && id!="back" && id!="advance")return;
             if(ParkMode)
@@ -390,7 +418,8 @@ namespace MemoryWhitebox
                     if((id=="tank-lid" || id=="tank") && Photo.Phase==PhotoChapter.FilmPhase.Tank && !tankSealed)
                     {tankSealed=true;SyncProps();SaveProgress();WBMain.Tone(220,.06f);return;}
                     if(id=="tank" && needsDrain){BeginDrag(id,ray);return;}
-                    if((id.StartsWith("chemical-") || id=="water") && (!tankSealed || needsDrain))return;
+                    if((id.StartsWith("chemical-") || id=="water") && (!tankSealed || needsDrain)){DarkroomNotice(!tankSealed?"Seal the tank lid first.":"Drain the tank into the basin first.");return;}
+                    if(id.StartsWith("chemical-") && !CanPourChemical(id)){DarkroomNotice(Photo.Phase==PhotoChapter.FilmPhase.Processing?"Processing — please wait.":"Use the highlighted chemical bottle.");return;}
                 }
             }
             NativeActionCount++;
@@ -439,7 +468,7 @@ namespace MemoryWhitebox
                 else if (Mathf.Abs(screen.x - .5f) < .16f && Mathf.Abs(screen.y - .5f) < .18f) Photo.WheelMode = 0;
                 return;
             }
-            if (looking)
+            if (looking && !DirectDarkroom)
             {
                 Vector2 at = View.WorldToViewportPoint(ray.GetPoint(2));
                 Vector2 delta = at - lastLookViewport;
@@ -449,24 +478,26 @@ namespace MemoryWhitebox
             }
             if (dragged != null)
             {
-                Vector3 point = Point(ray, 1.2f);
+                    Vector3 point = ProcessingDragPoint(ray)+dragGrabOffset;
                 if (dragged == "leader") SetFilmLine(point);
                 else if (Nodes.ContainsKey(dragged))
                 {
                     Nodes[dragged].transform.position = point;
                     if(dragged=="tank")
                     {
-                        Vector3 sink=Nodes["water"].transform.position;
-                        bool over=new Vector2(point.x-sink.x,point.z-sink.z).magnitude<.5f;
-                        tankBody.rotation=Quaternion.Euler(0,0,over?100:0);
+                        Vector3 sink=Nodes[DrainTarget].transform.position;
+                        bool over=CanDropDarkroom(ray,DrainTarget);
+                        tankBody.localRotation=homeRotations["tank"]*Quaternion.Euler(over?(sceneProcessing?printObjects.tankDrainEuler:new Vector3(0,0,100)):Vector3.zero);
+                        if(over){point=ToolDropPreview(DrainTarget,Nodes[dragged]);tankBody.position=point;}
                         pour.gameObject.SetActive(over);
                         if(over){pour.SetPosition(0,point);pour.SetPosition(1,new Vector3(sink.x,point.y-.3f,sink.z));}
                     }
                     else if (dragged.StartsWith("chemical-"))
                     {
-                        Vector3 receiver=Printing?developedPrint.transform.position:World(tankAt);
-                        bool over = new Vector2(point.x-receiver.x,point.z-receiver.z).magnitude < .42f;
-                        Nodes[dragged].transform.rotation = Quaternion.Euler(over ? 60 : 0, 0, over ? -35 : 0);
+                        Vector3 receiver=Printing?developedPrint.transform.position:tankBody.position;
+                        bool over = CanPourChemical(dragged) && CanDropDarkroom(ray,"tank");
+                        Nodes[dragged].transform.localRotation = homeRotations[dragged]*Quaternion.Euler(over?(sceneProcessing?printObjects.bottlePourEuler:new Vector3(60,0,-35)):Vector3.zero);
+                        if(over){point=ToolDropPreview("tank",Nodes[dragged]);Nodes[dragged].transform.position=point;}
                         pour.gameObject.SetActive(over); if (over) { pour.SetPosition(0, point); pour.SetPosition(1, receiver+Vector3.up*.03f); }
                     }
                 }
@@ -485,8 +516,9 @@ namespace MemoryWhitebox
         public override void Release(string overId, Ray ray)
         {
             if(parkGallery || parkFilmUnavailable)return;
-            if((printDrag!=null || printHeld) && Input.GetMouseButton(0))return;
-            looking = false; Rewinding = false; bagHeld = false; tankHeld = false;
+            if(!Input.GetMouseButton(1))looking=false;
+            if(HasActiveGesture && Input.GetMouseButton(0))return;
+            Rewinding = false; bagHeld = false; tankHeld = false;
             bool wasExposing=printHeld;
             CancelPrintExposure();
             if(ReleasePhysicalPrint(ray))return;
@@ -498,9 +530,9 @@ namespace MemoryWhitebox
             string item = dragged;
             if(item=="tank" && ManualTank && needsDrain)
             {
-                Vector3 point=Point(ray,1.2f),sink=Nodes["water"].transform.position;
-                if(target=="water" || new Vector2(point.x-sink.x,point.z-sink.z).magnitude<.5f)
+                if(CanDropDarkroom(ray,DrainTarget))
                 {needsDrain=false;WBMain.Tone(160,.1f);}
+                else DarkroomNotice("Release the tank over the drain basin.");
             }
             else if (item == "leader")
             {
@@ -511,18 +543,19 @@ namespace MemoryWhitebox
             {
                 Photo.Settings.ISO = int.Parse(item.Substring(5)); Photo.Phase = PhotoChapter.FilmPhase.LoadedOpen;
             }
-            else if (item == "exposed-film" && Photo.Phase == PhotoChapter.FilmPhase.Rewound && target == "bag")
+            else if (item == "exposed-film" && Photo.Phase == PhotoChapter.FilmPhase.Rewound && CanDropDarkroom(ray,"bag"))
             {
                 Photo.Phase = PhotoChapter.FilmPhase.DarkBag; Photo.BagTurns = 0; Photo.Chemistry = 0;
             }
             else if(Printing && item.StartsWith("chemical-") && target=="developed-photo")
                 PourPrintChemical(int.Parse(item.Substring(9)));
-            else if (!Printing && item.StartsWith("chemical-") && Photo.Phase == PhotoChapter.FilmPhase.Tank && target == "tank")
+            else if (!Printing && item.StartsWith("chemical-"))
             {
                 int index = int.Parse(item.Substring(9));
-                if (index == Photo.Chemistry && (!ManualTank || (tankSealed && !needsDrain))) { Photo.ProcessingTime = clockDuration = index == 0 ? 3 : index == 1 ? .8f : 2; Photo.Agitated = false; Photo.Phase = PhotoChapter.FilmPhase.Processing; WBMain.Tone(240, .08f); }
-                else { feedbackTime = .5f; feedbackColor = new Color(.65f, .3f, .2f); WBMain.Tone(100, .08f); }
+                if (CanPourChemical(item) && CanDropDarkroom(ray,"tank")) { Photo.ProcessingTime = clockDuration = index == 0 ? 3 : index == 1 ? .8f : 2; Photo.Agitated = false; Photo.Phase = PhotoChapter.FilmPhase.Processing; WBMain.Tone(240, .08f); }
+                else { DarkroomNotice(CanPourChemical(item)?"Release the bottle over the tank.":"Use the highlighted bottle after sealing and draining.");WBMain.Tone(100,.08f); }
             }
+            else if(item=="exposed-film")DarkroomNotice("Release the film over the dark bag.");
             if (Nodes.ContainsKey(item) && homes.ContainsKey(item))
             {
                 Nodes[item].transform.localPosition = homes[item]; Nodes[item].transform.localRotation = homeRotations[item];
@@ -545,7 +578,7 @@ namespace MemoryWhitebox
             else if (bagHeld && Photo.Phase == PhotoChapter.FilmPhase.DarkBag)
             {
                 Photo.BagTurns = Mathf.Clamp01(Photo.BagTurns + delta * .1f);
-                bagGrip.localRotation = Quaternion.Euler(Photo.BagTurns * 720, 0, 0);
+                bagGrip.localRotation = BagGripRotation;
                 if (Photo.BagTurns >= .999f) { Photo.Phase = PhotoChapter.FilmPhase.Tank; bagHeld = false; WBMain.Tone(300, .12f); }
             }
             else if (Photo.InViewfinder) Photo.Wheel(delta, Vector2.zero);
@@ -559,6 +592,7 @@ namespace MemoryWhitebox
         void BeginDrag(string id, Ray ray)
         {
             dragged = id; dragOrigin = Nodes[id].transform.position; lastDrag = dragOrigin;
+            dragGrabOffset=(id=="tank" || id.StartsWith("chemical-"))?dragOrigin-ProcessingDragPoint(ray):Vector3.zero;
             SetColliders(Nodes[id], false); Move(ray);
         }
 
@@ -631,10 +665,10 @@ namespace MemoryWhitebox
                 var material = developedPrint.GetComponent<Renderer>().sharedMaterial; material.mainTexture = exposedTexture; material.color = Color.white;
                 if (Photo.Fogged) material.mainTexture = Texture2D.whiteTexture;
             }
-            bag.transform.localScale = new Vector3(.69f, Photo.Phase == PhotoChapter.FilmPhase.DarkBag ? .23f : .16f, .48f);
-            bagGrip.localRotation = Quaternion.Euler(Photo.BagTurns * 720, 0, 0);
+            bag.transform.localScale = Vector3.Scale(bagHomeScale,Photo.Phase==PhotoChapter.FilmPhase.DarkBag?(sceneProcessing?printObjects.bagWorkingScale:new Vector3(1,1.4375f,1)):Vector3.one);
+            bagGrip.localRotation = BagGripRotation;
             // Lift the closed, light-tight lid inside the bag until the player seals it.
-            if(tankLid!=null)tankLid.localPosition=new Vector3(0,(ManualTank && Photo.Phase==PhotoChapter.FilmPhase.Tank && !tankSealed?.36f:.2f)/.19f,0);
+            if(tankLid!=null)tankLid.localPosition=tankLidHomePosition+((PhysicalPrinting && printObjectsState!=null && printObjectsState.negativeRemoved) || (ManualTank && Photo.Phase==PhotoChapter.FilmPhase.Tank && !tankSealed)?(sceneProcessing?printObjects.tankLidOpenOffset:Vector3.up*(.16f/Mathf.Max(.001f,tankLid.parent.lossyScale.y))):Vector3.zero);
             focalRing.localRotation = Quaternion.Euler(90, Photo.Settings.Focal * 4, 0);
             apertureRing.localRotation = Quaternion.Euler(90, Photo.Settings.Aperture * 11, 0);
             shutterDial.localRotation = Quaternion.Euler(0, Mathf.Log(1 / Photo.Settings.Shutter, 2) * 28, 0);
@@ -703,6 +737,8 @@ namespace MemoryWhitebox
         {
             ClearDarkroomHighlight();
             SaveProgress();
+            RestoreSceneProcessing();
+            RestorePrintPoses();
             if(contactTexture!=null)ReleaseObject(contactTexture);
             if(parkReferenceTexture!=null)ReleaseObject(parkReferenceTexture);
             if (referenceTexture != null) ReleaseObject(referenceTexture);
