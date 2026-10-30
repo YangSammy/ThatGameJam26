@@ -259,6 +259,13 @@ namespace MemoryWhitebox.Editor
         }
         static void CopyRenderer(Transform source,Transform target,List<SafeInspectionSubject.RenderPair> renders)
         {
+            var skinned=source.GetComponent<SkinnedMeshRenderer>();
+            if(skinned!=null && skinned.sharedMesh!=null && skinned.bones.Length==0)
+            {
+                var copySkin=target.gameObject.AddComponent<SkinnedMeshRenderer>();copySkin.sharedMesh=skinned.sharedMesh;copySkin.sharedMaterials=skinned.sharedMaterials;copySkin.localBounds=skinned.localBounds;copySkin.enabled=skinned.enabled;
+                for(int i=0;i<skinned.sharedMesh.blendShapeCount;i++)copySkin.SetBlendShapeWeight(i,skinned.GetBlendShapeWeight(i));
+                renders.Add(new SafeInspectionSubject.RenderPair{source=skinned,display=copySkin});return;
+            }
             var mesh=source.GetComponent<MeshFilter>();var original=source.GetComponent<MeshRenderer>();var text=source.GetComponent<TextMesh>();
             var tooltip=source.GetComponent<WorldTooltipLabel>();
             if(text!=null || tooltip!=null)

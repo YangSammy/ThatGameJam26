@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MemoryWhitebox
 {
@@ -21,6 +21,7 @@ namespace MemoryWhitebox
             if(SuccessPopupOpen)return;
             DrawWorkbench();
             if(!RecordingMode || transport==null || house==null || house.safeInspection.Active)return;
+            if(radioFocused && !radioCameraMoving && GUI.Button(RadioBackRect,"Back to desk"))FocusRadio(false);
             if(SubmissionMessage!=lastFeedback)
             {lastFeedback=SubmissionMessage;feedbackUntil=Time.unscaledTime+8;}
             var text=new GUIStyle(GUI.skin.label){fontSize=14,wordWrap=true};

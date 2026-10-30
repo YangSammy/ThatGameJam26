@@ -16,6 +16,7 @@ namespace MemoryWhitebox
         public string[] checkpoints=new string[5];
         public ChapterSaveRecord[] chapters;
         public System.Collections.Generic.List<ArtifactReference> artifacts=new System.Collections.Generic.List<ArtifactReference>();
+        public AreaPlacementRecord[] areaPlacements;
         public bool returnFromPark;
         public Vector3 housePosition;
         public Quaternion houseRotation=Quaternion.identity;
@@ -26,6 +27,8 @@ namespace MemoryWhitebox
     // existing image/film store; this file owns only chapter order and safe nodes.
     public sealed class FiveDayProgress
     {
+        public static bool DevelopmentSession {get;set;}=Application.isEditor;
+        public static FiveDayProgress LoadForSession()=>Load(DevelopmentSession);
         FiveDaySave data=new FiveDaySave();
         bool blocked;
         bool development;
@@ -112,6 +115,12 @@ namespace MemoryWhitebox
             }
             catch(Exception e){if(Error!=e.Message)Debug.LogWarning("Five-day progress not saved: "+e.Message);Error=e.Message;return false;}
         }
+        public AreaPlacementRecord[] AreaPlacements=>data.areaPlacements;
+        public bool SaveAreaPlacements(AreaPlacementRecord[] placements)
+        {
+            var next=Copy();next.areaPlacements=placements;
+            return JsonUtility.ToJson(next)==JsonUtility.ToJson(data) || Commit(next);
+        }
         public bool SaveCheckpoint(int index,string snapshot)
         {
             if(!CanEnter(index) || IsComplete(index))return false;
@@ -122,6 +131,17 @@ namespace MemoryWhitebox
         {
             return CommitChapter(ChapterIds.At(index),snapshot,true).Success;
         }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public bool PrepareDevelopmentEntry(int index,string snapshot,bool restart)
+        {
+            if(!development || index<0 || index>=5)return false;
+            var next=Copy();
+            for(int i=0;i<index;i++)Record(next,i).completed=true;
+            if(restart){Record(next,index).completed=false;Record(next,index).payload=snapshot;}
+            next.currentDay=index;next.finished=false;
+            return Commit(next);
+        }
+#endif
         public SaveResult CommitChapter(string chapterId,string snapshot,bool complete,ArtifactReference artifact=null)
         {
             int index=ChapterIds.Index(chapterId);

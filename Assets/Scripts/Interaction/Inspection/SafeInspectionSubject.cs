@@ -80,6 +80,8 @@ namespace MemoryWhitebox
             {
                 var p=renderers[i];sourceHidden[i]=p.source.forceRenderingOff;
                 p.display.sharedMaterials=p.source.sharedMaterials;p.display.enabled=p.source.enabled;
+                var sourceSkin=p.source as SkinnedMeshRenderer;var displaySkin=p.display as SkinnedMeshRenderer;
+                if(sourceSkin!=null && displaySkin!=null)for(int j=0;j<sourceSkin.sharedMesh.blendShapeCount;j++)displaySkin.SetBlendShapeWeight(j,sourceSkin.GetBlendShapeWeight(j));
                 var surface=p.display.GetComponent<Collider>();if(surface!=null)surface.enabled=p.source.enabled;
                 if(p.properties==null)p.properties=new MaterialPropertyBlock();
                 p.source.GetPropertyBlock(p.properties);p.display.SetPropertyBlock(p.properties);

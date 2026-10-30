@@ -109,8 +109,10 @@ namespace MemoryWhitebox
         {
             if(!DarkroomGuidanceActive)return "";
             ResolveDarkroomGuide();string id=Pick(ray),name=DarkroomName(id);
+            if(objectDrag.AtEdge)return "Keep on this work area\nRelease LMB to place";
+            if(objectDrag.Blocked)return "Path blocked\nMove around the obstacle / Esc Cancel";
             string drop=CurrentDropTarget();
-            if(drop!=null && CanDropDarkroom(ray,drop))return DarkroomName(drop)+"\nRelease LMB here";
+            if(drop!=null && CanCommitDarkroom(ray,drop))return DarkroomName(drop)+"\nRelease LMB here";
             if(name==null)return "";
             if(id=="tank-lid" && tankSealed && guideSource=="tank"){id="tank";name=DarkroomName(id);}
             bool carrying=printDrag!=null || dragged!=null;

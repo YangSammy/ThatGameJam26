@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 namespace MemoryWhitebox
 {
     public sealed partial class HouseRadioDeck
@@ -11,31 +11,44 @@ namespace MemoryWhitebox
         public bool DraggingTape=>draggingTape;
         bool draggingTape,dropReady;
         Ray dragRay;
-        Plane dragPlane;
-        Vector3 dragOffset;
+        readonly ObjectDragSession tapeDrag=new ObjectDragSession();
+        bool TapeReceiver(Collider receiver,Ray ray)=>TapeDropAllowed(receiver,ray,tapeDrag.Item);
         bool waitingForRelease,leftWasDown,rightWasDown,focused=true;
         float statusHeight=60;
         int heldSpindle=-1;
         readonly float[] visualTapePositions=new float[3];
         public bool IsEntryHit(Collider hit)
         {
-            if(hit==null)return false;if(SourceHit(hit))return true;if(BenchHit(hit))return true;if(RecordingHit(hit))return true;if(hit==radioHit || hit==slotHit)return true;
+            if(workbenchVisuals!=null && (hit==workbenchVisuals.lidHit || hit==workbenchVisuals.finishedHit))return true;
+            if(workbenchVisuals!=null && hit!=null)foreach(var grip in workbenchVisuals.candidateGrips)if(hit==grip)return true;
+            if(hit==null)return false;if(dualDeck!=null && dualDeck.Command(hit)!=null)return true;if(SourceHit(hit))return true;if(BenchHit(hit))return true;if(RecordingHit(hit))return true;if(hit==radioHit || hit==slotHit)return true;
             foreach(var t in tapes)if(hit==t.hit || hit==t.leftSpindleHit || hit==t.rightSpindleHit)return true;
             return false;
         }
         public Transform InspectionSource(Ray ray)
         {
-            var hit=Pick(ray);if(hit==radioHit || hit==slotHit)return transform;
+            var hit=Pick(ray);if(hit==radioHit || hit==slotHit || hit==sourceSlot || dualDeck!=null&&dualDeck.Command(hit)!=null)return transform;
+            if(originals!=null)foreach(var original in originals)if(hit==original.hit)return original.tape;
+            if(workbenchVisuals!=null && hit!=null)for(int i=0;i<workbenchVisuals.candidateGrips.Length;i++)if(hit==workbenchVisuals.candidateGrips[i])return tapes[i].root;
             foreach(var t in tapes)if(hit==t.hit || hit==t.leftSpindleHit || hit==t.rightSpindleHit)return t.root;
             return null;
         }
         public bool TryInspect(Ray ray)
         {
-            if(house==null || house.safeInspection==null || waitingForRelease || draggingTape || leftWasDown || rightWasDown || heldSpindle>=0 || State==Phase.Loading || State==Phase.Playing)return false;
+            bool workspace=WorkbenchMode || RecordingMode;
+            if(radioCameraMoving || preparationCameraMoving || house==null || house.safeInspection==null || waitingForRelease || draggingTape || movingOriginal || benchDrag.Active || tapeDrag.Active || Smoothing ||
+                benchGesture!=BenchGesture.None || benchLeft || benchRight || (!workspace && (leftWasDown || rightWasDown)) || heldSpindle>=0 ||
+                DeckBusy(0) || DeckBusy(1) || transferA || transferB || State==Phase.Loading || State==Phase.Returning || State==Phase.Playing)return false;
             var source=InspectionSource(ray);if(source==null && State==Phase.Dragging)source=tapes[Selected].root;
             if(source==null)return false;
             house.safeInspection.feedback.mute=house.Muted;
             return house.safeInspection.Open(house.safeInspection.ForSource(source));
+        }
+        bool PollWorkspaceInspection()
+        {
+            ReleaseInputGate(PlayerInputPolicy.ActionsReleased);
+            if(!Input.GetKeyDown(KeyCode.E) || Input.GetMouseButton(0) || Input.GetMouseButton(1) || TapeUIAt(Input.mousePosition))return false;
+            return TryInspect(view.ScreenPointToRay(Input.mousePosition));
         }
         public void SetStationActive(bool active)
         {
@@ -73,14 +86,14 @@ namespace MemoryWhitebox
         {
             if(State!=Phase.Dragging)return;
             ReleaseSpindle();draggingTape=true;dropReady=false;dragRay=ray;
-            var root=tapes[Selected].root;dragPlane=new Plane(view.transform.forward,root.position);
-            float distance;dragOffset=dragPlane.Raycast(ray,out distance)?root.position-ray.GetPoint(distance):Vector3.zero;
+            tapeDrag.BeginScreenCarry(tapes[Selected].root,ray,view.transform.forward);
             // The held cassette must not intercept the cursor ray aimed at the slot.
             SetHeldHits(false);
         }
-        void CancelTapeDrag(){if(draggingTape)SetHeldHits(true);draggingTape=dropReady=false;}
+        void CancelTapeDrag(){tapeDrag.End(false);ShowTapeDropPreview(null);if(draggingTape)SetHeldHits(true);draggingTape=dropReady=false;}
         void EndTapeDrag(bool overSlot)
         {
+            if(!overSlot && tapeDrag.TryPlaceInArea()){CancelTapeDrag();PutBack();return;}
             CancelTapeDrag();
             if(overSlot && InsertDragged())return;
             PutBack();
@@ -88,8 +101,7 @@ namespace MemoryWhitebox
         public void PoseDraggedTape(float dt)
         {
             if(Selected<0 || State!=Phase.Dragging || !draggingTape)return;
-            float distance;
-            if(dragPlane.Raycast(dragRay,out distance))tapes[Selected].root.position=dragRay.GetPoint(distance)+dragOffset;
+            MoveRadioTape(tapeDrag,dragRay,TapeReceiver(slotHit,dragRay)?slotHit.transform:TapeReceiver(workMat,dragRay)?workMat.transform:null);
         }
 
         public void TickStation(float dt,Ray ray,bool left,bool right,float wheel,bool inspect,bool allReleased)
@@ -107,13 +119,16 @@ namespace MemoryWhitebox
             var hit=Pick(ray);
             if(draggingTape)
             {
-                dragRay=ray;dropReady=hit==slotHit || hit==workMat;
-                if(right && !rightWasDown){CancelTapeDrag();PutBack();waitingForRelease=true;}
-                else if(!left){if(hit==workMat)PlaceOnWorkbench(Selected);else EndTapeDrag(hit==slotHit);}
+                dragRay=ray;bool overSlot=TapeReceiver(slotHit,ray),overMat=TapeReceiver(workMat,ray);
+                MoveRadioTape(tapeDrag,ray,overSlot?slotHit.transform:overMat?workMat.transform:null);
+                dropReady=!tapeDrag.Blocked && (overSlot || overMat);
+                if(!left){if(overMat && !tapeDrag.Blocked)PlaceOnWorkbench(Selected);else EndTapeDrag(overSlot && !tapeDrag.Blocked);}
                 leftWasDown=left;rightWasDown=right;AdvanceInspection(dt);return;
             }
             if(left && !leftWasDown)
             {
+                if(StorageClick(hit)){leftWasDown=true;return;}
+                if(dualDeck!=null && PressDualControl(dualDeck.Command(hit))){leftWasDown=left;return;}
                 if(TryBeginOriginalInteraction(ray)){leftWasDown=left;return;}
                 if(TryBeginWorkbenchInteraction(ray)){leftWasDown=left;return;}
                 if(State!=Phase.Loading && State!=Phase.Returning)
@@ -127,7 +142,6 @@ namespace MemoryWhitebox
                     }
                 }
             }
-            if(right && !rightWasDown && (State==Phase.Dragging || IsEntryHit(hit))){if(State==Phase.Dragging)PutBack();else ResetDeck();waitingForRelease=true;}
             if(!left)ReleaseSpindle();
             leftWasDown=left;rightWasDown=right;AdvanceInspection(dt);
         }
@@ -137,6 +151,7 @@ namespace MemoryWhitebox
             for(int i=0;i<tapes.Length;i++)
             {
                 var t=tapes[i];var data=Chapter.Tape.Candidates[i];
+                if(workbenchVisuals!=null){workbenchVisuals.Inspect(i,data);continue;}
                 if(t.preparation!=null)t.preparation.ShowState(data);
                 if(t.damageMarker!=null)t.damageMarker.SetActive(data.Broken);
                 if(i==Selected && (State==Phase.Loading || State==Phase.Playing || State==Phase.Paused))continue;
@@ -162,12 +177,13 @@ namespace MemoryWhitebox
             var position=root.position;var rotation=root.rotation;
             ResetDeck();SelectForDrag(index);root.SetPositionAndRotation(position,rotation);BeginTapeDrag(ray);
         }
-        public void TakeOut(){ResetDeck();}
+        public void TakeOut(){if(dualDeck!=null)EjectDualDeck(1);else ResetDeck();}
         public void PutBack(){if(State==Phase.Dragging){CancelTapeDrag();ReleaseSpindle();State=Phase.Returning;}}
         public void AdvanceReturn(float dt)
         {
             if(State!=Phase.Returning || Selected<0)return;
             var t=tapes[Selected];var position=t.homeParent.TransformPoint(t.homePosition);var rotation=t.homeParent.rotation*t.homeRotation;
+            Vector3 placed;Quaternion facing;if(OperationArea.TryGetPose(t.root,out placed,out facing)){position=placed;rotation=facing;}
             t.root.position=Vector3.MoveTowards(t.root.position,position,Mathf.Max(0,dt)*1.8f);
             t.root.rotation=Quaternion.RotateTowards(t.root.rotation,rotation,Mathf.Max(0,dt)*540);
             if(Vector3.Distance(t.root.position,position)<.001f && Quaternion.Angle(t.root.rotation,rotation)<.1f)ResetDeck();

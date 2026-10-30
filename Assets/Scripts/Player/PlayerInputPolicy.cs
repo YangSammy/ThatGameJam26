@@ -11,7 +11,8 @@ namespace MemoryWhitebox
         internal static readonly KeyCode[] Actions={KeyCode.Mouse0,KeyCode.Mouse1,KeyCode.Mouse2,
             KeyCode.Escape,KeyCode.E,KeyCode.H,KeyCode.R,KeyCode.F,KeyCode.J,KeyCode.L,KeyCode.Quote,KeyCode.Return,KeyCode.Space,
             KeyCode.W,KeyCode.A,KeyCode.S,KeyCode.D,KeyCode.LeftArrow,KeyCode.RightArrow,KeyCode.UpArrow,KeyCode.DownArrow,
-            KeyCode.LeftShift,KeyCode.RightShift,KeyCode.M};
+            KeyCode.LeftShift,KeyCode.RightShift,KeyCode.M,KeyCode.Alpha1,KeyCode.Alpha2,KeyCode.Alpha3,KeyCode.Alpha4,KeyCode.Alpha5,KeyCode.Alpha6,
+            KeyCode.Keypad1,KeyCode.Keypad2,KeyCode.Keypad3,KeyCode.Keypad4,KeyCode.Keypad5,KeyCode.Keypad6};
         static int ignoreLookThrough=-1;
         public static bool ActionsReleased
         {get{foreach(var key in Actions)if(Input.GetKey(key))return false;return true;}}
