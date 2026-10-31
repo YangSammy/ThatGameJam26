@@ -1,0 +1,42 @@
+{
+  "source_version": 17,
+  "source_blend_sha256": "a0f092defc57cbdd670805a9643d64d37ceb83b3e2cc037a8786cfe44b06d336",
+  "unity_version": "2022.3.62f3",
+  "migration": "AssetDatabase.MoveAsset in isolated staging project; original GUIDs retained",
+  "payload_files_compared_by_sha256": 12305,
+  "payload_byte_differences": 0,
+  "identity_manifest_sha256": "04c1371eabafad4d5a81ffd93be6f50f34bf054c4015b3c2b1ba15515eb047b7",
+  "scenes": [
+    {
+      "path": "Assets/Scenes/Bedroom/V17/Bedroom_Spring.unity",
+      "guid": "a632dd1e14d9aef45981a85e15edc853",
+      "sha256": "e854b76214fb341ebbaf66d0ef5559d6bcd9ba406f9925fc485c10069f4ad873"
+    },
+    {
+      "path": "Assets/Scenes/Bedroom/V17/Bedroom_Summer.unity",
+      "guid": "78ceea13a8993d4438db462103b38b1c",
+      "sha256": "3b9625d15c976eac55e4597194150d395e17d05f0c27863d903acc809fceecf4"
+    },
+    {
+      "path": "Assets/Scenes/Bedroom/V17/Bedroom_Autumn.unity",
+      "guid": "6488f22e85f3f044bb3c161e6433ac8f",
+      "sha256": "5d6c3e4be191b49ac8b254ff73664be89a62f37da805dc96791c40ce2d9bff7a"
+    },
+    {
+      "path": "Assets/Scenes/Bedroom/V17/Bedroom_Winter.unity",
+      "guid": "2826d33b15af0d84289a97e0a081eceb",
+      "sha256": "fbbb90a81a0178e41134f1bd496370ac84221bb53ab227d200ff2f782dd636e5"
+    }
+  ],
+  "staging_engine_validation": [
+    "Spring: renderers=2612, lightmaps=1, missingScripts=0, missingMaterials=0, missingMeshes=0",
+    "Summer: renderers=2632, lightmaps=1, missingScripts=0, missingMaterials=0, missingMeshes=0",
+    "Autumn: renderers=2644, lightmaps=1, missingScripts=0, missingMaterials=0, missingMeshes=0",
+    "Winter: renderers=2594, lightmaps=1, missingScripts=0, missingMaterials=0, missingMeshes=0"
+  ],
+  "target_repository_engine_validation": "pending",
+  "reference_color_space": "Linear",
+  "repository_color_space": "Gamma",
+  "standalone_viewer_rebuilt": false,
+  "full_game_tested": false
+}
