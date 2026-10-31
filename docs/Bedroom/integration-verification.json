@@ -34,9 +34,17 @@
     "Autumn: renderers=2644, lightmaps=1, missingScripts=0, missingMaterials=0, missingMeshes=0",
     "Winter: renderers=2594, lightmaps=1, missingScripts=0, missingMaterials=0, missingMeshes=0"
   ],
-  "target_repository_engine_validation": "pending",
+  "target_repository_engine_validation": [
+    "BEDROOM_V17_VALIDATED Assets/Scenes/Bedroom/V17/Bedroom_Spring.unity: renderers=2612, lightmaps=1, colorSpace=Gamma",
+    "BEDROOM_V17_VALIDATED Assets/Scenes/Bedroom/V17/Bedroom_Summer.unity: renderers=2632, lightmaps=1, colorSpace=Gamma",
+    "BEDROOM_V17_VALIDATED Assets/Scenes/Bedroom/V17/Bedroom_Autumn.unity: renderers=2644, lightmaps=1, colorSpace=Gamma",
+    "BEDROOM_V17_VALIDATED Assets/Scenes/Bedroom/V17/Bedroom_Winter.unity: renderers=2594, lightmaps=1, colorSpace=Gamma"
+  ],
   "reference_color_space": "Linear",
   "repository_color_space": "Gamma",
   "standalone_viewer_rebuilt": false,
-  "full_game_tested": false
+  "full_game_tested": false,
+  "target_repository_import_and_compile": "passed",
+  "target_repository_validation_exit_code": 0,
+  "target_repository_validation_log_sha256": "d1565e11c8f160b50bdf24c3c9506f777df8ee4b7b3e9938ae9d26b2bd74d0b3"
 }
