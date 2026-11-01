@@ -1,197 +1,195 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
-
 namespace MemoryWhitebox
 {
-    /// <summary>Embodied gaze into a volumetric still life. Pigment is world geometry on an easel.</summary>
-    public sealed class PaintingWorld3D : WorldChapter3D
+    public sealed partial class PaintingWorld3D:WorldChapter3D
     {
         public readonly PaintingChapter State;
-        public string GazeTarget { get; private set; }
-        public string RequiredNode { get { return State.Phase == 0 ? "scarf-target" : State.Phase == 1 ? "cup-contact" : "hands-contact"; } }
-        public Vector3 RequiredPoint { get { return Nodes[RequiredNode].transform.position; } }
-        public bool[] Painted { get { return State.Painted; } }
-        public PaintingDefocus Defocus { get; private set; }
-        readonly Transform cupHand, leftHand, rightHand, brushHand;
-        public override Transform[] PlayerHandTargets => new Transform[]{null,brushHand};
-        public override bool PlayerHandsEngaged => true;
-        readonly List<GameObject>[] pigment = { new List<GameObject>(), new List<GameObject>(), new List<GameObject>() };
-        readonly Renderer scarfRenderer, cupContact, handsContact;
-        readonly WBInput gazeInput = new WBInput();
-        readonly Vector3 cupHandContact = new Vector3(.12f, 1.27f, 2.25f);
-        readonly Vector3 leftContact = new Vector3(.70f, 1.06f, .95f), rightContact = new Vector3(.84f, 1.06f, .95f);
-        Light windowLight;
-
-        readonly Vector3 easelShift=new Vector3(3.95f,0,-1.08f);
+        public PaintingDefocus Defocus {get;private set;}
+        public string GazeTarget {get;private set;}
+        public string RequiredNode=>State.Phase==0?(State.Painted[0]?"shape-bridge":"shape-swing"):!State.Painted[2]?"shape-luggage":!State.Painted[3]?"shape-flower":"shape-pendant";
+        public Vector3 RequiredPoint=>Nodes.ContainsKey(RequiredNode)?Nodes[RequiredNode].transform.position:Eye;
+        public bool[] Painted=>State.Painted;
         public Transform SharedScarf {get;private set;}
-
-        public override string Help { get { return "Mouse  Look  /  Hold LMB  Focus\nScarf > Cup contact > Joined hands\nWait for contact; hold focus to complete each detail."; } }
-
-        public PaintingWorld3D(WBMain host, PaintingChapter model) : base(host, model, 3)
+        public override string Help=>State.Help;
+        public override bool HasPointerGesture=>focusHeld||keyDragging||looking;
+        const int RouteLayer=27,ObservationLayer=28,PaperLayer=29;
+        Transform observation,route,actor,swingSeat,swingRope,bridge,crate,gate,linkage,flower,key,hole,ward,nose,paper;
+        readonly Transform[] petals=new Transform[6];
+        Camera albumCamera;RenderTexture albumTexture;Collider pageCollider;
+        Vector3 fixedEye;Quaternion fixedRotation;float yaw,pitch;int originalMask;Rect originalRect;Color originalBackground;CameraClearFlags originalClearFlags;
+        bool built,focusHeld,looking,keyDragging,edgeArmed=true;
+        Plane keyPlane;Vector3 keyHome,keyOffset;Vector2 lastLook,pointer;
+        readonly List<Material> wardMaterials=new List<Material>();
+        public PaintingWorld3D(WBMain host,PaintingChapter model):base(host,model,3)
+        {State=model;Eye=SharedRoom?new Vector3(-.3f,1.65f,.95f):World(new Vector3(0,1.65f,-3));Look=Eye+Vector3.forward*3;Fov=64;WantsMouseLook=false;}
+        public void BindSharedScarf(EndingWorld3D ending){}
+        static void Layer(Transform root,int layer){root.gameObject.layer=layer;foreach(Transform child in root)Layer(child,layer);}
+        Transform Block(Transform parent,string id,Vector3 p,Vector3 size,string color,PrimitiveType type=PrimitiveType.Cube)
+        {return Child(parent,id,p,size,color,type).transform;}
+        void BuildAlbum()
         {
-            State = model; WantsMouseLook = true;
-            if(SharedRoom){cupHandContact=new Vector3(.42f,1.27f,1);leftContact=new Vector3(.85f,1.06f,1.3f);rightContact=new Vector3(1,1.06f,1.3f);}
-            Room(8, 8);
-            Eye = World(new Vector3(0, 1.65f, -2.7f)); Look = World(new Vector3(.20f, 1.17f, 1.75f)); Fov = 64;
-            // Real easel, canvas edge, legs and a place for the painter's hand.
-            Part(null, new Vector3(-1.95f, 1.55f, 1.08f), new Vector3(1.45f, 1.9f, .085f), "#8c7458");
-            Part("canvas", new Vector3(-1.95f, 1.55f, 1.025f), new Vector3(1.30f, 1.76f, .04f), "#e8dcc0");
-            for (int sign = -1; sign <= 1; sign += 2)
-                Part(null, new Vector3(-1.95f + sign * .46f, .56f, 1.22f), new Vector3(.085f, 1.3f, .09f), "#715c46", PrimitiveType.Cube, new Vector3(0, 0, sign * -11));
-            Part(null, new Vector3(-1.95f, .56f, 1.66f), new Vector3(.085f, 1.3f, .09f), "#715c46", PrimitiveType.Cube, new Vector3(-20, 0, 0));
-            Part(null, new Vector3(-1.95f, .66f, .96f), new Vector3(1.65f, .09f, .19f), "#8c7458");
-            if(SharedRoom){for(int i=0;i<6;i++)Root.transform.GetChild(i).localPosition+=easelShift;Eye=new Vector3(1.25f,1.65f,-.6f);Look=new Vector3(2,.9f,2.1f);}
-            if(SharedRoom && Host.deskStudy)
+            if(built)return;built=true;
+            fixedEye=View.transform.position;fixedRotation=View.transform.rotation;
+            observation=Group("Winter fixed observation",Vector3.zero);observation.SetPositionAndRotation(fixedEye+fixedRotation*new Vector3(0,-1.65f,3.8f),fixedRotation);
+            BuildObservation();Layer(observation,ObservationLayer);
+            route=Group("Album route - physical geometry",new Vector3(0,-30,0));BuildRoute();Layer(route,RouteLayer);
+            var camera=Group("Album side camera",Vector3.zero);albumCamera=camera.gameObject.AddComponent<Camera>();
+            albumCamera.transform.position=route.TransformPoint(new Vector3(8,2,-16));albumCamera.transform.rotation=Quaternion.identity;
+            albumCamera.orthographic=true;albumCamera.orthographicSize=5.2f;albumCamera.aspect=1.8f;albumCamera.cullingMask=1<<RouteLayer;
+            albumCamera.clearFlags=CameraClearFlags.SolidColor;albumCamera.backgroundColor=new Color(.89f,.87f,.8f);albumCamera.nearClipPlane=.05f;albumCamera.farClipPlane=40;
+            albumTexture=new RenderTexture(1280,720,24);albumTexture.name="Physical album page";albumTexture.Create();albumCamera.targetTexture=albumTexture;
+            paper=Group("Persistent album and final paper",Vector3.zero);
+            Block(paper,"album-backing",Vector3.zero,new Vector3(1.25f,.72f,.015f),"#e5dfc9");
+            var page=Block(paper,"album-page",new Vector3(0,0,-.012f),new Vector3(1.2f,.675f,1),"#ffffff",PrimitiveType.Quad);
+            var material=new Material(Shader.Find("Unlit/Texture"));material.mainTexture=albumTexture;page.GetComponent<Renderer>().sharedMaterial=material;pageMaterial=material;
+            pageCollider=page.GetComponent<Collider>();Layer(paper,PaperLayer);
+            BuildWard();
+        }
+        Material pageMaterial;
+        void BuildObservation()
+        {
+            Block(observation,"",new Vector3(0,-.08f,0),new Vector3(11,.15f,7),"#c4cbc7");
+            var swing=Block(observation,"shape-swing",new Vector3(-1.5f,1,0),new Vector3(.8f,.08f,.4f),"#8a7154");
+            for(int sign=-1;sign<=1;sign+=2){Block(observation,"",new Vector3(-1.5f+sign*.6f,1.5f,.1f),new Vector3(.06f,3,.06f),"#6c776b");Block(swing,"shape-swing",new Vector3(sign*.4f,8,0),new Vector3(.025f,16,.04f),"#9b8f71");}
+            Block(observation,"shape-bridge",new Vector3(1.6f,.6f,.4f),new Vector3(1.8f,.18f,.7f),"#9b9078");
+            for(int sign=-1;sign<=1;sign+=2)Block(observation,"shape-bridge",new Vector3(1.6f,1,.4f+sign*.3f),new Vector3(1.8f,.08f,.05f),"#81775f");
+            Block(observation,"shape-luggage",new Vector3(-1.3f,.55f,-.45f),new Vector3(.7f,1,.35f),"#866b55");
+            Block(observation,"shape-flower",new Vector3(1.2f,.9f,-.5f),new Vector3(.08f,1.4f,.08f),"#778465");
+            for(int i=0;i<8;i++){float a=i*Mathf.PI/4;Block(observation,"shape-flower",new Vector3(1.2f+Mathf.Cos(a)*.22f,1.5f+Mathf.Sin(a)*.22f,-.5f),new Vector3(.2f,.2f,.06f),"#e7dfbd",PrimitiveType.Sphere);}
+            var pendant=CreatePendant(observation,"shape-pendant",new Vector3(-.75f,.38f,-.7f),.35f,"#a69a73");
+            Block(observation,"",new Vector3(-.75f,.53f,-.69f),new Vector3(.016f,.2f,.02f),"#afa37a");
+        }
+        // Both the collectible and the carved recess use this same asymmetric shape recipe.
+        Transform CreatePendant(Transform parent,string id,Vector3 at,float scale,string color)
+        {
+            var root=new GameObject(id).transform;root.SetParent(parent,false);root.localPosition=at;root.localScale=Vector3.one*scale;
+            var body=Block(root,id,Vector3.zero,new Vector3(.38f,.5f,.09f),color);body.localRotation=Quaternion.Euler(0,0,35);
+            Block(root,id,new Vector3(.18f,-.12f,0),new Vector3(.15f,.12f,.09f),color);
+            Block(root,id,new Vector3(0,.3f,0),new Vector3(.12f,.12f,.08f),color,PrimitiveType.Sphere);
+            return root;
+        }
+        void BuildRoute()
+        {
+            Block(route,"ground-a",new Vector3(1.5f,-.15f,0),new Vector3(3,.3f,1),"#939689");
+            Block(route,"ground-mid",new Vector3(7.5f,.55f,0),new Vector3(3,.3f,1),"#939689");
+            Block(route,"ground-end",new Vector3(14,.55f,0),new Vector3(4,.3f,1),"#939689");
+            bridge=Block(route,"route-bridge",new Vector3(10.5f,.6f,0),new Vector3(3,.2f,1),"#aa9a7b");
+            swingSeat=Block(route,"swing-seat",Vector3.zero,new Vector3(.65f,.1f,.6f),"#957553");
+            swingRope=Block(route,"swing-rope",Vector3.zero,new Vector3(.035f,3,.035f),"#777057");
+            Block(route,"swing-pivot",new Vector3(4.5f,3.3f,0),new Vector3(.25f,.2f,.3f),"#6b7766");
+            actor=Block(route,"album-person",new Vector3(.7f,.25f,0),new Vector3(.28f,.5f,.28f),"#4e665f",PrimitiveType.Capsule);
+            crate=Block(route,"route-luggage",new Vector3(2,.35f,0),new Vector3(.85f,.7f,.65f),"#95795b");
+            Block(route,"pressure-plate",new Vector3(4,.03f,0),new Vector3(.9f,.06f,.8f),"#b8ab7a");
+            gate=Block(route,"pressure-gate",new Vector3(6,1,0),new Vector3(.18f,2,1),"#798575");
+            Block(route,"gate-walkway",new Vector3(7.1f,-.15f,0),new Vector3(2.2f,.3f,1),"#939689");
+            linkage=Block(route,"visible-linkage",new Vector3(5,.15f,.3f),new Vector3(2,.055f,.055f),"#b8ab7a");
+            flower=Block(route,"flower-hub",new Vector3(8,2,0),new Vector3(.45f,.45f,.45f),"#b9a369",PrimitiveType.Sphere);
+            for(int i=0;i<6;i++)
             {
-                for(int i=0;i<6;i++)Root.transform.GetChild(i).gameObject.SetActive(false);
-                Part(null,new Vector3(2.15f,1.005f,.5f),new Vector3(.62f,.025f,.79f),"#e8dcc0");
-                Eye=new Vector3(-.3f,1.65f,.95f);Look=new Vector3(-.5f,.85f,2.6f);
+                petals[i]=Block(route,"flower-seat-"+i,Vector3.zero,new Vector3(.72f,.12f,.6f),"#ddd4ae");
+                Block(flower,"petal-arm-"+i,Vector3.zero,new Vector3(.12f,2,.12f),"#c5bd92");
             }
-            // Strong perspective: table recedes toward the window rather than a flat still-life panel.
-            if(!SharedRoom){
-            Part(null, new Vector3(.87f, .90f, 1.80f), new Vector3(3.25f, .13f, 2.35f), "#8b735b");
-            for (int x = -1; x <= 1; x += 2) for (int z = -1; z <= 1; z += 2)
-                Part(null, new Vector3(.87f + x * 1.43f, .43f, 1.8f + z * .97f), new Vector3(.12f, .86f, .12f), "#685a49");
-            }
-            int scarfStart=Root.transform.childCount;
-            // Red scarf is a draped ribbon of spatial blocks, with a hanging end.
-            scarfRenderer = Part("scarf-target", new Vector3(1.67f, 1.005f, 1.72f), new Vector3(.79f, .075f, .22f), "#a24f49", PrimitiveType.Cube, new Vector3(0, -18, 0)).GetComponent<Renderer>();
-            Part("scarf-fold", new Vector3(1.98f, 1.015f, 1.34f), new Vector3(.22f, .09f, .88f), "#b56050", PrimitiveType.Cube, new Vector3(0, -8, 0));
-            Part("scarf-tail", new Vector3(2.00f, .69f, .63f), new Vector3(.22f, .61f, .07f), "#984c48", PrimitiveType.Cube, new Vector3(-7, 0, 0));
-            for (int i = 0; i < 6; i++)
-                Part(null, new Vector3(1.91f + i * .036f, .32f, .655f), new Vector3(.013f, .12f, .018f), "#ac6656");
-            if(SharedRoom)for(int i=scarfStart;i<Root.transform.childCount;i++){var g=Root.transform.GetChild(i);g.GetComponent<Renderer>().enabled=false;var collider=g.GetComponent<Collider>();if(collider!=null && g.name!="scarf-target")collider.enabled=false;}
-            int cupStart=Root.transform.childCount;
-            // A cup with a visible hollow rim, not a symbol floating on the screen.
-            Part(null, new Vector3(-.18f, .987f, 2.25f), new Vector3(.62f, .025f, .52f), "#bfc1aa", PrimitiveType.Cylinder);
-            Part("cup-body", new Vector3(-.18f, 1.13f, 2.25f), new Vector3(.29f, .14f, .29f), "#b9c2ae", PrimitiveType.Cylinder);
-            Part(null, new Vector3(-.18f, 1.275f, 2.25f), new Vector3(.255f, .012f, .255f), "#5e6859", PrimitiveType.Cylinder);
-            Circle("cup-rim", new Vector3(-.18f, 1.285f, 2.25f), .145f, "#d4d6bc", .025f, false);
-            Circle("cup-handle", new Vector3(.02f, 1.13f, 2.25f), .09f, "#b9c2ae", .032f, true);
-            cupContact = Part("cup-contact", new Vector3(-.045f, 1.29f, 2.25f), new Vector3(.12f, .075f, .15f), "#ceb091", PrimitiveType.Sphere).GetComponent<Renderer>();
-            if(SharedRoom)for(int i=cupStart;i<Root.transform.childCount;i++)Root.transform.GetChild(i).localPosition+=new Vector3(.3f,0,-1.25f);
-            cupHand = Hand("Hand resting on cup", cupHandContact, true, "#c9a486");
-            leftHand = Hand("Left offered hand", leftContact, false, "#c9a486");
-            rightHand = Hand("Right answering hand", rightContact, true, "#ac826c");
-            handsContact = Part("hands-contact", new Vector3(.77f, 1.085f, .92f), new Vector3(.17f, .10f, .19f), "#c2a186", PrimitiveType.Sphere).GetComponent<Renderer>();
-            if(SharedRoom)handsContact.transform.localPosition=new Vector3(.925f,1.085f,1.3f);
-            // Chairs anchor the disconnected whitebox hands to places where people sat.
-            if(!SharedRoom)for (int sign = -1; sign <= 1; sign += 2)
-            {
-                Part(null, new Vector3(.77f + sign * 1.5f, .56f, 1.00f), new Vector3(.70f, .12f, .72f), "#73796a");
-                Part(null, new Vector3(.77f + sign * 1.75f, 1.09f, 1.00f), new Vector3(.09f, .95f, .72f), "#73796a");
-            }
-            DrawCanvasUnderpainting();
-            brushHand = Group("Painter's first person hand", Vector3.zero);
-            Child(brushHand, null, Vector3.zero, new Vector3(.17f, .1f, .22f), "#cfab8c", PrimitiveType.Sphere, new Vector3(0, 0, -20));
-            Child(brushHand, null, new Vector3(.09f, -.11f, -.08f), new Vector3(.14f, .37f, .15f), "#8c9691", PrimitiveType.Capsule, new Vector3(0, 0, -25));
-            Child(brushHand, null, new Vector3(-.03f, .14f, .035f), new Vector3(.018f, .45f, .018f), "#5d5b49", PrimitiveType.Cylinder, new Vector3(0, 0, -17));
-            Child(brushHand, null, new Vector3(-.095f, .345f, .035f), new Vector3(.03f, .085f, .03f), "#b8aa85", PrimitiveType.Capsule, new Vector3(0, 0, -17));
-            var lightObject = new GameObject("Still life window warmth"); lightObject.transform.SetParent(Root.transform, false); lightObject.transform.localPosition = new Vector3(2.5f, 2.9f, 3.4f);
-            windowLight = lightObject.AddComponent<Light>(); windowLight.type = LightType.Point; windowLight.range = 8; windowLight.intensity = SharedRoom?0f:1.35f; windowLight.color = new Color(1, .86f, .66f);
-            UpdateStillLife(.01f);if(SharedRoom)SetObservedHandsVisible(false);
-        }
-        void SetObservedHandsVisible(bool visible)
-        {
-            foreach(var hand in new[]{cupHand,leftHand,rightHand})foreach(var renderer in hand.GetComponentsInChildren<Renderer>(true))renderer.enabled=visible;
-            cupContact.enabled=handsContact.enabled=visible;
-        }
-        public void BindSharedScarf(EndingWorld3D ending)
-        {
-            SharedScarf=ending.Root.transform.Find("Scarf fabric mesh");
-            scarfRenderer.transform.position=ending.World(new Vector3(0,.89f,.08f));scarfRenderer.transform.rotation=Quaternion.identity;scarfRenderer.transform.localScale=new Vector3(1.35f,.15f,.6f);
-        }
-        Transform Hand(string name, Vector3 at, bool reverse, string color)
-        {
-            Transform hand = Group(name, at); if (reverse) hand.localRotation = Quaternion.Euler(0, 180, 0);
-            Child(hand, null, new Vector3(-.18f, 0, 0), new Vector3(.48f, .12f, .16f), color, PrimitiveType.Capsule, new Vector3(0, 0, 90));
-            Child(hand, null, new Vector3(.025f, 0, 0), new Vector3(.22f, .10f, .22f), color, PrimitiveType.Sphere);
-            for (int i = 0; i < 4; i++)
-                Child(hand, null, new Vector3(.13f, 0, -.083f + i * .053f), new Vector3(.18f, .045f, .046f), color, PrimitiveType.Capsule, new Vector3(0, 0, 90));
-            Child(hand, null, new Vector3(.07f, -.015f, -.12f), new Vector3(.15f, .05f, .05f), color, PrimitiveType.Capsule, new Vector3(0, -30, 90));
-            if(SharedRoom)hand.localScale=Vector3.one*.5f;return hand;
-        }
-        LineRenderer Circle(string name, Vector3 center, float radius, string color, float width, bool vertical)
-        {
-            var points = new Vector3[49];
-            for (int i = 0; i < points.Length; i++)
-            {
-                float a = i * Mathf.PI * 2 / (points.Length - 1);
-                points[i] = center + (vertical ? new Vector3(Mathf.Cos(a), Mathf.Sin(a), 0) : new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a))) * radius;
-            }
-            return Line(name, points, color, width);
-        }
-        Vector3 Canvas(float x, float y) { if(SharedRoom && Host.deskStudy)return new Vector3(2.15f+x*.4f,1.025f,.5f+y*.4f);return new Vector3(-1.95f + x, 1.55f + y, .996f)+(SharedRoom?easelShift:Vector3.zero); }
-        void CanvasStroke(int group, string name, Vector2[] sketch, string color, float width, bool colored)
-        {
-            var positions = new Vector3[sketch.Length];
-            for (int i = 0; i < sketch.Length; i++) positions[i] = Canvas(sketch[i].x, sketch[i].y) + (colored ? Vector3.back * .003f : Vector3.zero);
-            var stroke = Line(name, positions, color, width);
-            if (colored) { pigment[group].Add(stroke.gameObject); stroke.gameObject.SetActive(false); }
-        }
-        void DrawCanvasUnderpainting()
-        {
-            Vector2[] scarf = { new Vector2(-.46f, .56f), new Vector2(-.20f, .47f), new Vector2(.08f, .55f), new Vector2(.37f, .42f), new Vector2(.42f, .20f) };
-            Vector2[] cup = { new Vector2(-.27f, .10f), new Vector2(-.23f, -.15f), new Vector2(.02f, -.15f), new Vector2(.07f, .10f), new Vector2(-.27f, .10f) };
-            Vector2[] hand = { new Vector2(.47f, .14f), new Vector2(.22f, .14f), new Vector2(.05f, .09f), new Vector2(.18f, .03f), new Vector2(.36f, .03f) };
-            Vector2[] hands = { new Vector2(-.52f, -.55f), new Vector2(-.13f, -.53f), new Vector2(.04f, -.47f), new Vector2(.18f, -.53f), new Vector2(.52f, -.55f) };
-            for (int colored = 0; colored < 2; colored++)
-            {
-                bool c = colored == 1;
-                CanvasStroke(0, "Scarf remembered in paint", scarf, c ? "#a9574e" : "#bcb095", c ? .055f : .008f, c);
-                CanvasStroke(1, "Cup remembered in paint", cup, c ? "#84958b" : "#bcb095", c ? .032f : .008f, c);
-                CanvasStroke(1, "Touch remembered in paint", hand, c ? "#bd9578" : "#bcb095", c ? .038f : .008f, c);
-                CanvasStroke(2, "Hands remembered in paint", hands, c ? "#b89177" : "#bcb095", c ? .060f : .008f, c);
-            }
+            Block(route,"high-platform",new Vector3(13,3.05f,0),new Vector3(5.8f,.3f,1),"#939689");
+            Block(route,"key-door",new Vector3(15.3f,4.1f,.15f),new Vector3(.3f,1.8f,1),"#9f9a84");
+            hole=CreatePendant(route,"key-recess",new Vector3(14.7f,4,-.48f),1,"#494e47");
+            key=CreatePendant(route,"album-key",new Vector3(12,5,-.5f),1,"#b6a16a");keyHome=key.localPosition;
+            foreach(var r in route.GetComponentsInChildren<Renderer>())r.sharedMaterial.shader=Shader.Find("Unlit/Color");
         }
         public override void Activate()
         {
-            base.Activate();if(SharedRoom)SetObservedHandsVisible(true);
-            Defocus=View.GetComponent<PaintingDefocus>();if(Defocus==null)Defocus=View.gameObject.AddComponent<PaintingDefocus>();
-            Defocus.Begin();
+            base.Activate();originalMask=View.cullingMask;originalRect=View.rect;originalBackground=View.backgroundColor;originalClearFlags=View.clearFlags;View.clearFlags=CameraClearFlags.SolidColor;
+            View.backgroundColor=new Color(.22f,.25f,.24f);
+            BuildAlbum();fixedEye=View.transform.position;fixedRotation=View.transform.rotation;yaw=pitch=0;
+            View.cullingMask=(1<<ObservationLayer)|(1<<PaperLayer);View.rect=new Rect(0,0,1,1);
+            Defocus=View.GetComponent<PaintingDefocus>();if(Defocus==null)Defocus=View.gameObject.AddComponent<PaintingDefocus>();Defocus.Begin();
+            albumCamera.enabled=true;edgeArmed=false;RefreshAlbum();
         }
-        public override void Deactivate(){if(SharedRoom)SetObservedHandsVisible(false);if(Defocus!=null)Defocus.End();base.Deactivate();}
-        public override void Dispose(){if(Defocus!=null)Defocus.End();base.Dispose();}
-        public override void Tick(float dt, WBInput input)
+        public override void CancelPointerGesture(){focusHeld=looking=false;if(keyDragging){keyDragging=false;key.localPosition=keyHome;}State.CancelInput();}
+        public override void Deactivate()
         {
-            if (View != null)
-            {
-                Ray gaze = View.ViewportPointToRay(new Vector3(.5f, .5f, 0));
-                GazeTarget = Pick(gaze);
-                if (GazeTarget == "scarf-fold" || GazeTarget == "scarf-tail") GazeTarget = "scarf-target";
-            }
-            gazeInput.Pointer = GazeTarget == RequiredNode ? State.CurrentTarget : new Vector2(-10000, -10000);
-            gazeInput.Down = input.Down;
-            Defocus?.SetFocusHeld(input.Down,dt);
-            if(View!=null)View.fieldOfView=Mathf.Lerp(View.fieldOfView,input.Down?58:64,Mathf.Clamp01(dt*7));
-            State.Tick(dt, gazeInput);
-            UpdateStillLife(dt);
-            for (int i = 0; i < 3; i++) foreach (var stroke in pigment[i]) stroke.SetActive(State.Painted[i]);
-            if (View != null)
-            {
-                brushHand.position = View.transform.TransformPoint(new Vector3(.38f, -.36f + State.Focus * .025f, .67f));
-                brushHand.rotation = View.transform.rotation * Quaternion.Euler(0, 0, Mathf.Sin(State.Elapsed * 1.7f) * 2);
-            }
-            windowLight.intensity = Mathf.Lerp(SharedRoom?0f:1.35f, SharedRoom?0f:2.15f, (State.Phase + State.Focus / 1.25f) / 3f);
+            CancelPointerGesture();if(albumCamera!=null)albumCamera.enabled=false;if(Defocus!=null)Defocus.End();
+            if(View!=null){View.cullingMask=originalMask;View.rect=originalRect;View.backgroundColor=originalBackground;View.clearFlags=originalClearFlags;}
+            base.Deactivate();
         }
-        void UpdateStillLife(float dt)
+        public override void Dispose(){if(Defocus!=null)Defocus.End();if(paperRetained && paper!=null)UnityEngine.Object.Destroy(paper.gameObject);foreach(var m in wardMaterials)if(m!=null)UnityEngine.Object.Destroy(m);if(albumTexture!=null){albumTexture.Release();UnityEngine.Object.Destroy(albumTexture);}if(pageMaterial!=null)UnityEngine.Object.Destroy(pageMaterial);base.Dispose();}
+        bool PageRay(Ray ray,out Ray bookRay)
         {
-            float cupAway = State.CupContact ? 0 : Mathf.Sin((State.Elapsed % 5 - 2.7f) / 2.3f * Mathf.PI) * .57f;
-            cupHand.localPosition = cupHandContact + new Vector3(cupAway, cupAway * .35f, 0);
-            cupContact.gameObject.SetActive(State.CupContact);
-            float gap = State.HandsContact ? 0 : Mathf.Sin((State.Elapsed % 6 - 3.8f) / 2.2f * Mathf.PI) * .43f;
-            leftHand.localPosition = leftContact + Vector3.left * gap;
-            rightHand.localPosition = rightContact + Vector3.right * gap;
-            handsContact.gameObject.SetActive(State.HandsContact);
-            float light = State.Focus / 1.25f * .18f;
-            scarfRenderer.sharedMaterial.color = new Color(.64f + (State.Phase == 0 ? light : 0), .31f + (State.Phase == 0 ? light : 0), .28f);
-            cupContact.sharedMaterial.color = new Color(.80f + (State.Phase == 1 ? light : 0), .67f, .54f);
-            handsContact.sharedMaterial.color = new Color(.75f + (State.Phase == 2 ? light : 0), .63f, .51f);
+            bookRay=ray;RaycastHit hit;
+            if(pageCollider==null || !pageCollider.gameObject.activeInHierarchy || !pageCollider.Raycast(ray,out hit,10))return false;
+            bookRay=albumCamera.ViewportPointToRay(hit.textureCoord);return true;
+        }
+        public override string Pick(Ray ray)
+        {
+            Ray bookRay;if(State.BookOpen && PageRay(ray,out bookRay))ray=bookRay;
+            RaycastHit hit;if(!Physics.Raycast(ray,out hit,50,State.BookOpen?1<<RouteLayer:1<<ObservationLayer))return "";
+            var hotspot=hit.collider.GetComponent<WorldHotspot>();return hotspot!=null?hotspot.Id:"";
+        }
+        public override void Press(string id,Ray ray,int button)
+        {
+            if(State.Phase>=2)return;
+            if(button==1 && !State.BookOpen && !focusHeld){looking=true;lastLook=Input.mousePosition;return;}
+            if(button!=0 || looking)return;
+            if(!State.BookOpen){focusHeld=true;return;}
+            Ray bookRay;
+            if(id=="album-key" && State.AtDoor && State.Painted[4] && !State.KeyInserted && PageRay(ray,out bookRay))
+            {keyDragging=true;keyPlane=new Plane(Vector3.forward,key.position);float d;keyOffset=keyPlane.Raycast(bookRay,out d)?key.position-bookRay.GetPoint(d):Vector3.zero;}
+        }
+        public override void Move(Ray ray)
+        {
+            pointer=View.WorldToViewportPoint(ray.GetPoint(2));
+            if(looking){Vector2 now=Input.mousePosition,delta=now-lastLook;lastLook=now;yaw=Mathf.Clamp(yaw+delta.x*.12f,-65,65);pitch=Mathf.Clamp(pitch-delta.y*.12f,-40,40);}
+            if(keyDragging){Ray bookRay;float d;if(PageRay(ray,out bookRay)&&keyPlane.Raycast(bookRay,out d))key.position=bookRay.GetPoint(d)+keyOffset;}
+            GazeTarget=Pick(ray);
+        }
+        public override void Release(string id,Ray ray)
+        {
+            looking=focusHeld=false;
+            if(!keyDragging)return;
+            Ray bookRay;bool matched=false;
+            if(PageRay(ray,out bookRay))
+            {float d;var plane=new Plane(Vector3.forward,hole.position);matched=plane.Raycast(bookRay,out d)&&Vector3.Distance(bookRay.GetPoint(d),hole.position)<.55f;}
+            keyDragging=false;if(matched && State.InsertPendant()){key.gameObject.SetActive(false);Host?.SaveStableProgress();}else key.localPosition=keyHome;
+        }
+        public override void Tick(float dt,WBInput input)
+        {
+            if(!built)return;View.transform.position=fixedEye;View.transform.rotation=fixedRotation*Quaternion.Euler(pitch,yaw,0);
+            if(pointer.y>.16f && pointer.y<.84f)edgeArmed=true;
+            if(State.Phase<2 && edgeArmed && !HasPointerGesture && (State.BookOpen?pointer.y>.94f:pointer.y<.06f))
+            {State.SetBook(!State.BookOpen);edgeArmed=false;Host?.InputContext.Handoff();Host?.SyncInputContext();}
+            string[] ids={"shape-swing","shape-bridge","shape-luggage","shape-flower","shape-pendant"};
+            int id=Array.IndexOf(ids,GazeTarget);if(State.Observe(id,focusHeld,dt))Host?.SaveStableProgress();
+            Eye=fixedEye;Look=Eye+View.transform.forward;
+            State.NoseHeight=nose.position.y-ward.position.y;
+            State.Tick(dt,input);if(!Active)return;
+            Defocus.SetFocusHeld(State.BookOpen || focusHeld,dt);RefreshAlbum();
+            if(State.Phase>=2)RefreshWard();
+        }
+        void RefreshAlbum()
+        {
+            bool second=State.Phase==1;
+            foreach(string id in new[]{"ground-a","ground-mid","ground-end","swing-pivot"})Nodes[id].SetActive(State.Phase==0);
+            if(second){Nodes["ground-a"].SetActive(true);Nodes["ground-a"].transform.localPosition=new Vector3(3,-.15f,0);Nodes["ground-a"].transform.localScale=new Vector3(6,.3f,1);}
+            foreach(string id in new[]{"pressure-plate","pressure-gate","visible-linkage","high-platform","key-door"})Nodes[id].SetActive(second);
+            Nodes["gate-walkway"].SetActive(second && State.PlatePressed);
+            bridge.gameObject.SetActive(State.Phase==0 && State.Painted[1]);bridge.localScale=new Vector3(3*State.BridgeGrowth,.2f,1);
+            swingSeat.gameObject.SetActive(State.Phase==0 && State.Painted[0]);swingRope.gameObject.SetActive(swingSeat.gameObject.activeSelf);
+            var seat=State.SwingSeat;swingSeat.localPosition=new Vector3(seat.x,seat.y,0);
+            swingRope.localPosition=(swingSeat.localPosition+new Vector3(4.5f,3.3f,0))*.5f;swingRope.localRotation=Quaternion.Euler(0,0,State.SwingAngle*Mathf.Rad2Deg);
+            crate.gameObject.SetActive(second && State.Painted[2]);crate.localPosition=new Vector3(State.CrateX,.35f,0);
+            gate.localPosition=new Vector3(6,State.PlatePressed?3.2f:1,0);linkage.localRotation=Quaternion.Euler(0,0,State.PlatePressed?8:0);
+            flower.gameObject.SetActive(second && State.Painted[3]);flower.localRotation=Quaternion.Euler(0,0,State.FlowerAngle*Mathf.Rad2Deg);
+            for(int i=0;i<6;i++)
+            {
+                var p=State.FlowerSeat(i);petals[i].gameObject.SetActive(second && State.Painted[3]);petals[i].localPosition=new Vector3(p.x,p.y,0);petals[i].localRotation=Quaternion.identity;
+                var arm=flower.GetChild(i);arm.localScale=new Vector3(.12f,2,.12f)/.45f;float a=i*Mathf.PI/3;arm.localPosition=new Vector3(Mathf.Cos(a),Mathf.Sin(a),0)/.45f;arm.localRotation=Quaternion.Euler(0,0,i*60-90);
+            }
+            hole.gameObject.SetActive(second && !State.KeyInserted);Nodes["key-door"].SetActive(second && !State.KeyInserted);
+            key.gameObject.SetActive(second && State.Painted[4] && !State.KeyInserted);if(!keyDragging)key.localPosition=keyHome;
+            actor.localPosition=new Vector3(State.Actor.x,State.Actor.y+.3f,-.05f);actor.localRotation=Quaternion.identity;
+            paper.gameObject.SetActive(State.BookOpen || State.Phase>=2);paper.SetPositionAndRotation(fixedEye+View.transform.rotation*new Vector3(0,-.14f,.85f),View.transform.rotation);
+            observation.gameObject.SetActive(State.Phase<3);
         }
     }
 }
-
-
-
-
-

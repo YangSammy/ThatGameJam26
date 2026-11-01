@@ -273,7 +273,13 @@ namespace MemoryWhitebox
             if(frame.taskId=="bridge" && stored.bridge!=null)stored.bridge.captured=true;
             if(frame.taskId=="entrance" && stored.entrance!=null)stored.entrance.captured=true;
             if(frame.taskId=="meadow" && stored.meadow!=null)stored.meadow.captured=true;
-            if(stored.Remaining==0)stored.state=ParkFilmState.AwaitingDevelopment;
+            if(stored.Remaining==0)
+            {
+                stored.state=ParkFilmState.AwaitingDevelopment;
+                // Persist an explicit initial stage: JsonUtility may materialize a null
+                // nested class as its default legacy DarkBag state on a later read.
+                stored.darkroom=new ParkDarkroomProgress{workflowVersion=3,phase=PhotoChapter.FilmPhase.Exposed,printObjects=new DarkroomPrintState()};
+            }
             Validate(stored);WriteJson(Manifest(stored.id),stored);return stored;
         }
         // Only the darkroom uses this after persisting the completed processing state.

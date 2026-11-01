@@ -69,7 +69,7 @@ namespace MemoryWhitebox
             if(DataBinding!=null && DataBinding.ChapterId!=ChapterIds.Photography){Debug.LogError("Park chapter binding must reference photography.",this);enabled=false;return;}
             motor=GetComponent<CharacterController>();
             if(view==null || spawn==null || companion==null || focusEffect==null){Debug.LogError("Park photo prototype is missing scene references.",this);enabled=false;return;}
-            var story=FiveDayProgress.Load();
+            var story=FiveDayProgress.LoadForSession();
             if(!story.CanEnter(1))
             {
                 companion.Paused=true;enabled=false;

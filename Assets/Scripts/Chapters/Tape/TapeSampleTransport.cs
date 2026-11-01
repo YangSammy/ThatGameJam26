@@ -20,6 +20,7 @@ namespace MemoryWhitebox
         string sourceHash;
         bool configured;
         public int Rate=>rate;
+        public float TargetCapacitySeconds {get{lock(sync)return target==null?0:target.Length/(float)Math.Max(1,rate);}}
         public float SourceDuration {get{lock(sync)return source==null?0:source.Length/(float)Math.Max(1,rate);}}
         public float SourceSeconds {get{lock(sync)return a/(float)Math.Max(1,rate);}}
         public float TargetSeconds {get{lock(sync)return b/(float)Math.Max(1,rate);}}

@@ -7,6 +7,7 @@ namespace MemoryWhitebox
     {
         public Transform model;
         public BoxCollider body;
+        [Min(0)] public float rearInteractionDepth;
         Matrix4x4 lastMatrix;
         void OnEnable(){Sync();}
         void LateUpdate(){if(model!=null && model.localToWorldMatrix!=lastMatrix)Sync();}
@@ -23,7 +24,7 @@ namespace MemoryWhitebox
                     if(first){bounds=new Bounds(p,Vector3.zero);first=false;}else bounds.Encapsulate(p);
                 }
             }
-            if(!first){body.center=bounds.center;body.size=bounds.size;}
+            if(!first){if(rearInteractionDepth>0){var size=bounds.size;var center=bounds.center;center.z=bounds.max.z-rearInteractionDepth*.5f;size.z=rearInteractionDepth;body.center=center;body.size=size;}else{body.center=bounds.center;body.size=bounds.size;}}
             lastMatrix=model.localToWorldMatrix;
         }
     }

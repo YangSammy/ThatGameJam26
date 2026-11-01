@@ -53,13 +53,15 @@ namespace MemoryWhitebox
         void LoadStoryProgress()
         {
             #if UNITY_EDITOR
-            story=FiveDayProgress.Load(unlockAllChaptersInEditor);
+            FiveDayProgress.DevelopmentSession=unlockAllChaptersInEditor;
 #else
-            story=FiveDayProgress.Load();
+            FiveDayProgress.DevelopmentSession=false;
 #endif
+            story=FiveDayProgress.LoadForSession();
             if(!story.Available)return;
             try
             {
+                OperationArea.Restore(story.AreaPlacements);
                 for(int i=0;i<chapters.Length;i++)
                 {
                     chapters[i].RestoreCheckpoint(story.Checkpoint(i));
@@ -86,6 +88,7 @@ namespace MemoryWhitebox
                 bool saved=chapters[i].Completed?CommitStoryCompletion(i):story.SaveCheckpoint(i,chapters[i].CaptureCheckpoint());
                 if(!saved){LastSaveError=story.Error;return false;}
             }
+            if(!story.SaveAreaPlacements(OperationArea.Capture())){LastSaveError=story.Error;return false;}
             LastSaveError="";return true;
         }
         bool CommitStoryCompletion(int index)
@@ -101,7 +104,8 @@ namespace MemoryWhitebox
         {
             Done[index]=true;
             DayChanged?.Invoke(story.Day);
-            leaveCompletedChapter=index!=1 && InStation && ChapterIndex==index;
+            if(index==3){CutBackFromWinter();return;}
+            leaveCompletedChapter=index!=1 && index!=4 && InStation && ChapterIndex==index;
             if(index==0)radioDeck.SuspendInput();
         }
         public SaveResult CommitPreparedChapter(string id,string payload,bool completed,ArtifactReference artifact)
@@ -127,8 +131,9 @@ namespace MemoryWhitebox
             if(paused)
             {
                 safeInspection?.Close();radioDeck?.SuspendInput();
-                CurrentWorld?.Release("",pointerRay);
-                (CurrentWorld as PhotoWorld3D)?.SaveProgress();SaveStableProgress();
+                var activeWorld=DirectDarkroomActive?DarkroomWorld:CurrentWorld;
+                activeWorld?.CancelPointerGesture();InputState.Down=false;
+                (activeWorld as PhotoWorld3D)?.SaveProgress();SaveStableProgress();
             }
             houseFocused=!paused;SyncInputContext();SuspendHouseInput();RestoreHouseCursor();
         }

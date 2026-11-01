@@ -13,5 +13,6 @@ MonoBehaviour:
   m_Name: autumn.writing
   m_EditorClassIdentifier: 
   chapterId: autumn.writing
-  contentVersion: 1
-  gameplayConfigurations: []
+  contentVersion: 2
+  gameplayConfigurations:
+  - {fileID: 11400000, guid: cf92989b31fa4705bfa7239140f56aa6, type: 2}

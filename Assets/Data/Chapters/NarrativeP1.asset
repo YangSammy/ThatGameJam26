@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f42737aa07d54428bd91b26620febfef, type: 3}
+  m_Name: NarrativeP1
+  m_EditorClassIdentifier: 
+  writingSeconds: 60
+  farewellHold: 1.2
+  shapeFocusSeconds: 1.2
+  albumSpeed: 2.5
+  jumpSpeed: 5
+  gravity: 12
+  swingMaxDegrees: 65
+  flowerRadiansPerSecond: 0.65
+  whiteTransitionSeconds: 1.2
+  wardWalkDistance: 8
+  springSeconds: 5

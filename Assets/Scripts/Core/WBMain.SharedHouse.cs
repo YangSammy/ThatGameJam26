@@ -6,6 +6,7 @@ namespace MemoryWhitebox
     {
         public bool sharedHouse;
         public bool deskStudy;
+        public bool tapeDeskView=true;
         public Transform StudyEntries {get;private set;}
         public StudyCurtain Curtain {get;private set;}
         bool studyRevealed;
@@ -65,8 +66,10 @@ namespace MemoryWhitebox
                 CreateHouseChapter(i);
                 if(deskStudy)worlds[i].Root.SetActive(false);
             }
+            ((PhotoWorld3D)worlds[1]).BindOperationAreas();
             BindChapterData();
             LoadStoryProgress();
+            ((PaintingWorld3D)worlds[3]).RestoreFinalPaper();
             ((PaintingWorld3D)worlds[3]).BindSharedScarf((EndingWorld3D)worlds[4]);
             var hands=playerHands;hands.BindHouse(this);hands.Register(0,worlds[0]);
             for(int i=1;i<5;i++)hands.Register(i,worlds[i]);
@@ -94,7 +97,7 @@ namespace MemoryWhitebox
         }
         public bool TryEnterHouseStation(int index)
         {
-            if(index==0 || DirectTapeHandling)return false;
+            if((index==0 && !tapeDeskView) || DirectTapeHandling)return false;
             if(deskStudy && index==5 && !InStation && transition<=0){var curtainEntry=StudyEntry.Pick(Room.Camera);if(curtainEntry==null || curtainEntry.chapter!=5)return false;Curtain.Toggle();return true;}
             if(!houseReady || InStation || transition>0 || index<0 || index>=5)return false;
             if(!CanEnterDay(index))
@@ -124,14 +127,18 @@ namespace MemoryWhitebox
         }
         void EnterHouseStation(int index)
         {
-            if(!houseReady || InStation || DirectTapeHandling || transition>0 || index<=0 || index>=5)return;
+            if(!houseReady || InStation || DirectTapeHandling || transition>0 || index<0 || index>=5)return;
             if(!CanEnterDay(index))return;
+            if(index==4){springPreview=true;return;}
+            if(index==3 && chapters[3].Completed)return;
             if(index==1 && DarkroomWorld!=null && DarkroomWorld.DirectDarkroomAvailable){PrepareContinuousDarkroom();return;}
             SaveStableProgress();
             radioDeck.SetStationActive(false);
             roomEye=Room.Camera.transform.position;roomRotation=Room.Camera.transform.rotation;roomFov=Room.Camera.fieldOfView;
             ChapterIndex=index;Current=chapters[index];CurrentWorld=worlds[index];
             if(index==0 && CurrentWorld is RadioTapeWorld)((RadioTapeWorld)CurrentWorld).ReadViewAnchor();
+            var configuredView=FindChapterBinding(ChapterIds.At(index))?.operationView;
+            if(configuredView!=null){CurrentWorld.Eye=configuredView.transform.position;CurrentWorld.Look=CurrentWorld.Eye+configuredView.transform.forward;CurrentWorld.Fov=configuredView.fieldOfView;}
             InStation=true;ShowHelp=false;awaitRelease=true;houseHandoff.Arm();houseReturnGate=false;returningToRoom=false;
             Room.EnableLook(false);InputState.Keys.Clear();InputState.Down=false;
             studyRevealed=false;
@@ -169,7 +176,7 @@ namespace MemoryWhitebox
         void SetStudyPresentation(int index)
         {
             if(!deskStudy)return;
-            for(int i=1;i<5;i++)worlds[i].Root.SetActive(i==index || (index==3 && i==4));
+            for(int i=1;i<5;i++)worlds[i].Root.SetActive(i==index || (i==4 && SpringActive));
             if(StudyEntries!=null){if(index>0 && radioDeck!=null)radioDeck.PrepareForHide();StudyEntries.gameObject.SetActive(index<0 || (index==0 && radioDeck!=null));}
             if(index<0)PrepareContinuousDarkroom();
         }
@@ -223,7 +230,7 @@ namespace MemoryWhitebox
         {
             if(!InStation || transition>0 || !awaitRelease)return;
             awaitRelease=false;wasDown=wasRightDown=false;
-            if(ChapterIndex==0)radioDeck.SetStationActive(true);
+            if(ChapterIndex==0){radioDeck.SetStationActive(true);if(tapeDeskView)radioDeck.OpenWorkbench();}
             else CurrentWorld.Activate();
             var angles=Room.Camera.transform.eulerAngles;lookYaw=angles.y;lookPitch=angles.x>180?angles.x-360:angles.x;
             PlayerInputPolicy.ApplyCursor(ControlState,CurrentWorld.WantsMouseLook);
@@ -241,8 +248,14 @@ namespace MemoryWhitebox
             }
             returningToRoom=true;ShowHelp=false;awaitRelease=false;houseReturnGate=false;
             InputState.Keys.Clear();InputState.Down=false;
-            if(photo==null)CurrentWorld?.Release("",pointerRay);
+            if(photo==null)CurrentWorld?.CancelPointerGesture();
             BeginHouseTransition(roomEye,roomRotation,roomFov);
+        }
+        public void ExitTapeDeskView()
+        {
+            if(!InStation || ChapterIndex!=0)return;
+            radioDeck.CloseWorkbench();radioDeck.CloseRecording();
+            ExitHouseStation();
         }
         void CompleteHouseExit()
         {
@@ -269,6 +282,9 @@ namespace MemoryWhitebox
         void UpdateHouse()
         {
             if(!houseReady || Room==null || !houseFocused)return;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if(PollDebugChapterKeys())return;
+#endif
             TickStoryProgress();
             RestoreHouseCursor();
             if(radioDeck.SuccessPopupOpen){Room.StopMotion();return;}
@@ -277,10 +293,6 @@ namespace MemoryWhitebox
             if(houseReturnGate){Room.StopMotion();ReleaseHouseReturnInput(houseHandoff.Ready);return;}
             if(awaitRelease){if(houseHandoff.Ready)ReleaseHouseEntryInput();return;}
             if(!InputContext.Ready){Room.StopMotion();return;}
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if(Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
-            {DebugEnterDarkroom();return;}
-#endif
             if(radioDeck.RecordingMode){radioDeck.TickRecording();return;}
             if(radioDeck.WorkbenchMode){radioDeck.TickWorkbench();return;}
             if(ExitHouseContext())return;
@@ -294,6 +306,7 @@ namespace MemoryWhitebox
             if(transition>0){AdvanceHouseTransition(dt);return;}
             if(!InStation)
             {
+                if(TickSpring(dt))return;
                 if(TickContinuousDarkroom(dt))return;
                 if(!radioDeck.StationActive && CanEnterDay(0))radioDeck.SetStationActive(true);
                 if(!CanEnterDay(0) && radioDeck.StationActive)radioDeck.SetStationActive(false);
@@ -303,6 +316,16 @@ namespace MemoryWhitebox
                 if(DirectTapeHandling)Room.StopMotion();else Room.WalkTick(dt);
                 var ray=DirectTapeHandling?Room.Camera.ScreenPointToRay(Input.mousePosition):Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f));
                 bool radioTarget=radioDeck.IsEntryHit(StudyEntry.PickVisible(ray));
+                if(tapeDeskView)
+                {
+                    if(Input.GetKeyDown(KeyCode.E)){TryInspectStudyEntry();return;}
+                    if(Input.GetMouseButtonDown(0))
+                    {
+                        var entry=StudyEntry.Pick(Room.Camera);
+                        if(entry!=null)TryEnterHouseStation(entry.chapter);
+                    }
+                    return;
+                }
                 if(Input.GetKeyDown(KeyCode.E))
                 {
                     if(DirectTapeHandling || radioTarget){if(radioDeck.TryInspect(ray))return;}
@@ -340,9 +363,9 @@ namespace MemoryWhitebox
             var photoWorld=CurrentWorld as PhotoWorld3D;
             bool photoUI=deskStudy && photoWorld!=null && photoWorld.PointerOverUI;
             if(down&&!wasDown && !photoUI){bool curtainClick=deskStudy && photoWorld!=null && !photoWorld.Photo.InViewfinder && !photoWorld.Photo.MeterVisible && TryToggleStudyCurtain(pointerRay);if(!curtainClick)CurrentWorld.Press(id,pointerRay,0);}if(right&&!wasRightDown && !photoUI)CurrentWorld.Press(id,pointerRay,1);
-            CurrentWorld.Move(pointerRay);if(!down&&wasDown || !right&&wasRightDown)CurrentWorld.Release(id,pointerRay);
+            CurrentWorld.Move(pointerRay);if(!down&&wasDown || !down&&!right&&wasRightDown)CurrentWorld.Release(id,pointerRay);
             if(!photoUI && Mathf.Abs(Input.mouseScrollDelta.y)>.01f)CurrentWorld.Scroll(id,Input.mouseScrollDelta.y,pointerRay);
-            CurrentWorld.Tick(dt,InputState);if(!CurrentWorld.WantsMouseLook)CurrentWorld.ApplyPose();
+            CurrentWorld.Tick(ChapterIndex==2?Time.unscaledDeltaTime:dt,InputState);if(!InStation)return;if(!CurrentWorld.WantsMouseLook)CurrentWorld.ApplyPose();
             Done[ChapterIndex]=story.IsComplete(ChapterIndex);wasDown=down;wasRightDown=right;
         }
         // House owns cursor policy outside the inspection modal. Focus/Editor unlocks
@@ -363,6 +386,7 @@ namespace MemoryWhitebox
         void DrawHouse()
         {
             if(!houseReady || Room==null)return;
+            if(StoryFinished){var old=GUI.color;GUI.color=new Color(1,.98f,.91f,1);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=old;return;}
             if(radioDeck!=null && radioDeck.SuccessPopupOpen)return;
             if(safeInspection!=null && safeInspection.BlocksInput)return;
             if(transition>0)
@@ -393,6 +417,7 @@ namespace MemoryWhitebox
                 if(deskStudy && Room.AimedStation==1)
                     hint=((PhotoWorld3D)worlds[1]).HouseCameraEntryHint+(safeInspection!=null?"  /  E  Inspect":"");
                 if(Time.unscaledTime<cameraRouteNoticeUntil)hint=cameraRouteNotice;
+                if(SpringActive)hint=((EndingChapter)chapters[4]).DoorOpen?"Walk through the doorway":"LMB  Open the entrance door";
                 InteractionUI.Label(new Rect(28,Screen.height-50,580,34),hint,style);
             }
             else if(InStation)
@@ -415,13 +440,9 @@ namespace MemoryWhitebox
         string OperationHint()
         {
             if(Current.Completed)return "Complete  /  Esc  Back";
-            var writing=Current as WritingChapter;
-            if(writing!=null)return writing.Phase=="crumple"?"LMB drag paper to bin":writing.Phase=="return"?
-                "WASD  Carry scarf to window  /  LMB drag  Keep writing":"LMB drag  Write  /  WASD  Move memory  /  E  Hold door";
-            var painting=Current as PaintingChapter;
-            if(painting!=null)return "Hold LMB  Focus  /  "+(painting.Phase==0?"Scarf":painting.Phase==1?"Cup contact":"Joined hands")+(painting.Ready?"":"  /  Wait for contact");
-            var scarf=Current as EndingChapter;
-            if(scarf!=null)return scarf.Phase==0?"LMB drag  Smooth corner":scarf.Phase==1?"LMB drag  Fold end":"Hold WASD + LMB drag  Tighten";
+            var writing=Current as WritingChapter;if(writing!=null)return writing.TaskHint;
+            var painting=Current as PaintingChapter;if(painting!=null)return painting.TaskHint;
+            if(Current is EndingChapter)return "LMB  Open door / Walk through";
             return "LMB  Interact  /  Esc  Back";
         }
     }

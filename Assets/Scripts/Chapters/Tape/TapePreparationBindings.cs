@@ -15,8 +15,8 @@ namespace MemoryWhitebox
         public void ShowState(TapeInspectionState.Candidate data)
         {
             if(pieces.Length!=4)return;
-            if(pieces[0]!=null)pieces[0].GetComponent<Renderer>().sharedMaterial=data.HoleA?adhesiveMaterial:socketMaterial;
-            if(pieces[1]!=null)pieces[1].GetComponent<Renderer>().sharedMaterial=data.HoleB?adhesiveMaterial:socketMaterial;
+            if(pieces[0]!=null && pieces[0].TryGetComponent<Renderer>(out var a))a.sharedMaterial=data.HoleA?adhesiveMaterial:socketMaterial;
+            if(pieces[1]!=null && pieces[1].TryGetComponent<Renderer>(out var b))b.sharedMaterial=data.HoleB?adhesiveMaterial:socketMaterial;
         }
     }
 }

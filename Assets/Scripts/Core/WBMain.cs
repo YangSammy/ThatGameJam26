@@ -42,7 +42,7 @@ namespace MemoryWhitebox
         {
             if(ShowHelp==visible)return;
             var photo=DirectDarkroomActive?DarkroomWorld:CurrentWorld as PhotoWorld3D;
-            if(photo!=null)photo.CancelInteraction();else CurrentWorld?.Release("",pointerRay);
+            if(photo!=null)photo.CancelInteraction();else CurrentWorld?.CancelPointerGesture();
             InputState.Keys.Clear();InputState.Down=false;
             wasDown=Input.GetMouseButton(0);wasRightDown=Input.GetMouseButton(1);
             ShowHelp=visible;SuspendHouseInput();SyncInputContext();
@@ -56,7 +56,7 @@ namespace MemoryWhitebox
             InputState.Keys.Clear();InputState.Down=false;wasDown=wasRightDown=false;
             var photo=DirectDarkroomActive?DarkroomWorld:CurrentWorld as PhotoWorld3D;
             if(photo!=null){photo.CancelInteraction();photo.SaveProgress();}
-            else if(ChapterIndex==0)radioDeck?.SuspendInput();else CurrentWorld?.Release("",pointerRay);
+            else if(ChapterIndex==0)radioDeck?.SuspendInput();else CurrentWorld?.CancelPointerGesture();
             radioDeck?.SuspendInput();SaveStableProgress();
         }
         void OnDestroy(){SaveStableProgress();foreach(var world in worlds)world?.Dispose();if(Instance==this)Instance=null;}
