@@ -1,0 +1,12 @@
+﻿向右木路牌 | WoodenSign_Right
+Unity 内：Assets/ParkExtras/ParkSign_Ready/Prefabs/向右木路牌_WoodenSign_Right.prefab。
+拖到木凳旁边即可。默认约1.5米高，箭头朝模型本地+X；转Y轴使牌面朝向玩家，并从Game视角确认它指着屏幕右边。相机位置不同，屏幕左右会变化。
+木桩和箭头板合为一体，原点在底部。配好Standard木纹材质及法线，不带碰撞、交互或动画，不会自动改你的场景。
+目前留空无文字，供之后添加目的地。
+基础木桩：3DAssets.dev Frontier trail signpost，CC0。
+https://3dassets.dev/assets/frontier-trail-signpost
+https://creativecommons.org/publicdomain/zero/1.0/
+处理：保留木桩，移除原多方向牌面，重做单个右箭头牌面，调整到1.5米、添加UV和木纹，转换FBX并创建Unity预制体。
+木纹：Poly Haven Weathered Brown Planks，CC0；Dimitrios Savva / Rico Cilliers。
+https://polyhaven.com/a/weathered_brown_planks
+https://polyhaven.com/license

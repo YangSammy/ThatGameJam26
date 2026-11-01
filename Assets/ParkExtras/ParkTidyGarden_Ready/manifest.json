@@ -1,0 +1,391 @@
+[
+  {
+    "model": "Hedge_Round",
+    "label": "圆润低灌木",
+    "group": "01_修剪灌木",
+    "height": 0.47999998927116394,
+    "triangles": 1240,
+    "materials": {
+      "Hedge_SmallRound": "Hedge_SmallRound_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.699999988079071,
+      0.6365233659744263,
+      0.47999998927116394
+    ]
+  },
+  {
+    "model": "Hedge_Block",
+    "label": "方整低绿篱",
+    "group": "01_修剪灌木",
+    "height": 0.44999998807907104,
+    "triangles": 1210,
+    "materials": {
+      "Hedge_Small": "Hedge_Small_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.6941134929656982,
+      0.699999988079071,
+      0.44999998807907104
+    ]
+  },
+  {
+    "model": "Hedge_SoftStrip",
+    "label": "圆角绿篱条",
+    "group": "01_修剪灌木",
+    "height": 0.44999998807907104,
+    "triangles": 2480,
+    "materials": {
+      "Hedge_LongRound": "Hedge_LongRound_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      1.2500001192092896,
+      0.4999999701976776,
+      0.44999998807907104
+    ]
+  },
+  {
+    "model": "Hedge_Straight",
+    "label": "整齐绿篱条",
+    "group": "01_修剪灌木",
+    "height": 0.45000001788139343,
+    "triangles": 2410,
+    "materials": {
+      "Hedge_Long": "Hedge_Long_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      1.25,
+      0.48000001907348633,
+      0.45000001788139343
+    ]
+  },
+  {
+    "model": "Hedge_Arch",
+    "label": "绿篱拱门_备用",
+    "group": "01_修剪灌木",
+    "height": 2.0999999046325684,
+    "triangles": 9640,
+    "materials": {
+      "Hedge_Arch": "Hedge_Arch_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      1.899999976158142,
+      0.4000000059604645,
+      2.0999999046325684
+    ]
+  },
+  {
+    "model": "Topiary_Ball",
+    "label": "修剪球形灌木",
+    "group": "01_修剪灌木",
+    "height": 0.6497344374656677,
+    "triangles": 21070,
+    "materials": {
+      "Topiary_Ball_3": "Topiary_Ball_3_Albedo.png",
+      "Topiary_Ball_0": "Topiary_Ball_0_Albedo.png",
+      "Topiary_Ball_1": "Topiary_Ball_1_Albedo.png",
+      "Topiary_Ball_2": "Topiary_Ball_2_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.6986587643623352,
+      0.6995683312416077,
+      0.6497344374656677
+    ]
+  },
+  {
+    "model": "Topiary_Dome",
+    "label": "修剪半球灌木",
+    "group": "01_修剪灌木",
+    "height": 0.41999998688697815,
+    "triangles": 21070,
+    "materials": {
+      "Topiary_Dome_2": "Topiary_Dome_2_Albedo.png",
+      "Topiary_Dome_3": "Topiary_Dome_3_Albedo.png",
+      "Topiary_Dome_0": "Topiary_Dome_0_Albedo.png",
+      "Topiary_Dome_1": "Topiary_Dome_1_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.8480034470558167,
+      0.8494317531585693,
+      0.41999998688697815
+    ]
+  },
+  {
+    "model": "Boxwood_Low",
+    "label": "黄杨低绿篱",
+    "group": "01_修剪灌木",
+    "height": 0.45000001788139343,
+    "triangles": 25672,
+    "materials": {
+      "Boxwood_Low_3": "Boxwood_Low_3_Albedo.png",
+      "Boxwood_Low_0": "Boxwood_Low_0_Albedo.png",
+      "Boxwood_Low_1": "Boxwood_Low_1_Albedo.png",
+      "Boxwood_Low_2": "Boxwood_Low_2_Albedo.png",
+      "Boxwood_Low_4": "Boxwood_Low_4_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.9984854459762573,
+      0.6293773651123047,
+      0.45000001788139343
+    ]
+  },
+  {
+    "model": "Rounded_Shrub",
+    "label": "自然圆润灌木",
+    "group": "01_修剪灌木",
+    "height": 0.550000011920929,
+    "triangles": 14688,
+    "materials": {
+      "Rounded_Shrub_2": "Rounded_Shrub_2_Albedo.png",
+      "Rounded_Shrub_0": "Rounded_Shrub_0_Albedo.png",
+      "Rounded_Shrub_1": "Rounded_Shrub_1_Albedo.png",
+      "Rounded_Shrub_3": "Rounded_Shrub_3_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.8500000238418579,
+      0.83689945936203,
+      0.550000011920929
+    ]
+  },
+  {
+    "model": "Hydrangea_Bush",
+    "label": "整簇绣球花",
+    "group": "02_整块花丛地被",
+    "height": 0.699999988079071,
+    "triangles": 19623,
+    "materials": {
+      "Hydrangea_Bush_0": "Hydrangea_Bush_0_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.800000011920929,
+      0.792149543762207,
+      0.699999988079071
+    ]
+  },
+  {
+    "model": "Clover_Patch",
+    "label": "整片三叶草",
+    "group": "02_整块花丛地被",
+    "height": 0.14000000059604645,
+    "triangles": 14367,
+    "materials": {
+      "Clover_Patch_0": "Clover_Patch_0_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.6499999761581421,
+      0.6269603967666626,
+      0.14000000059604645
+    ]
+  },
+  {
+    "model": "Periwinkle_Rect",
+    "label": "长春花整片花境",
+    "group": "02_整块花丛地被",
+    "height": 0.23999999463558197,
+    "triangles": 45687,
+    "materials": {
+      "Periwinkle": "Periwinkle_Albedo.png",
+      "Garden_Cushion_3": "Garden_Cushion_3_Albedo.png",
+      "Garden_Cushion_0": "Garden_Cushion_0_Albedo.png",
+      "Garden_Cushion_1": "Garden_Cushion_1_Albedo.png",
+      "Garden_Cushion_2": "Garden_Cushion_2_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      1.0,
+      0.6453624963760376,
+      0.23999999463558197
+    ]
+  },
+  {
+    "model": "Periwinkle_Round",
+    "label": "长春花圆形花簇",
+    "group": "02_整块花丛地被",
+    "height": 0.24000000953674316,
+    "triangles": 32019,
+    "materials": {
+      "Periwinkle": "Periwinkle_Albedo.png",
+      "Garden_Cushion_2": "Garden_Cushion_2_Albedo.png",
+      "Garden_Cushion_3": "Garden_Cushion_3_Albedo.png",
+      "Garden_Cushion_0": "Garden_Cushion_0_Albedo.png",
+      "Garden_Cushion_1": "Garden_Cushion_1_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.6499999761581421,
+      0.6385498046875,
+      0.24000000953674316
+    ]
+  },
+  {
+    "model": "Daisy_Bed_Rect",
+    "label": "整块雏菊花境",
+    "group": "02_整块花丛地被",
+    "height": 0.3800000250339508,
+    "triangles": 40661,
+    "materials": {
+      "Garden_Cushion_2": "Garden_Cushion_2_Albedo.png",
+      "Garden_Cushion_3": "Garden_Cushion_3_Albedo.png",
+      "Garden_Cushion_0": "Garden_Cushion_0_Albedo.png",
+      "Garden_Cushion_1": "Garden_Cushion_1_Albedo.png",
+      "Bed_Daisy_Stem": "Bed_Daisy_Stem_Albedo.png",
+      "Bed_Daisy_Pollen": "Bed_Daisy_Pollen_Albedo.png",
+      "Bed_Daisy_Petals": "Bed_Daisy_Petals_Albedo.png",
+      "Bed_Daisy_Leaves": "Bed_Daisy_Leaves_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      1.2000000476837158,
+      0.6499999761581421,
+      0.3800000250339508
+    ]
+  },
+  {
+    "model": "Daisy_Bed_Round",
+    "label": "圆形雏菊花丛",
+    "group": "02_整块花丛地被",
+    "height": 0.3800000250339508,
+    "triangles": 31213,
+    "materials": {
+      "Garden_Cushion_3": "Garden_Cushion_3_Albedo.png",
+      "Garden_Cushion_0": "Garden_Cushion_0_Albedo.png",
+      "Garden_Cushion_1": "Garden_Cushion_1_Albedo.png",
+      "Garden_Cushion_2": "Garden_Cushion_2_Albedo.png",
+      "Bed_Daisy_Stem": "Bed_Daisy_Stem_Albedo.png",
+      "Bed_Daisy_Pollen": "Bed_Daisy_Pollen_Albedo.png",
+      "Bed_Daisy_Petals": "Bed_Daisy_Petals_Albedo.png",
+      "Bed_Daisy_Leaves": "Bed_Daisy_Leaves_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.8199999928474426,
+      0.8199999928474426,
+      0.3800000250339508
+    ]
+  },
+  {
+    "model": "Hydrangea_Blue_Cluster",
+    "label": "蓝色绣球小花簇",
+    "group": "02_整块花丛地被",
+    "height": 0.46000000834465027,
+    "triangles": 43860,
+    "materials": {
+      "Hydrangea_Blue_0": "Hydrangea_Blue_0_Albedo.png",
+      "Hydrangea_Blue_2": "Hydrangea_Blue_2_Albedo.png",
+      "Hydrangea_Blue_1": "Hydrangea_Blue_1_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.6500000357627869,
+      0.33331799507141113,
+      0.46000000834465027
+    ]
+  },
+  {
+    "model": "Lawn_Square",
+    "label": "修剪草坪方块",
+    "group": "03_修剪草坪",
+    "height": 0.0,
+    "triangles": 2,
+    "materials": {
+      "Lawn_Grass008": "Lawn_Grass008_Albedo.png"
+    },
+    "stone": true,
+    "size": [
+      2.0,
+      2.0,
+      0.0
+    ]
+  },
+  {
+    "model": "Lawn_Strip",
+    "label": "修剪草坪长条",
+    "group": "03_修剪草坪",
+    "height": 0.0,
+    "triangles": 2,
+    "materials": {
+      "Lawn_Grass008": "Lawn_Grass008_Albedo.png"
+    },
+    "stone": true,
+    "size": [
+      2.0,
+      0.6499999761581421,
+      0.0
+    ]
+  },
+  {
+    "model": "Lawn_Round",
+    "label": "修剪草坪圆块",
+    "group": "03_修剪草坪",
+    "height": 0.0,
+    "triangles": 40,
+    "materials": {
+      "Lawn_Grass008": "Lawn_Grass008_Albedo.png"
+    },
+    "stone": true,
+    "size": [
+      1.5,
+      1.5,
+      0.0
+    ]
+  },
+  {
+    "model": "Curb_Straight",
+    "label": "路沿石一米",
+    "group": "04_路边收口",
+    "height": 0.11999999731779099,
+    "triangles": 12,
+    "materials": {
+      "Border_Granite": "Border_Granite_Albedo.png"
+    },
+    "stone": true,
+    "size": [
+      1.0,
+      0.18000000715255737,
+      0.11999999731779099
+    ]
+  },
+  {
+    "model": "Curb_Short",
+    "label": "路沿石半米",
+    "group": "04_路边收口",
+    "height": 0.11999999731779099,
+    "triangles": 12,
+    "materials": {
+      "Border_Granite": "Border_Granite_Albedo.png"
+    },
+    "stone": true,
+    "size": [
+      0.5,
+      0.18000000715255737,
+      0.11999999731779099
+    ]
+  },
+  {
+    "model": "Curb_Curve",
+    "label": "路沿石弧段",
+    "group": "04_路边收口",
+    "height": 0.11999999731779099,
+    "triangles": 52,
+    "materials": {
+      "Border_Granite": "Border_Granite_Albedo.png"
+    },
+    "stone": true,
+    "size": [
+      0.6217827200889587,
+      0.19883698225021362,
+      0.11999999731779099
+    ]
+  }
+]

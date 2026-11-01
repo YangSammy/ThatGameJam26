@@ -90,3 +90,15 @@ crashlytics-build.properties
 *.pfx
 *.p12
 
+# Local art automation, backups and distributable archives
+/ArtLayoutBackups/
+/Assets/ParkExtras/Editor/
+/Assets/ParkExtras/Editor.meta
+/Assets/ParkExtras/**/Editor/
+/Assets/ParkExtras/**/Editor.meta
+/Assets/ParkExtras/**/Backup/
+/Assets/ParkExtras/**/Backup.meta
+/Assets/ParkExtras/**/*.zip
+/Assets/ParkExtras/**/*.zip.meta
+/Assets/ParkExtras/**/实际预览/
+/Assets/ParkExtras/**/实际预览.meta

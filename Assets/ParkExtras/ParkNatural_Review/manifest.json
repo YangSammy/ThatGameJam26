@@ -1,0 +1,98 @@
+[
+  {
+    "model": "Grass_Short_A",
+    "label": "写实短草小簇A",
+    "group": "01_立体短草",
+    "height": 0.11500000208616257,
+    "triangles": 1428,
+    "materials": {
+      "Grass_Real": "Grass_Real_Albedo.png"
+    },
+    "stone": true,
+    "size": [
+      0.24866287410259247,
+      0.25,
+      0.11500000208616257
+    ]
+  },
+  {
+    "model": "Grass_Short_B",
+    "label": "写实短草小簇B",
+    "group": "01_立体短草",
+    "height": 0.11500000208616257,
+    "triangles": 2430,
+    "materials": {
+      "Grass_Real": "Grass_Real_Albedo.png"
+    },
+    "stone": true,
+    "size": [
+      0.25,
+      0.23837612569332123,
+      0.11500000208616257
+    ]
+  },
+  {
+    "model": "Grass_Patch_Soft",
+    "label": "写实短草自然片",
+    "group": "01_立体短草",
+    "height": 0.12999999523162842,
+    "triangles": 15800,
+    "materials": {
+      "Grass_Real": "Grass_Real_Albedo.png"
+    },
+    "stone": true,
+    "size": [
+      0.7200000286102295,
+      0.6104325652122498,
+      0.12999999523162842
+    ]
+  },
+  {
+    "model": "Grass_Patch_Dense",
+    "label": "写实短草密实片",
+    "group": "01_立体短草",
+    "height": 0.1300000101327896,
+    "triangles": 25416,
+    "materials": {
+      "Grass_Real": "Grass_Real_Albedo.png"
+    },
+    "stone": true,
+    "size": [
+      0.7199999690055847,
+      0.6933504939079285,
+      0.1300000101327896
+    ]
+  },
+  {
+    "model": "Leafy_Clump_A",
+    "label": "写实叶丛A",
+    "group": "02_自然叶丛",
+    "height": 0.3199999928474426,
+    "triangles": 10376,
+    "materials": {
+      "Shrub_Real": "Shrub_Real_Albedo.png"
+    },
+    "stone": true,
+    "size": [
+      0.6394829154014587,
+      0.6499999761581421,
+      0.3199999928474426
+    ]
+  },
+  {
+    "model": "Leafy_Clump_B",
+    "label": "写实叶丛B",
+    "group": "02_自然叶丛",
+    "height": 0.3199999928474426,
+    "triangles": 10484,
+    "materials": {
+      "Shrub_Real": "Shrub_Real_Albedo.png"
+    },
+    "stone": true,
+    "size": [
+      0.5638275146484375,
+      0.6499999761581421,
+      0.3199999928474426
+    ]
+  }
+]

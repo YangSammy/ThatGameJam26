@@ -1,0 +1,11 @@
+﻿鸭茅草团 | Cocksfoot Grass
+整份 Cocksfoot_Grass_Unity 文件夹拖进 Unity 的 Assets/ParkExtras，保留 .meta 文件。
+01、02、03 是三种独立草团，宽度约1米，底部居中。拖任意 FBX 到场景即可摆放。
+Materials 内六个材质已关联颜色贴图，并提供当前 Built-in 管线用的双面 Cutout 着色器，避免草叶背面消失。不适用于直接切换URP/HDRP。
+若FBX没自动采用材质：选FBX -> Materials -> Material Creation Mode 选择 Standard (Legacy)，Location 使用 External Materials，Search 使用 Local Materials，然后 Search and Remap；或在场景 Mesh Renderer 的六个槽内按同名顺序指定 Materials 里的六个材质。
+顺序：Cocksfoot_Branch_01，Cocksfoot_Leaf_01，02，03，04，05。
+本包已拆分模型、移除灯光/相机和无关材质、重设底部原点与展示尺度、修复颜色贴图引用。
+原始底色偏深绿，含枯黄色叶片；不是鲜亮嫩绿草。可少量穿插，先从角色视角比较。
+每簇约1.9万～2.2万个面，不建议作为地形草大面积密刷。本包不包含LOD、风动画或碰撞。
+已在 Blender 渲染检查；尚未在你的 Unity 项目中实测自动材质映射与着色器。
+原包来自用户提供的爱给网RAR。压缩包中未附授权文件，整理不改变其原有授权。
