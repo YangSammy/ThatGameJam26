@@ -7,7 +7,7 @@ namespace MemoryWhitebox
         public enum FilmPhase { Empty, LoadedOpen, Closed, Ready, Exposed, Rewound, DarkBag, Tank, Processing, Developed }
         [Serializable] public class CameraSettings
         {
-            public float X=-.7f,Z=-.25f,Yaw,Focal=35,Focus=2,Aperture=8,Shutter=1f/60;
+            public float X=-.7f,Z=-.25f,Yaw,Focal=50,Focus=2,Aperture=8,Shutter=1f/60;
             public int ISO=100;
             public CameraSettings Copy()=>(CameraSettings)MemberwiseClone();
         }
@@ -30,7 +30,7 @@ namespace MemoryWhitebox
         readonly Rect view=new Rect(500,130,730,400),tank=new Rect(970,575,115,115);
         static readonly float[] apertures={2.8f,4,5.6f,8,11,16};
         static readonly float[] shutters={1f/4,1f/8,1f/15,1f/30,1f/60,1f/125,1f/250,1f/500,1f/1000};
-        public override string Help=>"先WASD找拍摄位置。选择ISO100/200/400胶卷拖入后盖→拖片头到右侧收片轴→点后盖→点过片杆。测光表在左侧，读数后记忆换算。点右侧画面进取景器：中心滚轮调焦距，向右后滚轮调快门，向下后调光圈，向上离开; 回中心重选焦距，左键拍摄。拍完倒片回卷，卷拖黑袋，按住左键滚轮把胶片绕入片轴，再按1→2→3倒药，每次拖罐轻摇后计时，最后点水滴。Esc返回旧屋。";
+        public override string Help=>"先WASD找拍摄位置。选择ISO100/200/400胶卷拖入后盖→拖片头到右侧收片轴→点后盖→点过片杆。测光表在左侧，读数后记忆换算。点右侧画面进取景器：中心滚轮调焦距离，向右后滚轮调快门，向下后调光圈，向上离开; 回中心重选焦距，左键拍摄。拍完倒片回卷，卷拖黑袋，按住左键滚轮把胶片绕入片轴，再按1→2→3倒药，每次拖罐轻摇后计时，最后点水滴。Esc返回旧屋。";
         public static Vector2 Project(Vector3 p,CameraSettings s,Rect frame)
         {
             float dx=p.x-s.X,dz=p.z-s.Z,rx=dx*Mathf.Cos(s.Yaw)-dz*Mathf.Sin(s.Yaw),rz=dx*Mathf.Sin(s.Yaw)+dz*Mathf.Cos(s.Yaw);
@@ -47,7 +47,7 @@ namespace MemoryWhitebox
         {
             if(Completed)return;
             if(!InViewfinder&&!MeterVisible&&Phase!=FilmPhase.Processing&&Phase!=FilmPhase.Developed){float dx=(input.Keys.Contains(KeyCode.D)?1:0)-(input.Keys.Contains(KeyCode.A)?1:0),dz=(input.Keys.Contains(KeyCode.W)?1:0)-(input.Keys.Contains(KeyCode.S)?1:0);Settings.X=Mathf.Clamp(Settings.X+dx*dt*.8f,-1.6f,1.6f);Settings.Z=Mathf.Clamp(Settings.Z+dz*dt*.65f,-.7f,1.4f);}
-            Settings.Focus=5-Settings.Z;
+            Settings.Focal=50;
             if(Phase==FilmPhase.Processing&&(Agitated||Chemistry==3)){ProcessingTime-=dt;if(ProcessingTime<=0){Chemistry++;if(Chemistry>=4){Phase=FilmPhase.Developed;Evaluate();}else Phase=FilmPhase.Tank;}}
         }
         public override void PointerDown(Vector2 p,int button)
@@ -96,7 +96,7 @@ namespace MemoryWhitebox
         {
             if(Phase==FilmPhase.DarkBag&&bagHeld){BagTurns=Mathf.Clamp01(BagTurns+delta*.1f);if(BagTurns>=.999f){Phase=FilmPhase.Tank;bagHeld=false;WBMain.Tone(300,.12f);}return;}
             if(!InViewfinder||Mathf.Abs(delta)<.01f)return;int step=delta>0?1:-1;
-            if(WheelMode==0)Settings.Focal=Mathf.Clamp(Settings.Focal+step*5,28,70);
+            if(WheelMode==0){Settings.Focal=50;Settings.Focus=Mathf.Clamp(Settings.Focus+step*.25f,.45f,18);}
             else if(WheelMode==1)Settings.Shutter=shutters[Mathf.Clamp(Closest(shutters,Settings.Shutter)+step,0,shutters.Length-1)];
             else Settings.Aperture=apertures[Mathf.Clamp(Closest(apertures,Settings.Aperture)+step,0,apertures.Length-1)];
             WBMain.Tone(120,.025f);

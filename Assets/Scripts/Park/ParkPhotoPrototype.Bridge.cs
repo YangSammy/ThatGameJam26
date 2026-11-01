@@ -45,7 +45,13 @@ namespace MemoryWhitebox
             int entrance=FindTaskIndex(ParkPhotoWaypoint.PhotoTask.Entrance),bridge=FindTaskIndex(ParkPhotoWaypoint.PhotoTask.Bridge),meadow=FindTaskIndex(ParkPhotoWaypoint.PhotoTask.Meadow);
             if(entrance<0 || bridge<0 || meadow<0)return "Assign entrance, bridge and meadow route points";
             if(!(entrance<bridge && bridge<meadow))return "Photography route must visit entrance, bridge, then meadow";
+            foreach(int index in new[]{entrance,bridge,meadow})
+            {
+                var task=companion.route[index];
+                if(task.referenceView==null || task.referencePhoto==null || task.lookAt==null)return "Photography task is missing its authored view, reference photo or look target: "+task.name;
+            }
             var node=companion.route[meadow];
+            if(node.handContact==null)return "Meadow hand contact is missing";
             if(node.referenceView!=null && node.handContact!=null && Vector3.Distance(node.referenceView.position,node.handContact.position)>2f)
                 return "Meadow reference camera is beyond hand contact reach (2 metres)";
             return "";
@@ -183,6 +189,22 @@ namespace MemoryWhitebox
             try{roll=ParkFilmStore.SaveTask(roll.id,CurrentTaskId,next);shotCooldown=.5f;return true;}
             catch(Exception e){Debug.LogWarning("Hand response not saved: "+e.Message);return true;}
         }
+        string PhotographyNextAction()
+        {
+            if(!string.IsNullOrEmpty(PhotoRouteError))return "Photo route unavailable. Film kept.";
+            if(!companion.AtPhotoNode)return "Follow your companion to the next photo spot.";
+            var task=CurrentTask;
+            if(task==null || !task.hasReference)return "Wait for your companion to settle.";
+            if(Vector3.Distance(view.transform.position,task.position)>bridgePositionTolerance)return "Move to match the reference viewpoint.";
+            if(Quaternion.Angle(view.transform.rotation,Quaternion.Euler(task.euler))>bridgeAngleTolerance)return "Aim to match the reference framing.";
+            float depth=Vector3.Dot(task.subjectPoint-view.transform.position,view.transform.forward);
+            if(depth<=0 || Mathf.Abs(depth-focusDistance)>Mathf.Max(.2f,depth*.065f))return "Scroll to focus on your companion.";
+            if(Mathf.Abs(ExposureError)>bridgeExposureTolerance)return "Adjust aperture or shutter to match the meter.";
+            if(!bridgeReady)return "Hold the camera steady. Wait for the response.";
+            if(CurrentTaskId=="meadow" && !HoldingPhotoHand)return "Click the offered hand first. This does not use film.";
+            return "LMB: take the photograph.";
+        }
+
         void DrawBridgeReference()
         {
             if(BridgePending && bridgeReference!=null)GUI.DrawTexture(new Rect(24,24,Screen.width*.22f,Screen.height*.22f),bridgeReference,ScaleMode.ScaleToFit);

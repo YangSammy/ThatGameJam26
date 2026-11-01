@@ -1,0 +1,63 @@
+using UnityEngine;
+namespace MemoryWhitebox
+{
+    public sealed partial class ParkPhotoPrototype
+    {
+        PhotographyCameraVisual instrumentCamera;
+        PhotographyMeterDisplay instrumentMeter;
+        float assetPull,meterHeld;
+        Transform AssetProxy(string id,Transform parent,Vector3 position,Vector3 size)
+        {
+            var go=new GameObject(id);go.transform.SetParent(parent,false);go.transform.localPosition=position;go.layer=FirstPersonHands.HandLayer;
+            go.AddComponent<BoxCollider>().size=size;instrumentParts[id]=go.transform;partHomes[id]=position;return go.transform;
+        }
+        void BuildAssetInstruments()
+        {
+            instruments=new GameObject("Photography hand instruments").transform;instruments.SetParent(view.transform,false);
+            bodyRoot=new GameObject("Camera operation model").transform;bodyRoot.SetParent(instruments,false);
+            meterRoot=new GameObject("Incident light meter").transform;meterRoot.SetParent(instruments,false);
+            instrumentCamera=PhotographyCameraVisual.Create(bodyRoot,new Vector3(0,-.135f,.64f),2.5f,FirstPersonHands.HandLayer);
+            AssetProxy("body",bodyRoot,new Vector3(0,-.03f,.64f),new Vector3(.35f,.22f,.11f));
+            foreach(string id in new[]{"back","rewind","chamber","spool","leader","advance","eyepiece","aperture","speed"})AssetProxy(id,bodyRoot,Vector3.zero,id=="back"?new Vector3(.32f,.20f,.02f):new Vector3(.055f,.055f,.04f));
+            for(int i=0;i<4;i++)
+            {
+                int iso=filmIsos[i];var proxy=AssetProxy("film-"+iso,bodyRoot,new Vector3(-.18f+i*.12f,-.23f,.6f),new Vector3(.07f,.12f,.07f));
+                var go=Instantiate(PhotographyVisualAssets.Load().Film(iso),proxy);go.transform.localScale=Vector3.one*2.5f;
+                PhotographyCameraVisual.PrepareVisual(go,FirstPersonHands.HandLayer);PhotographyCameraVisual.SampleFilm(PhotographyVisualAssets.Load(),go,0,0);
+            }
+            instrumentMeter=PhotographyMeterDisplay.Create(meterRoot,new Vector3(0,-.4f,.60f),2,FirstPersonHands.HandLayer);instrumentMeter.transform.localRotation=Quaternion.Euler(0,180,0);
+            var meter=AssetProxy("meter",meterRoot,new Vector3(0,0,.55f),new Vector3(.14f,.24f,.08f));
+            meterReadout=Numeric(meter,"",Vector3.zero,.02f);cameraReadout=Numeric(bodyRoot,"",Vector3.zero,.02f);
+            SetPhotographyMode(PhotographyMode.Exploration);
+        }
+        void SyncAssetInstruments()
+        {
+            bool meter=photoMode==PhotographyMode.Meter;
+            meterHeld=Mathf.MoveTowards(meterHeld,meter?1:0,Time.deltaTime*4);
+            meterRoot.gameObject.SetActive(meter || meterHeld>0);
+            bodyRoot.gameObject.SetActive(photoMode==PhotographyMode.Body || photoMode==PhotographyMode.Aperture || photoMode==PhotographyMode.Shutter);
+            instrumentMeter.Apply(filmIsos[meterIsoIndex],sceneEv100,meter,meterHeld);
+            // The reference captures and gameplay camera never inherit these presentation rotations.
+            instrumentCamera.transform.localRotation=photoMode==PhotographyMode.Aperture?Quaternion.Euler(0,145,0):Quaternion.identity;
+            if(dragPart=="leader")
+            {
+                var start=instrumentCamera.insert.TransformPoint(new Vector3(.039f,.0015f,-.0134f));var end=instrumentCamera.takeUp.position;
+                assetPull=Mathf.Clamp01(Vector3.Dot(instrumentParts["leader"].position-start,end-start)/Mathf.Max(.00001f,(end-start).sqrMagnitude));
+            }
+            int stage=loadingStep>=7?3:loadingStep>=4?2:dragPart=="leader"?1:0;
+            instrumentCamera.Apply(loadingStep>0 && loadingStep<6,loadingStep>=2,FilmIso,stage,assetPull,focusDistance,Aperture,ShutterSeconds,flash,Time.deltaTime);
+            void Follow(string id,Transform target){instrumentParts[id].SetPositionAndRotation(target.position,target.rotation);}
+            Follow("rewind",instrumentCamera.rewindKnob);Follow("spool",instrumentCamera.takeUp);Follow("chamber",instrumentCamera.insert);
+            Follow("leader",instrumentCamera.LeaderTip);Follow("advance",instrumentCamera.advanceLever);Follow("eyepiece",instrumentCamera.eyepiece);
+            Follow("aperture",instrumentCamera.apertureRing);Follow("speed",instrumentCamera.dial);
+            instrumentParts["back"].SetPositionAndRotation(instrumentCamera.back.TransformPoint(new Vector3(.064f,0,0)),instrumentCamera.back.rotation);
+            instrumentParts["body"].GetComponent<Collider>().enabled=false; // Never mask the small mechanical controls.
+            instrumentParts["chamber"].gameObject.SetActive(loadingStep==1);instrumentParts["spool"].gameObject.SetActive(loadingStep>=2 && loadingStep<6);
+            instrumentParts["leader"].gameObject.SetActive(loadingStep==2);
+            foreach(int iso in filmIsos)instrumentParts["film-"+iso].gameObject.SetActive(loadingStep==1);
+            float suggested=64/Mathf.Pow(2,sceneEv100+Mathf.Log(filmIsos[meterIsoIndex]/100f,2));
+            meterReadout.text="ISO "+filmIsos[meterIsoIndex]+" / EV "+sceneEv100.ToString("0.0")+" / f/8 / 1/"+Mathf.RoundToInt(1/suggested);
+            cameraReadout.text="50 mm / Focus "+focusDistance.ToString("0.00")+" m / f/"+Aperture+" / 1/"+Mathf.RoundToInt(1/ShutterSeconds);
+        }
+    }
+}

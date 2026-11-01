@@ -223,6 +223,14 @@ namespace MemoryWhitebox
         {
             if(workbenchVisuals==null || Chapter==null)return;
             workbenchVisuals.Tick(dt);
+            // A06's torn piece is offset inside the legacy strip root. Keep its
+            // grab region on the visible piece without moving the authored rest pose.
+            if(adhesiveStrip!=null && adhesiveStrip.gameObject.activeInHierarchy &&
+                workbenchVisuals.loosePiece!=null && workbenchVisuals.loosePiece.gameObject.activeInHierarchy)
+            {
+                var stripHit=adhesiveStrip.GetComponent<BoxCollider>();
+                if(stripHit!=null)stripHit.center=adhesiveStrip.InverseTransformPoint(workbenchVisuals.loosePiece.bounds.center);
+            }
             for(int i=0;i<tapes.Length;i++)workbenchVisuals.Inspect(i,Chapter.Tape.Candidates[i]);
             if(Smoothing)
             {

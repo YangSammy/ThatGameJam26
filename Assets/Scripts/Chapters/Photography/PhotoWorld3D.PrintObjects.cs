@@ -29,6 +29,7 @@ namespace MemoryWhitebox
         {
             FindPrintObjects();
             if(printObjects==null)return;
+            darkroomVisuals=printObjects.GetComponent<DarkroomAssetVisuals>();
             if(printObjects.definition==null)throw new InvalidOperationException("Darkroom print configuration is missing.");
             foreach(var prop in printObjects.props)
             {
@@ -72,6 +73,20 @@ namespace MemoryWhitebox
                 }
             }
         }
+        string ResolvePrintHit(string id)
+        {
+            if(PhysicalPrinting && printObjectsState!=null && printDrag==null && !printProcessing)
+            {
+                bool readyToClose=(printStage==ParkPrintStage.ContactReady || printStage==ParkPrintStage.Exposing)
+                    && printObjectsState.paper.locationId=="print-frame" && printObjectsState.negative.locationId=="print-frame";
+                bool readyToOpen=printStage==ParkPrintStage.PaperDeveloper && printObjectsState.frameClosed;
+                if((readyToClose || readyToOpen) && (id=="print-frame" || id=="print-frame-lid" ||
+                    (id=="print-paper" && printObjectsState.paper.locationId=="print-frame") ||
+                    (id=="print-negative" && printObjectsState.negative.locationId=="print-frame")))return "print-frame-lid";
+            }
+            return id;
+        }
+
         bool PressPhysicalPrint(string id,Ray ray)
         {
             if(!PrintInput || printObjects==null)return true;
@@ -176,22 +191,23 @@ namespace MemoryWhitebox
             Nodes["print-paper"].SetActive(visible && printStage!=ParkPrintStage.NegativeDrying);
             if(printObjects.exposureLight!=null)printObjects.exposureLight.SetActive(visible && printHeld);
             if(printObjects.waterStream!=null)printObjects.waterStream.SetActive(visible && printStage==ParkPrintStage.PaperWash && printProcessing);
-            if(!visible || printObjectsState==null)return;
+            if(!visible || printObjectsState==null){SyncDarkroomAssets();return;}
             PlacePrintItem("print-negative",printObjectsState.negative);PlacePrintItem("print-paper",printObjectsState.paper);
             SetColliders(Nodes["print-negative"],printDrag!="print-negative" && printStage<=ParkPrintStage.ContactReady && !(printObjectsState.frameClosed && printObjectsState.negative.locationId=="print-frame"));
             SetColliders(Nodes["print-paper"],printDrag!="print-paper" && !(printObjectsState.frameClosed && printObjectsState.paper.locationId=="print-frame"));
-            if(printObjects.frameLid!=null)printObjects.frameLid.localRotation=frameClosedRotation*Quaternion.Euler(printObjectsState.frameClosed?Vector3.zero:printObjects.frameOpenEuler);
+            if(!HasDarkroomAssets && printObjects.frameLid!=null)printObjects.frameLid.localRotation=frameClosedRotation*Quaternion.Euler(printObjectsState.frameClosed?Vector3.zero:printObjects.frameOpenEuler);
             float reveal=printStage>ParkPrintStage.PaperDeveloper?1:printStage==ParkPrintStage.PaperDeveloper && printProcessing?1-printRemaining/PrintDuration(printStage):0;
-            if(contactTexture!=null && printObjects.paperSurface!=null)
+            if(!HasDarkroomAssets && contactTexture!=null && printObjects.paperSurface!=null)
             {
                 printProperties.Clear();printProperties.SetTexture("_MainTex",contactTexture);printProperties.SetFloat("_Reveal",Mathf.Clamp01(reveal));printObjects.paperSurface.SetPropertyBlock(printProperties);
             }
+            SyncDarkroomAssets();
         }
         void LoadContactTexture()
         {
             if(contactTexture!=null || !PhysicalPrinting || printStage<ParkPrintStage.PaperDeveloper)return;
             // Private process preview: no gallery or original frame files are exposed before completion.
-            try{contactTexture=ParkFilmStore.CreateContactSheetPreview(parkFilm.id);}
+            try{contactTexture=ParkFilmStore.CreateContactSheetPreview(parkFilm.id,HasDarkroomAssets?4f/3f:16f/9f);}
             catch(Exception e){saveNotice="Print preview unavailable. Negatives kept.";Debug.LogWarning(e.Message);}
             SyncPhysicalPrint();
         }

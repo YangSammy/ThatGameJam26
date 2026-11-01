@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa2a74d62c7b55c4f99c313dc06173ca, type: 3}
+  m_Name: PhotographyVisualAssets
+  m_EditorClassIdentifier: 
+  cameraBody: {fileID: 1348638106767180743, guid: 7fc59c5670ec2a54da5835ed7b5036dd, type: 3}
+  lens: {fileID: 9000638320850615194, guid: eb74e266d3e7c4a4fa0061ace3ca491d, type: 3}
+  meter: {fileID: 7699244373210799820, guid: 8c277f71a2ce5984dbdf7537691c8eb8, type: 3}
+  films:
+  - {fileID: 1494253035646502448, guid: ba8b4d9bc1c6b124b8f9a52d1760e959, type: 3}
+  - {fileID: 4759892071257720320, guid: b01f98c9b886a184285216c294662301, type: 3}
+  - {fileID: 3572527246347691638, guid: 7ea0e12ebd48b0a48bd06f6df98ede1a, type: 3}
+  - {fileID: 3323222161219164079, guid: c7fcd03ad7668c34e96112b48444395b, type: 3}
+  leaderReady: {fileID: 7400000, guid: 26f1a1a8d8a67d24f9ff4785f71a2c96, type: 2}
+  pullLeader: {fileID: 7400000, guid: f7339f432941cb24984c659ec3340cff, type: 2}
+  seatLeader: {fileID: 7400000, guid: a495a911878dbfa4c81ba8a973f7d2c8, type: 2}
+  advanced: {fileID: 7400000, guid: 24b5a795dc16ced4c8d4a4a877b48daa, type: 2}
+  advance: {fileID: 7400000, guid: 77506739ebc3a71479bb0dce6cdf10ad, type: 2}
+  rewind: {fileID: 7400000, guid: 13a285e7059dc4f439fe9e5aa0897159, type: 2}
+  retracted: {fileID: 7400000, guid: a93b9c5b73e4e9342a42dc28e38f94ff, type: 2}
+  focusEffect: {fileID: 2100000, guid: 9ad3afa402d737444a0eaa68928bbf8b, type: 2}

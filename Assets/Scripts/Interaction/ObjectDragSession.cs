@@ -61,6 +61,15 @@ namespace MemoryWhitebox
         {
             End(true);
             item = target;
+            // Importers include every animation pose in skinned bounds. A short film
+            // leader must not collide as if the whole possible unrolled sheet exists.
+            Mesh currentPose=null;
+            foreach(var skin in item.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                if(currentPose==null)currentPose=new Mesh();
+                skin.BakeMesh(currentPose);currentPose.RecalculateBounds();skin.localBounds=currentPose.bounds;
+            }
+            if(currentPose!=null)UnityEngine.Object.Destroy(currentPose);
             extractionRoot=fromContainer;
             start = item.position; rotation = item.rotation; scale = item.localScale;
             area=useArea?OperationArea.For(item):null;
@@ -129,7 +138,7 @@ namespace MemoryWhitebox
             for (int i = 0; i < count; i++)
             {
                 var hit = obstacles[i]; var col = hit.collider;
-                if (col==receivingShell || DragReceiverProbe.BelongsTo(col.transform, item) ||
+                if (col.GetComponent<PhotographyInteractionHit>()!=null || col==receivingShell || DragReceiverProbe.BelongsTo(col.transform, item) ||
                     DragReceiverProbe.BelongsTo(col.transform, receiver) || DragReceiverProbe.BelongsTo(col.transform,extractionRoot) || DragReceiverProbe.IsNavigationOnly(col)) continue;
                 // Allow lifting off the original supporting surface, not through a vertical obstacle.
                 if (hit.distance <= .001f && delta.y >= 0 && col.bounds.max.y <= bounds.min.y + .012f) continue;

@@ -128,6 +128,7 @@ namespace MemoryWhitebox
 
         void BuildCamera()
         {
+            if(PhotographyVisualAssets.Load()!=null){BuildAssetCamera();return;}
             cameraBody = Group("Mechanical 35 mm camera", cameraDock);
             Child(cameraBody, "camera-body", Vector3.zero, new Vector3(.78f, .42f, .32f), "#323a37");
             Child(cameraBody, "", new Vector3(0, .27f, 0), new Vector3(.28f, .15f, .27f), "#a8ada3");
@@ -212,6 +213,7 @@ namespace MemoryWhitebox
 
         void BuildLightMeter()
         {
+            if(PhotographyVisualAssets.Load()!=null){BuildAssetMeter();return;}
             meterFace = Group("Physical light meter", new Vector3(-1, 1.14f, -2.93f));
             Child(meterFace, "meter", Vector3.zero, new Vector3(.3f, .35f, .13f), "#657362");
             Child(meterFace, "", new Vector3(0, .1f, -.075f), new Vector3(.24f, .11f, .025f), "#d4d4b5");
@@ -281,6 +283,7 @@ namespace MemoryWhitebox
             else Release("", lastRay);
             looking = false; Photo.InViewfinder = false; Photo.MeterVisible = false;
             View.ResetAspect();
+            if(houseFocus!=null)houseFocus.activeFocus=false;
             base.Deactivate();
         }
         public bool HasActiveGesture=>dragged!=null || printDrag!=null || Rewinding || bagHeld || tankHeld || printHeld;
@@ -333,7 +336,7 @@ namespace MemoryWhitebox
                 Vector3 nextZ = new Vector3(walkPosition.x, walkPosition.y, next.z);
                 if (!InsideTable(nextZ)) walkPosition = nextZ;
             }
-            Photo.Settings.X = walkPosition.x; Photo.Settings.Z = walkPosition.z; Photo.Settings.Yaw = yaw * Mathf.Deg2Rad; Photo.Settings.Focus = Photo.FocusDistance(Photo.Settings);
+            Photo.Settings.X = walkPosition.x; Photo.Settings.Z = walkPosition.z; Photo.Settings.Yaw = yaw * Mathf.Deg2Rad; Photo.Settings.Focal = 50;
             lookRotation = Quaternion.Euler(Photo.InViewfinder ? 0 : pitch, yaw, 0);
             Eye = Photo.MeterVisible ? inspectionEye : World(walkPosition); Look = Photo.MeterVisible ? inspectionLook : Eye + lookRotation * Vector3.forward * 5;
             UpdateFinderViewport();
@@ -371,7 +374,8 @@ namespace MemoryWhitebox
             Vector3 rightAt = Eye + lookRotation * new Vector3(.48f, Photo.InViewfinder ? -.44f : -.22f, .54f);
             if (bagHeld) { leftAt = bag.transform.position + new Vector3(-.22f,.12f,-.1f); rightAt = bagGrip.position; }
             if (Rewinding) { leftAt = cameraBody.TransformPoint(new Vector3(-.3f, -.1f, -.2f)); rightAt = Nodes["rewind"].transform.position + Vector3.up * .04f; }
-            if (dragged == "leader") rightAt = filmStrip.GetPosition(1) + Vector3.up * .03f;
+            if(CameraHeld && cameraVisual!=null){leftAt=cameraVisual.support.position;rightAt=cameraVisual.grip.position;}
+            if (dragged == "leader") rightAt = (cameraVisual!=null?cameraVisual.LeaderTip.position:filmStrip.GetPosition(1)) + Vector3.up * .03f;
             else if (dragged != null && Nodes.ContainsKey(dragged)) rightAt = Nodes[dragged].transform.position + new Vector3(.06f, .055f, 0);
             if (tankHeld) rightAt = tankBody.position + new Vector3(.17f, .1f, 0);
             if(printDrag!=null)rightAt=Nodes[printDrag].transform.position+Vector3.up*.03f;
@@ -409,7 +413,7 @@ namespace MemoryWhitebox
             looking=false;
             if(id.StartsWith("chemical-") && Nodes.ContainsKey(id) && OperationArea.For(Nodes[id].transform)!=null){BeginDrag(id,ray);return;}
             if(PressPrintWorkflow(id,ray))return;
-            if(parkLoading && !id.StartsWith("film-") && id!="leader" && id!="back" && id!="advance")return;
+            if(parkLoading && !Photo.MeterVisible && id!="meter" && !id.StartsWith("film-") && id!="leader" && id!="back" && id!="advance")return;
             if(ParkMode)
             {
                 if(id=="print-paper" && ParkPrintsReady){OpenParkGallery();return;}
@@ -432,7 +436,7 @@ namespace MemoryWhitebox
             if (Photo.Completed && id != "reference-photo" && id != "developed-photo" && id != "meter") return;
             if (id == "meter") { Photo.MeterVisible = true; inspectionEye = World(new Vector3(-1, 1.38f, -3.72f)); inspectionLook = World(new Vector3(-1, 1.23f, -2.98f)); return; }
             if (id.StartsWith("film-") && Photo.Phase == PhotoChapter.FilmPhase.Empty) { BeginDrag(id, ray); return; }
-            if (id == "leader" && Photo.Phase == PhotoChapter.FilmPhase.LoadedOpen && !Photo.FilmThreaded) { dragged = "leader"; filmStrip.gameObject.SetActive(true); SetFilmLine(Point(ray, 1.18f)); return; }
+            if (id == "leader" && Photo.Phase == PhotoChapter.FilmPhase.LoadedOpen && !Photo.FilmThreaded) { dragged = "leader"; filmStrip.gameObject.SetActive(true); SetFilmLine(LeaderDragPoint(ray)); return; }
             if (id == "back")
             {
                 if (Photo.Phase == PhotoChapter.FilmPhase.LoadedOpen && Photo.FilmThreaded) Photo.Phase = PhotoChapter.FilmPhase.Closed;
@@ -482,7 +486,7 @@ namespace MemoryWhitebox
             }
             if (dragged != null)
             {
-                    Vector3 point = dragged=="leader"?ProcessingDragPoint(ray):MoveDarkroomDrag(ray);
+                    Vector3 point = dragged=="leader"?LeaderDragPoint(ray):MoveDarkroomDrag(ray);
                 if (dragged == "leader") SetFilmLine(point);
                 else if (Nodes.ContainsKey(dragged))
                 {
@@ -591,7 +595,7 @@ namespace MemoryWhitebox
             else if (bagHeld && Photo.Phase == PhotoChapter.FilmPhase.DarkBag)
             {
                 Photo.BagTurns = Mathf.Clamp01(Photo.BagTurns + delta * .1f);
-                bagGrip.localRotation = BagGripRotation;
+                if(!HasDarkroomAssets)bagGrip.localRotation = BagGripRotation;
                 if (Photo.BagTurns >= .999f) { Photo.Phase = PhotoChapter.FilmPhase.Tank; bagHeld = false; WBMain.Tone(300, .12f); }
             }
             else if (Photo.InViewfinder) Photo.Wheel(delta, Vector2.zero);
@@ -620,12 +624,13 @@ namespace MemoryWhitebox
 
         void SetFilmLine(Vector3 end)
         {
+            if(cameraVisual!=null){PullAssetLeader(end);return;}
             filmStrip.SetPosition(0, leader.transform.position); filmStrip.SetPosition(1, end);
         }
 
         void ExposeNative()
         {
-            Photo.Settings.X = walkPosition.x; Photo.Settings.Z = walkPosition.z; Photo.Settings.Yaw = yaw * Mathf.Deg2Rad; Photo.Settings.Focus = Photo.FocusDistance(Photo.Settings);
+            Photo.Settings.X = walkPosition.x; Photo.Settings.Z = walkPosition.z; Photo.Settings.Yaw = yaw * Mathf.Deg2Rad; Photo.Settings.Focal = 50;
             LastShot = new CameraSettingsSnapshot { eye = World(new Vector3(walkPosition.x, 1.5f, walkPosition.z)), yaw = yaw, focal = Photo.Settings.Focal, aperture = Photo.Settings.Aperture, shutter = Photo.Settings.Shutter, iso = Photo.Settings.ISO };
             Photo.Expose(); NativeCaptureCount++;
             RewindTurns=0;Photo.Assess();
@@ -680,10 +685,10 @@ namespace MemoryWhitebox
                 var material = developedPrint.GetComponent<Renderer>().sharedMaterial; material.mainTexture = exposedTexture; material.color = Color.white;
                 if (Photo.Fogged) material.mainTexture = Texture2D.whiteTexture;
             }
-            bag.transform.localScale = Vector3.Scale(bagHomeScale,Photo.Phase==PhotoChapter.FilmPhase.DarkBag?(sceneProcessing?printObjects.bagWorkingScale:new Vector3(1,1.4375f,1)):Vector3.one);
-            bagGrip.localRotation = BagGripRotation;
+            if(!HasDarkroomAssets)bag.transform.localScale = Vector3.Scale(bagHomeScale,Photo.Phase==PhotoChapter.FilmPhase.DarkBag?(sceneProcessing?printObjects.bagWorkingScale:new Vector3(1,1.4375f,1)):Vector3.one);
+            if(!HasDarkroomAssets)bagGrip.localRotation = BagGripRotation;
             // Lift the closed, light-tight lid inside the bag until the player seals it.
-            if(tankLid!=null)tankLid.localPosition=tankLidHomePosition+((PhysicalPrinting && printObjectsState!=null && printObjectsState.negativeRemoved) || (ManualTank && Photo.Phase==PhotoChapter.FilmPhase.Tank && !tankSealed)?(sceneProcessing?printObjects.tankLidOpenOffset:Vector3.up*(.16f/Mathf.Max(.001f,tankLid.parent.lossyScale.y))):Vector3.zero);
+            if(!HasDarkroomAssets && tankLid!=null)tankLid.localPosition=tankLidHomePosition+((PhysicalPrinting && printObjectsState!=null && printObjectsState.negativeRemoved) || (ManualTank && Photo.Phase==PhotoChapter.FilmPhase.Tank && !tankSealed)?(sceneProcessing?printObjects.tankLidOpenOffset:Vector3.up*(.16f/Mathf.Max(.001f,tankLid.parent.lossyScale.y))):Vector3.zero);
             focalRing.localRotation = Quaternion.Euler(90, Photo.Settings.Focal * 4, 0);
             apertureRing.localRotation = Quaternion.Euler(90, Photo.Settings.Aperture * 11, 0);
             shutterDial.localRotation = Quaternion.Euler(0, Mathf.Log(1 / Photo.Settings.Shutter, 2) * 28, 0);
@@ -693,6 +698,7 @@ namespace MemoryWhitebox
             printClip.localRotation = Quaternion.Euler(0, 0, Photo.Completed ? -28 : 0);
             printClip.GetComponent<Renderer>().sharedMaterial.color = feedbackTime > 0 ? feedbackColor : Photo.Completed ? new Color(.38f, .54f, .38f) : new Color(.4f, .47f, .42f);
             SyncPhysicalPrint();
+            SyncAssetCamera(open);
         }
 
         void RenderReference()

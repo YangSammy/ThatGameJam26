@@ -34,6 +34,7 @@ namespace MemoryWhitebox
             InStation || DirectDarkroomActive || DirectTapeHandling || (radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode || radioDeck.SuccessPopupOpen))?PlayerControlState.Operation:PlayerControlState.Exploration;
         public void SuspendHouseInput()
         {
+            darkroomPressPending=false;darkroomWasLeft=false;
             InputContext.Handoff();
             houseReturnGate=true;houseHandoff.Arm();Room?.StopMotion();
             InputState.Keys.Clear();InputState.Down=false;wasDown=wasRightDown=false;

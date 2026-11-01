@@ -66,7 +66,7 @@ namespace MemoryWhitebox
             if(Chapter.WorkbenchTapeIndex==Selected)Chapter.WorkbenchTapeIndex=-1;
             CancelTapeDrag();ReleaseSpindle();StopTargetOnly();State=Phase.Loading;transferB=true;
             VisibleCassette(tapes[Selected].root,false);
-            dualDeck.Transfer(1,true,()=>{transferB=false;State=Phase.Paused;Chapter.VerifyPlayback();if(!RecordingMode)OpenRecording();house.SaveStableProgress();});QueueLoadedRadioFocus();return true;
+            dualDeck.Transfer(1,true,()=>{transferB=false;State=Phase.Paused;Chapter.VerifyPlayback();if(WorkbenchMode && !RecordingMode)OpenRecording();house.SaveStableProgress();});QueueLoadedRadioFocus();return true;
         }
         public bool EjectDualDeck(int deck)
         {

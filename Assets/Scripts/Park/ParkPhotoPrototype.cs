@@ -87,7 +87,7 @@ namespace MemoryWhitebox
             try{roll=ParkFilmStore.LoadOrCreate();if(roll.frames.Count>0)focusDistance=Mathf.Clamp(roll.frames[roll.frames.Count-1].focusDistance,minimumFocus,maximumFocus);}
             catch(Exception ex){filmError="Film unavailable. Shooting paused; records kept.";Debug.LogWarning("Park film load: "+ex.Message);}
             InitializePhotographyModes();InitializeBridge();
-            SetCursor(false);Notify(roll!=null && roll.state!=ParkFilmState.Loaded?"Film sealed. Develop in the darkroom.": "Film: " + RollCapacity + " frames. RMB to aim; scroll to focus.",7);
+            SetCursor(false);Notify(roll!=null && roll.state!=ParkFilmState.Loaded?"Film sealed. Develop in the darkroom.": "Film: " + RollCapacity + " frames. Move to the bottom-right edge to raise the camera.",7);
             if(CanReturnToDarkroom)OpenFilmReturnPanel();
         }
         void SetCursor(bool free){PlayerInputPolicy.SetCursor(free);}
@@ -215,14 +215,15 @@ namespace MemoryWhitebox
         {
             if(roll==null || filmError!=""){Notify(filmError!=""?filmError:"No film loaded.");return;}
             if(!roll.ReadyForPark || roll.Remaining<=0){Notify("Roll complete. Develop to view.",5);return;}
-            if(roll.version>=3 && !taskRoutingReady)return;
+            if(roll.version>=3 && !taskRoutingReady){Notify(PhotographyNextAction());return;}
             if(TryJoinPhotoHand())return;
-            if(BridgePending && CurrentTaskId=="meadow" && !HoldingPhotoHand)return;
-            if(BridgePending && !bridgeReady){shotCooldown=.25f;return;}
+            if(BridgePending && CurrentTaskId=="meadow" && !HoldingPhotoHand){Notify(PhotographyNextAction());return;}
+            if(BridgePending && !bridgeReady){Notify(PhotographyNextAction());shotCooldown=.25f;return;}
             shotCooldown=.7f;var record=Assess();
             if(BridgePending)
             {
                 record.taskId=CurrentTaskId;record.moment=CurrentTaskId=="entrance"?"Entrance candid":CurrentTaskId=="bridge"?"Bridge look-back":"Meadow joined hands";record.accepted=true;
+                companion.PosePhotoResponseForShutter();
                 if(CurrentTaskId=="entrance")companion.PoseEntranceShutter();
                 if(HoldingPhotoHand)view.GetComponent<FirstPersonHands>()?.PosePhotoHandForShutter();
             }
@@ -276,6 +277,22 @@ namespace MemoryWhitebox
             }
 
             DrawPhotographyModes();DrawBridgeReference();
+            string step=CanReturnToDarkroom?"Roll complete. Esc to return to the darkroom.":
+                !companion.AtPhotoNode?"Follow your companion to the next photo spot.":
+                photoMode==PhotographyMode.Exploration?"Raise the camera: move to the bottom-right edge.":
+                photoMode==PhotographyMode.Body?"Click the eyepiece to compose.":
+                photoMode==PhotographyMode.Meter?"Scroll: meter ISO. Match the loaded film (ISO "+FilmIso+").":
+                PhotographyNextAction();
+            InteractionUI.Label(new Rect(24,Screen.height*.24f+32,Screen.width-48,48),step,small);
+            InteractionUI.Label(new Rect(Screen.width-190,20,170,28),"Film "+ExposedFrames+" / "+RollCapacity,small);
+            if(photoMode==PhotographyMode.Exploration)
+                InteractionUI.Label(new Rect(24,Screen.height-48,Screen.width-48,32),"Bottom-left: meter   /   Bottom-right: camera   /   Esc: pause",small);
+            else if(photoMode==PhotographyMode.Viewfinder)
+                InteractionUI.Label(new Rect(24,Screen.height-32,Screen.width-48,28),"Scroll: focus   /   Left edge: aperture   /   Right edge: shutter   /   Esc: lower",small);
+            else if(photoMode==PhotographyMode.Aperture || photoMode==PhotographyMode.Shutter)
+                InteractionUI.Label(new Rect(24,Screen.height-48,Screen.width-48,32),"Scroll: adjust   /   Move to centre: viewfinder",small);
+            if(Time.unscaledTime<noticeUntil)
+                InteractionUI.Label(new Rect(24,Screen.height-104,Screen.width-48,40),notice,small);
             if(flash>0){var color=GUI.color;GUI.color=new Color(1,1,1,flash*.55f);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=color;}
         }
     }

@@ -115,6 +115,7 @@ namespace MemoryWhitebox
         }
         public void CloseRecording()
         {
+            if(!internalDeckHandoff)focusRadioAfterLoad=false;
             RestoreRadioCamera();
             if(!internalDeckHandoff || dualDeck==null){UITransportCommand=-1;transport?.StopAll();}
             handKey=-1;

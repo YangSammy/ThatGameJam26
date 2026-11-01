@@ -53,7 +53,7 @@ namespace MemoryWhitebox
         public void SetStationActive(bool active)
         {
             if(!initialized)return;
-            if(!active)StopRecordingInput();
+            if(!active){focusRadioAfterLoad=false;RestoreRadioCamera();RestorePreparationCamera();StopRecordingInput();}
             CancelTapeDrag();ReleaseSpindle();StationActive=active;waitingForRelease=active;leftWasDown=rightWasDown=false;
             if(stationLight!=null)stationLight.enabled=active;
             if(active && house!=null)speaker.mute=house.Muted;
@@ -68,6 +68,7 @@ namespace MemoryWhitebox
         {if(waitingForRelease && released && focused && StationActive && (house==null || (!house.ShowHelp && !house.safeInspection.BlocksInput))){waitingForRelease=false;leftWasDown=rightWasDown=false;if(State==Phase.Loading)animator.speed=1;}}
         public void SuspendInput()
         {
+            focusRadioAfterLoad=false;
             if(WorkbenchMode)CloseWorkbench();
             StopRecordingInput();
             if(State==Phase.Dragging)PutBack();

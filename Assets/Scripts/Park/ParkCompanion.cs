@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 namespace MemoryWhitebox
 {
     [RequireComponent(typeof(CharacterController))]
@@ -32,10 +32,25 @@ namespace MemoryWhitebox
         [System.NonSerialized] public bool photoLookBack;
         [System.NonSerialized] public bool photoOfferHand;
         [System.NonSerialized] public Vector3 photoHandTarget;
-        Quaternion headHome;
+        [Header("Photographic performance bindings")]
+        public Transform photoHeadPivot,photoHairPivot,photoRightHand;
+        [Min(.1f)] public float photoTurnSpeed=72;
+        Quaternion headHome,photoHeadHome,photoHairHome;
+        Vector3 rightArmScale;
+        float hairResponse;
         float entranceShutterPose;
         public void PoseEntranceShutter()
-        {entranceShutterPose=.6f;if(head!=null)head.localRotation=headHome*Quaternion.Euler(0,8,-5);}
+        {
+            entranceShutterPose=.6f;
+            if(photoHeadPivot!=null)photoHeadPivot.localRotation=photoHeadHome*Quaternion.Euler(0,12,-7);
+            else if(head!=null)head.localRotation=headHome*Quaternion.Euler(0,12,-7);
+            if(photoHairPivot!=null)photoHairPivot.localRotation=photoHairHome*Quaternion.Euler(0,-4,3);
+        }
+        public void PosePhotoResponseForShutter()
+        {
+            // Commit the visible hand pose before Camera.Render, independent of Update ordering.
+            Animate(false,0);
+        }
         public bool AtPhotoNode=>atNode && route!=null && index<route.Length && route[index]==photoHoldNode;
         public bool Waiting {get;private set;}
         public bool Finished => route!=null && index>=route.Length;
@@ -47,6 +62,9 @@ namespace MemoryWhitebox
         {
             motor=GetComponent<CharacterController>();
             if(head!=null)headHome=head.localRotation;
+            if(photoHeadPivot!=null)photoHeadHome=photoHeadPivot.localRotation;
+            if(photoHairPivot!=null)photoHairHome=photoHairPivot.localRotation;
+            if(rightArm!=null)rightArmScale=rightArm.localScale;
             if(visual!=null)visualHome=visual.localPosition;
             if(animator!=null)foreach(var p in animator.parameters)if(p.name=="Speed" && p.type==AnimatorControllerParameterType.Float)hasSpeed=true;
             RestartWalk();
@@ -93,7 +111,7 @@ namespace MemoryWhitebox
                 if(atNode)
                 {
                     bool photoHold=node==photoHoldNode;
-                    if(photoHold && photoLookBack){Face(player.position,dt);CurrentMoment=Moment.Response;}
+                    if(photoHold && photoLookBack){Face(player.position,dt*photoTurnSpeed/160f);CurrentMoment=Moment.Response;}
                     else
                     {
                         if(node.lookAt!=null)Face(node.lookAt.position,dt);
@@ -126,15 +144,35 @@ namespace MemoryWhitebox
         void Animate(bool walking,float dt)
         {
             entranceShutterPose=Mathf.Max(0,entranceShutterPose-dt);
-            if(head!=null && entranceShutterPose>0)head.localRotation=headHome*Quaternion.Euler(0,8,-5);
-            else if(head!=null)head.localRotation=Quaternion.Slerp(head.localRotation,headHome,1-Mathf.Exp(-dt*6));
+            var pose=photoHeadPivot!=null?photoHeadPivot:head;var rest=photoHeadPivot!=null?photoHeadHome:headHome;
+            float yaw=0;
+            if(photoLookBack && player!=null){var local=transform.InverseTransformDirection(player.position-transform.position);yaw=Mathf.Clamp(Mathf.Atan2(local.x,local.z)*Mathf.Rad2Deg,-45,45);}
+            if(pose!=null)
+            {
+                var target=rest*(entranceShutterPose>0?Quaternion.Euler(0,12,-7):Quaternion.Euler(0,yaw,0));
+                pose.localRotation=entranceShutterPose>0?target:Quaternion.Slerp(pose.localRotation,target,1-Mathf.Exp(-dt*9));
+            }
+            hairResponse=Mathf.Lerp(hairResponse,entranceShutterPose>0?-4:-yaw*.18f,1-Mathf.Exp(-dt*3));
+            if(photoHairPivot!=null)photoHairPivot.localRotation=Quaternion.Slerp(photoHairPivot.localRotation,photoHairHome*Quaternion.Euler(0,hairResponse,entranceShutterPose>0?3:0),1-Mathf.Exp(-dt*4));
+            if(rightArm!=null)rightArm.localScale=rightArmScale;
             phase+=dt*(walking?7:2);float swing=walking?Mathf.Sin(phase)*25:0;
             if(leftLeg!=null)leftLeg.localRotation=Quaternion.Euler(swing,0,0);
             if(rightLeg!=null)rightLeg.localRotation=Quaternion.Euler(-swing,0,0);
             if(leftArm!=null)leftArm.localRotation=Quaternion.Euler(-swing*.7f,0,-7);
             if(rightArm!=null)rightArm.localRotation=respondRemaining>0?Quaternion.Euler(-25,0,115+Mathf.Sin(phase*4)*12):Quaternion.Euler(swing*.7f,0,7);
             if(photoOfferHand && rightArm!=null)
-            {var direction=photoHandTarget-rightArm.position;if(direction.sqrMagnitude>.001f)rightArm.rotation=Quaternion.FromToRotation(Vector3.down,direction.normalized);}
+            {
+                var direction=photoHandTarget-rightArm.position;
+                if(direction.sqrMagnitude>.001f)
+                {
+                    rightArm.rotation=Quaternion.FromToRotation(Vector3.down,direction.normalized);
+                    if(photoRightHand!=null)
+                    {
+                        float reach=Mathf.Max(.1f,Mathf.Abs(photoRightHand.localPosition.y));
+                        rightArm.localScale=new Vector3(rightArmScale.x,Mathf.Clamp(direction.magnitude/reach,.8f,1.25f)*rightArmScale.y,rightArmScale.z);
+                    }
+                }
+            }
             if(visual!=null)visual.localPosition=visualHome+Vector3.up*(walking?Mathf.Abs(Mathf.Sin(phase))*.025f:0);
             if(hasSpeed && animator!=null)animator.SetFloat("Speed",walking?walkSpeed:0);
         }

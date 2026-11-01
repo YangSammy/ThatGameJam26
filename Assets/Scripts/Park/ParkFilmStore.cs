@@ -189,14 +189,35 @@ namespace MemoryWhitebox
             if(progress.phase==PhotoChapter.FilmPhase.Developed)roll.state=ParkFilmState.Developed;
             roll.updatedUtc=DateTime.UtcNow.ToString("o");Validate(roll);WriteJson(Manifest(roll.id),roll);return roll;
         }
-        internal static Texture2D CreateContactSheetPreview(string rollId)
+        // Private physical-negative preview, available only after the saved fixing/rinse workflow.
+        internal static Texture2D[] CreatePhysicalNegativePreviews(string rollId)
+        {
+            var roll=Load(rollId);
+            if(roll.state!=ParkFilmState.Developed && (roll.darkroom==null || roll.darkroom.printStage<ParkPrintStage.NegativeDrying))
+                throw new InvalidOperationException("Film has not been fixed.");
+            var result=new Texture2D[Mathf.Min(3,roll.frames.Count)];
+            try
+            {
+                for(int i=0;i<result.Length;i++)
+                {
+                    var image=new Texture2D(2,2,TextureFormat.RGB24,false);result[i]=image;
+                    if(!image.LoadImage(File.ReadAllBytes(Path.Combine(RollFolder(roll.id),roll.frames[i].negativeFile))))throw new InvalidDataException("Negative unavailable.");
+                    var pixels=image.GetPixels();
+                    for(int j=0;j<pixels.Length;j++)pixels[j]=new Color(1-pixels[j].r,1-pixels[j].g,1-pixels[j].b,1);
+                    image.SetPixels(pixels);image.Apply();image.name="Physical negative "+(i+1);
+                }
+                return result;
+            }
+            catch{foreach(var t in result)if(t!=null)UnityEngine.Object.Destroy(t);throw;}
+        }
+        internal static Texture2D CreateContactSheetPreview(string rollId,float paperAspect=16f/9f)
         {
             var roll=Load(rollId);
             if(roll.state!=ParkFilmState.Developed && (roll.darkroom==null || roll.darkroom.printStage<ParkPrintStage.PaperDeveloper))
                 throw new InvalidOperationException("Contact sheet has not been exposed.");
             const int width=256,height=144,border=12;
             int sheetWidth=(width+border)*roll.frames.Count+border;
-            var sheet=new Texture2D(sheetWidth,Mathf.RoundToInt(sheetWidth*9f/16),TextureFormat.RGB24,false);
+            var sheet=new Texture2D(sheetWidth,Mathf.RoundToInt(sheetWidth/Mathf.Clamp(paperAspect,.5f,3)),TextureFormat.RGB24,false);
             try
             {
                 var background=new Color[sheet.width*sheet.height];for(int i=0;i<background.Length;i++)background[i]=new Color(.93f,.91f,.84f);sheet.SetPixels(background);

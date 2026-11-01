@@ -11,13 +11,13 @@ namespace MemoryWhitebox
         bool InDarkroomPhase => Photo.Phase>=PhotoChapter.FilmPhase.DarkBag && Photo.Phase<=PhotoChapter.FilmPhase.Processing;
         public override string Pick(Ray ray)
         {
-            if(!UsesProgress)return base.Pick(ray);
+            if(!UsesProgress)return ResolvePrintHit(base.Pick(ray));
             var hits=Physics.RaycastAll(ray,2.5f,(1<<8)|(1<<25)|1,QueryTriggerInteraction.Ignore);
             Array.Sort(hits,(a,b)=>a.distance.CompareTo(b.distance));
             foreach(var hit in hits) {
                 if(hit.collider.name.StartsWith("Walk blocker") && hit.collider.GetComponent<Renderer>()==null)continue;
                 var node=hit.collider.GetComponent<WorldHotspot>();
-                if(node!=null && node.Owner==this)return node.Id;
+                if(node!=null && node.Owner==this)return ResolvePrintHit(node.Id);
                 // Room navigation volumes and curtains are also physical occluders.
                 if(hit.collider.gameObject.layer==25 || hit.collider.GetComponent<Renderer>()!=null)return "";
             }

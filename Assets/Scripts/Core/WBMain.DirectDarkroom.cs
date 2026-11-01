@@ -7,6 +7,20 @@ namespace MemoryWhitebox
         public bool DirectDarkroomActive=>!InStation && DarkroomWorld!=null && DarkroomWorld.DirectDarkroom;
         Transform darkroomReachTarget;
         bool darkroomWasLeft;
+        bool darkroomPressPending;
+        Ray darkroomPressRay;
+        // Input.mousePosition contains the latest position, not necessarily the
+        // position where this frame's press began. Preserve the native event ray.
+        void CaptureDarkroomPointerPress()
+        {
+            if(!DirectDarkroomActive || !houseFocused || !InputContext.Ready || ShowHelp ||
+                (safeInspection!=null && safeInspection.BlocksInput))
+            {darkroomPressPending=false;return;}
+            var e=Event.current;
+            if(e.type!=EventType.MouseDown || e.button!=0 || darkroomWasLeft || DarkroomWorld.PointerOverUI)return;
+            darkroomPressRay=Room.Camera.ScreenPointToRay(new Vector3(e.mousePosition.x,Screen.height-e.mousePosition.y,0));
+            darkroomPressPending=true;
+        }
         public void PrepareContinuousDarkroom()
         {
             var photo=DarkroomWorld;if(photo==null || !photo.DirectDarkroomAvailable)return;
@@ -41,17 +55,21 @@ namespace MemoryWhitebox
             if(photo.ParkGalleryOpen){Room.StopMotion();photo.TickDirectDarkroom(dt);return true;}
             bool down=Input.GetMouseButton(0),right=Input.GetMouseButton(1);
             var axis=new Vector2((Input.GetKey(KeyCode.D)?1:0)-(Input.GetKey(KeyCode.A)?1:0),(Input.GetKey(KeyCode.W)?1:0)-(Input.GetKey(KeyCode.S)?1:0));
-            if(photo.HasActiveGesture)Room.StopMotion();
+            if(photo.HasActiveGesture && !photo.CarryingExposedFilm)Room.StopMotion();
             else Room.StepFreePointer(axis,right?PlayerInputPolicy.LookDelta:Vector2.zero,dt);
             Ray ray=Room.Camera.ScreenPointToRay(Input.mousePosition);string id=photo.Pick(ray);
             if(!photo.PointerOverUI)
             {
-                if(down && !darkroomWasLeft)photo.Press(id,ray,0);
+                if(darkroomPressPending && !darkroomWasLeft)
+                {photo.Press(photo.Pick(darkroomPressRay),darkroomPressRay,0);darkroomWasLeft=true;}
                 if(Mathf.Abs(Input.mouseScrollDelta.y)>.01f)photo.Scroll(id,Input.mouseScrollDelta.y,ray);
             }
+            darkroomPressPending=false;
             photo.Move(ray);
             if(!down && darkroomWasLeft)photo.Release(id,ray);
-            photo.TickDirectDarkroom(dt);darkroomWasLeft=down;return true;
+            photo.TickDirectDarkroom(dt);
+            if(!down)darkroomWasLeft=false;
+            return true;
         }
     }
 }

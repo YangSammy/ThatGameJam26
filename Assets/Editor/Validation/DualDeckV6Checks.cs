@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
@@ -46,7 +46,7 @@ namespace MemoryWhitebox.Editor
             void LoadB(){Check((bool)d.GetType().GetMethod("SelectForDrag",f).Invoke(d,new object[]{2}),"Select existing B identity");Check(d.InsertDragged(),"Begin B load");Check(!d.InsertDragged(),"Reject duplicate B load");Animate();}
             d.transport.GetComponent<AudioSource>().Stop();d.SetStationActive(true);d.ReleaseInputGate(true);
             d.view.transform.SetPositionAndRotation(d.operationView.transform.position,d.operationView.transform.rotation);Physics.SyncTransforms();
-            foreach(var hit in d.dualDeck.keyHits)Check(StudyEntry.PickVisible(new Ray(d.view.transform.position,hit.bounds.center-d.view.transform.position))==hit,"Authored camera hits "+d.dualDeck.Command(hit));
+            foreach(var hit in d.dualDeck.keyHits)Check(d.PickWorkbenchTarget(new Ray(d.view.transform.position,hit.bounds.center-d.view.transform.position))==hit,"Authored camera hits "+d.dualDeck.Command(hit));
             Check(d.LoadOriginal(),"Load existing A identity");Check(!d.LoadOriginal(),"Reject duplicate A load");Animate();
             Check(d.dualDeck.Closed(0)&&d.Chapter.SourceLoaded,"A load closes its door");
             d.Chapter.AuditionComplete=true;var c=d.Chapter.Tape.Candidates[2];c.LeftUsed=c.RightUsed=c.StartReached=c.EndReached=c.HoleA=c.HoleB=true;c.Scanned=400;for(int i=0;i<400;i++)c.Seen[i]=true;

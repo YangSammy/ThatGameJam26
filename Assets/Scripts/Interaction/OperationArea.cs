@@ -127,7 +127,13 @@ namespace MemoryWhitebox
                 item.SetPositionAndRotation(area.transform.TransformPoint(saved.position),area.transform.rotation*saved.rotation);
                 Vector3 bounded;bool edge;
                 if(area.Constrain(item,item.position,0,out bounded,out edge))
-                {saved.position=area.transform.InverseTransformPoint(bounded);member.placement=saved;}
+                {
+                    // A designated receiver can sit above the table (e.g. a preparation mat).
+                    // Preserve its saved support clearance while still clamping XY bounds and excessive heights.
+                    float clearance=Mathf.Clamp(Vector3.Dot(item.position-bounded,area.Normal),0,.25f);
+                    bounded+=area.Normal*clearance;
+                    member.placement=new AreaPlacementRecord{areaId=saved.areaId,itemId=saved.itemId,position=area.transform.InverseTransformPoint(bounded),rotation=saved.rotation};
+                }
                 item.SetPositionAndRotation(old,rotation);
                 RestorePose(item);
             }

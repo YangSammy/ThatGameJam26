@@ -36,11 +36,11 @@ namespace MemoryWhitebox
                     case ParkPrintStage.Exposing:
                         if(printObjectsState.paper.locationId!="print-frame")Guide("print-paper","print-frame","Drag to contact frame","Place paper in the contact frame.");
                         else if(printObjectsState.negative.locationId!="print-frame")Guide("print-negative","print-frame","Drag onto the paper","Place the dry negative over the paper.");
-                        else if(!printObjectsState.frameClosed)Guide("print-frame-lid",null,"Click to close","Close the contact frame — click its rim.");
+                        else if(!printObjectsState.frameClosed)Guide("print-frame-lid",null,"Click to close","Click the contact frame to close it.");
                         else Guide("print-exposure",null,"Hold LMB to expose",printRemaining>0?"Continue exposure — hold the switch ("+printRemaining.ToString("0.0")+"s).":"Hold the exposure switch.");
                         break;
                     case ParkPrintStage.PaperDeveloper:
-                        if(printObjectsState.frameClosed)Guide("print-frame-lid",null,"Click to open","Open the contact frame — click its rim.");
+                        if(printObjectsState.frameClosed)Guide("print-frame-lid",null,"Click to open","Click the contact frame to open it.");
                         else Guide("print-paper","print-developer","Drag to developer tray","Move the exposed paper into developer.");
                         break;
                     case ParkPrintStage.PaperStop:Guide("print-paper","print-stop","Drag to stop bath","Move the paper into the stop bath.");break;
@@ -58,7 +58,7 @@ namespace MemoryWhitebox
                 case PhotoChapter.FilmPhase.Exposed:Guide("rewind",null,"Hold LMB + Scroll up","Rewind film — hold knob + scroll up ("+Mathf.RoundToInt(RewindTurns*100)+"%).");break;
                 case PhotoChapter.FilmPhase.Rewound:
                     if(!RewoundBackOpen)Guide("back",null,"Click to open","Open the camera back.");
-                    else Guide("exposed-film","bag","Drag to dark bag","Move the film into the dark bag.");
+                    else Guide("exposed-film","bag","Hold LMB to carry; WASD to move","Carry the film to the dark bag. Hold LMB + WASD; release over bag.");
                     break;
                 case PhotoChapter.FilmPhase.DarkBag:Guide("bag",null,"Hold LMB + Scroll up","Load reel — hold bag + scroll up ("+Mathf.RoundToInt(Photo.BagTurns*100)+"%).");break;
                 case PhotoChapter.FilmPhase.Tank:
@@ -74,7 +74,7 @@ namespace MemoryWhitebox
             }
         }
         string PrintProcessName()=>printStage==ParkPrintStage.NegativeDrying?"drying negative":printStage==ParkPrintStage.PaperDeveloper?"developing paper":printStage==ParkPrintStage.PaperStop?"stopping development":printStage==ParkPrintStage.PaperFixer?"fixing paper":printStage==ParkPrintStage.PaperWash?"washing paper":"drying print";
-        string DarkroomTask {get{ResolveDarkroomGuide();string target=CurrentDropTarget();return target!=null?"Move to "+DarkroomName(target)+"; release LMB.":guideTask;}}
+        string DarkroomTask {get{ResolveDarkroomGuide();string target=CurrentDropTarget();return CarryingExposedFilm?"Hold LMB + WASD to carry. RMB to look. Release over the dark bag.":target!=null?"Move to "+DarkroomName(target)+"; release LMB.":guideTask;}}
         static string DarkroomName(string id)
         {
             switch(id)
@@ -93,7 +93,7 @@ namespace MemoryWhitebox
                 case "print-negative":return "Negative strip";
                 case "print-paper":return "Contact paper";
                 case "print-frame":return "Contact frame";
-                case "print-frame-lid":return "Contact frame rim";
+                case "print-frame-lid":return "Contact frame";
                 case "print-exposure":return "Exposure switch";
                 case "print-negative-clip":return "Negative drying clip";
                 case "print-photo-clip":return "Photo drying clip";

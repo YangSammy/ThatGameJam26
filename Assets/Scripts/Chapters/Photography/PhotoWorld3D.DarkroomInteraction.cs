@@ -4,6 +4,7 @@ namespace MemoryWhitebox
 {
     public sealed partial class PhotoWorld3D
     {
+        public bool CarryingExposedFilm=>DirectDarkroom && dragged=="exposed-film";
         string darkroomNotice="";
         float darkroomNoticeUntil;
         bool resumedDarkroom;
@@ -26,6 +27,7 @@ namespace MemoryWhitebox
             return DragReceiverProbe.Accepts(ray,target.transform,objectDrag.Item,tolerance,2.5f,col=>
             {
                 var hotspot=col.GetComponent<WorldHotspot>();
+                if(id=="chamber" && col.GetComponent<PhotographyInteractionHit>()!=null)return true;
                 if(id==DrainTarget && Nodes.ContainsKey("water") && DragReceiverProbe.BelongsTo(col.transform,Nodes["water"].transform))return true;
                 return hotspot!=null && hotspot.Owner==this && id=="print-frame" &&
                     (hotspot.Id=="print-paper" || hotspot.Id=="print-negative" || hotspot.Id=="print-frame-lid");
@@ -52,7 +54,17 @@ namespace MemoryWhitebox
         Vector3 MoveDarkroomDrag(Ray ray)
         {
             var receiver=DragReceiver(ray);
-            if(receiver==null)return objectDrag.Move(ray);
+            if(receiver==null)
+            {
+                if(CarryingExposedFilm)
+                {
+                    // The same drag can travel between rooms. No area clamp or fixed
+                    // world plane: a safe near-view offset follows walking and looking.
+                    var carry=View.transform.TransformPoint(new Vector3(.12f,-.16f,.6f));
+                    return objectDrag.MoveTo(Vector3.MoveTowards(objectDrag.Item.position,carry,Time.deltaTime*3));
+                }
+                return objectDrag.Move(ray);
+            }
             string target=CurrentDropTarget();
             return objectDrag.MoveOverSurface(ToolDropPreview(target,objectDrag.Item.gameObject),receiver);
         }

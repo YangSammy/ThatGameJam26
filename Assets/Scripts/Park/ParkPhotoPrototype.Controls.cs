@@ -48,6 +48,7 @@ namespace MemoryWhitebox
                 int aperture=Array.IndexOf(apertures,last.aperture),speed=Array.IndexOf(speeds,last.shutterSeconds);
                 if(aperture>=0)apertureIndex=aperture;if(speed>=0)speedIndex=speed;
             }
+            if(PhotographyVisualAssets.Load()!=null){BuildAssetInstruments();return;}
             instruments=new GameObject("Photography hand instruments").transform;instruments.SetParent(view.transform,false);
             bodyRoot=new GameObject("Camera operation model").transform;bodyRoot.SetParent(instruments,false);
             meterRoot=new GameObject("Incident light meter").transform;meterRoot.SetParent(instruments,false);
@@ -144,7 +145,7 @@ namespace MemoryWhitebox
         {
             string result="";float nearest=float.MaxValue;RaycastHit hit;
             foreach(var pair in instrumentParts)
-                if(pair.Value.gameObject.activeInHierarchy && pair.Value.GetComponent<Collider>().Raycast(ray,out hit,2) && hit.distance<nearest)
+                if(pair.Value.gameObject.activeInHierarchy && pair.Value.GetComponent<Collider>().enabled && pair.Value.GetComponent<Collider>().Raycast(ray,out hit,2) && hit.distance<nearest)
                 {nearest=hit.distance;result=pair.Key;}
             return result;
         }
@@ -186,6 +187,7 @@ namespace MemoryWhitebox
         void SyncInstruments()
         {
             if(instruments==null)return;
+            if(instrumentCamera!=null){SyncAssetInstruments();return;}
             meterRoot.gameObject.SetActive(photoMode==PhotographyMode.Meter);
             bodyRoot.gameObject.SetActive(photoMode==PhotographyMode.Body || photoMode==PhotographyMode.Aperture || photoMode==PhotographyMode.Shutter);
             foreach(int iso in filmIsos)instrumentParts["film-"+iso].gameObject.SetActive(loadingStep<2);

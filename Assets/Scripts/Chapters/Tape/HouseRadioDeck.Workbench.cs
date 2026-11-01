@@ -70,6 +70,7 @@ namespace MemoryWhitebox
         }
         public void CloseWorkbench()
         {
+            if(!internalDeckHandoff)focusRadioAfterLoad=false;
             CancelWorkbenchGesture();RestorePreparationCamera();StopRecordingInput();
             ShowTapeDropPreview(null);
             adhesiveRibbon.gameObject.SetActive(false);benchGesture=BenchGesture.None;benchLeft=benchRight=false;
