@@ -39,7 +39,7 @@ namespace MemoryWhitebox
             cassette.StartReached|=next<=.001f;cassette.EndReached|=next>=Duration-.001f;
             float lo=Mathf.Min(old,next),hi=Mathf.Max(old,next);
             foreach(float brokenAt in cassette.Breaks)
-                if(brokenAt>=lo && brokenAt<=hi){cassette.Position=brokenAt;cassette.Broken=true;WBMain.Tone(95,.15f);return;}
+                if(brokenAt>=lo && brokenAt<=hi){cassette.Position=brokenAt;cassette.Broken=true;return;}
             cassette.Position=next;
             for(int i=Mathf.Max(0,Mathf.FloorToInt(lo/Duration*Samples));i<Mathf.Min(Samples,Mathf.CeilToInt(hi/Duration*Samples));i++)
                 if(!cassette.Seen[i]){cassette.Seen[i]=true;cassette.Scanned++;}

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 namespace MemoryWhitebox
 {
     public sealed partial class HouseRadioDeck
@@ -109,7 +109,7 @@ namespace MemoryWhitebox
             }
             if(type==EventType.MouseDown && button==0 && !movingOriginal && benchGesture==BenchGesture.None &&
                 StudyEntry.PickVisible(ray)==originalHit && !Chapter.SourceLoaded && !Chapter.Completed && !DeckBusy(0) && !StorageClosed(originalTape))
-            {movingOriginal=true;benchDrag.BeginScreenCarry(originalTape,ray,view.transform.forward);return true;}
+            {movingOriginal=true;TapeSound(5,originalTape.position);benchDrag.BeginScreenCarry(originalTape,ray,view.transform.forward);return true;}
             if(!movingOriginal)return false;
             if(type==EventType.MouseDrag)
             {MoveRadioTape(benchDrag,ray,CanReceive(sourceSlot,ray)?sourceSlot.transform:null);}
@@ -119,7 +119,7 @@ namespace MemoryWhitebox
                 bool insert=!benchDrag.Blocked && over;
                 bool placed=!insert && benchDrag.TryPlaceInArea();benchDrag.End(!insert && !placed);movingOriginal=false;originalHit.enabled=true;
                 if(insert)LoadOriginal();else RestoreSource();
-                if(placed)house.SaveStableProgress();
+                if(placed){TapeSound(5,originalTape.position);house.SaveStableProgress();}
                 if(insert){internalDeckHandoff=true;try{CloseWorkbench();OpenRecording();}finally{internalDeckHandoff=false;}}
             }
             return true;

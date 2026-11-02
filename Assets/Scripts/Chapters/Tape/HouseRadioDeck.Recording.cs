@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace MemoryWhitebox
 {
@@ -90,7 +90,7 @@ namespace MemoryWhitebox
                     commissions=configured;
                 }
                 if(commissions==null || commissions.Length<RadioTapeChapter.CommissionCount)throw new System.InvalidOperationException("Assign the original tape commission definition.");
-                commissionAudio=TapeCommissionCompiler.Build(commissions[index],AudioSettings.outputSampleRate);
+                commissionAudio=TapeRecordingSourceResolver.Resolve(commissions[index],AudioSettings.outputSampleRate,index);
                 transport.Initialize(commissionAudio.Samples,AudioSettings.outputSampleRate,index);
                 loadedCommission=index;
                 recordingReady=transport.SaveError=="";

@@ -12,12 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 19b12b5516608ad48894473ff226f516, type: 3}
   m_Name: Commission_03
   m_EditorClassIdentifier: 
-  title: Birthday - placeholder audio
-  sourceAudio: {fileID: 8300000, guid: ab131ed90ce851a4f9445b1b8488bda4, type: 3}
-  cleanDuration: 12
+  title: Birthday - approved edit mix v2
+  sourceAudio: {fileID: 8300000, guid: a91aced7de60c95448bfcc0af051e1c0, type: 3}
+  sourceContainsNoise: 1
+  legacyDefinition: {fileID: 11400000, guid: 62806c5ea3040a14cb0d5d34d76a1273, type: 2}
+  noiseAudio: {fileID: 0}
+  noiseAudioStart: 1
+  sourceLayers: []
+  cleanDuration: 24.5
   noiseSeed: 861
   noise:
-  - atCleanSecond: 6
+  - atCleanSecond: 14.6
     duration: 1.6
     amplitude: 0.22
   acceptance: {fileID: 11400000, guid: 0186df1930b6dc54e9230f66d430ca88, type: 2}

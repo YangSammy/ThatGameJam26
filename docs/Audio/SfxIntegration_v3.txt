@@ -1,0 +1,65 @@
+﻿后续更新：第三盘已切为确认的成品WAV，当前接入与审查以 TapeSourceReleaseReview_2026-11-01.txt 为准。以下为此前接入记录。
+
+音效接入更新 — 2026-11-01
+按用户修订：001通用全局；002春夏秋冬四段；015用作换带短反馈；其余按源带方案。
+现在Git提供的19个编号均有游戏触发路径。003、021–050共31个编号仍没有对应文件。
+“已接入”不等于所有变体、试听和混音验收完成。
+
+环境声
+001：原文件无修改、AudioSource.loop，单个DontDestroyOnLoad音源跨House/Park持续。
+002原始分段：春0–55.2，夏61.6–101.3，秋115.5–165.2，冬176.8–206.9秒。
+边界依据三个长静音间隔，季节顺序由用户确认。每段末尾和开头交叠1.5秒生成独立PCM24/48kHz文件。
+循环成品：春53.7秒、夏38.2秒、秋48.2秒、冬28.6秒。原WAV保留。
+GameAmbience按WBMain.CurrentDay选季节；ParkScene为夏；第五天回春。
+换季2秒交叉淡化。当前002是空间氛围床，不含窗户开度、遮挡低通控制；未新增开窗玩法。
+配置：Assets/Resources/GameAmbience.asset，globalVolume/seasonVolume/fadeSeconds可在Inspector调整。
+产物：Assets/audio/SeasonLoops/。分段记录docs/Audio/SFX002_Segments.json。
+可复现脚本Tools/Audio/prepare_season_loops.py（隔离Python环境安装numpy、soundfile；不影响Unity包）。
+
+015换带
+SFX-015.wav的0.425–0.775秒作为短操作反馈；成功LoadTape并关仓落座后一次，不当循环音乐。
+失败、拖动取消、单纯开关门、读档Snap都不触发015。与010机械仓门声保持独立。
+配置仍在Assets/Resources/TapeSfxBank.asset。
+
+源带014、016–020
+新增配置字段位于TapeCommissionDefinition，当前三份Commission资产保持原GUID。
+noiseAudio指向014，截取起点1秒，按原噪声插入持续时间使用，峰值归一化后应用原amplitude与5ms边缘淡化。
+第一/二份音乐源不变；只有插入的噪声由随机信号替换为素材。
+第三份cleanDuration=28秒，SourceLayers按可调整的时间、截取范围、增益混入同一源PCM：
+016聚会0–9.1秒；017庆祝2–14秒；018脚步16–20.19秒；019包装/链21–25.46秒；020笑26–27.4秒。
+每层归一到峰值0.35后应用gain与15ms剪辑边缘淡化，避免原素材响度悬殊。混音只在编译时做一次。
+噪声插在干净时间轴14.7秒、长1.6秒，实际A时间轴14.7–16.3秒；后续声段整体顺延1.6秒。
+上述叙事秒数均为噪声插入前时间轴。没有覆盖庆祝/脚步/礼物/笑声的关键声音。
+Acceptance_03按四种关键声音覆盖率验收；原允许噪声/空白和总体覆盖阈值未改。
+播放、录制、回听仍由TapeSampleTransport真实样本缓冲驱动，未额外在背景PlayOneShot叙事音效。
+
+旧存档兼容
+Assets/Data/TapeCommissions/Legacy保留三份旧源带定义和独立旧验收数据。
+TapeRecordingSourceResolver读取既有PCM文件头哈希，新源匹配用新版、旧源匹配用旧版。v1无哈希仅匹配旧定义长度。
+未知哈希或不支持采样率拒绝恢复并保留文件，不清空或静默迁移。
+存档二进制格式保持原v1–v3；旧委托重试仍保持其旧源版本，新开始且没有录音文件的委托使用新版。
+要试听新声景请使用新的Editor测试会话，不需要删除用户持久存档。
+
+验证
+Unity编译通过；最终Console error/warning均0（编译期间一个变量同名错误已修复，未清空Console掩盖）。
+Tools > Audio > Validate Source Revisions and Ambience可重跑自动检查。
+三份新PCM均不同于旧版；清洁录音映射均可提交；新/旧源哈希及各自验收规则恢复正确；未知哈希拒绝且不重写。
+第三源带5层均在PCM中含非零声音；噪声映射仅位于设计空隙。
+HouseScene实际Play：全局循环启动、春季选择、仅一个GameAmbience实例。
+运行中切ParkScene：同一实例ID保留，001继续isPlaying，夏季音源播放，春季音源淡出后停止；无新增错误警告。
+原EditorPlaySession恢复，所有文件SHA256一致；未保存或移动House/Park场景对象。
+本次没有完整人工试听、录制三个委托和鼠标换带逐项验收。没有声称声音语义、循环听感或最终响度已经人工确认。
+015短声和019内部声段需要人工试听精调；002的循环接点虽做了数值交叠仍需耳听确认。
+上一轮004–013的变体拆分与完整交互听感精修仍待完成。
+
+修改范围
+GameAmbienceSettings.cs / GameAmbience.cs：全局及季节循环。
+TapeCommissionDefinition.cs / TapeCommissionCompiler.cs：源带层和真实噪声PCM。
+TapeRecordingSourceResolver.cs / HouseRadioDeck.Recording.cs：按旧存档哈希选择正确源及验收。
+DualDeckVisual.cs：成功装带015事件。
+AudioIntegrationValidation.cs：配置、PCM与版本兼容检查。
+配置资产、Legacy资产、新四季循环WAV及其meta；原001–020的WAV未更改。
+
+回退
+保留本轮之前的机械音效接入。移除GameAmbience及其配置/四季派生文件、恢复Commission/Acceptance_03与编译器/Recording的本轮变更、移除015成功装带事件。
+不要在已有新版录音后直接删掉源带版本：新版录音也依赖对应哈希；回退应先备份全部测试存档。

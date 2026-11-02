@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4dc94a6c4c5428e4d84caa831c523524, type: 3}
+  m_Name: TapeSfxBank
+  m_EditorClassIdentifier: 
+  cues:
+  - id: 4
+    clip: {fileID: 8300000, guid: c2b7d5f66b5e6b94d9ca67b7e875875a, type: 3}
+    start: 0.575
+    duration: 0.7
+    volume: 0.28
+  - id: 5
+    clip: {fileID: 8300000, guid: ddef7dfbe0e68b54391a1108a732e856, type: 3}
+    start: 0.425
+    duration: 0.45
+    volume: 0.28
+  - id: 6
+    clip: {fileID: 8300000, guid: 0df708a4ee0c5284a82b0f73d8b267f3, type: 3}
+    start: 0
+    duration: 2
+    volume: 0.1
+  - id: 7
+    clip: {fileID: 8300000, guid: 003f053962ccda342bb1c19eef4dc972, type: 3}
+    start: 3.015
+    duration: 0.5
+    volume: 0.28
+  - id: 8
+    clip: {fileID: 8300000, guid: ca9c6c1306ec67249af81e6e74d4177c, type: 3}
+    start: 0.315
+    duration: 1.1
+    volume: 0.28
+  - id: 9
+    clip: {fileID: 8300000, guid: 5caa1e25cb8a35f478c85c74aa74206e, type: 3}
+    start: 0.505
+    duration: 0.65
+    volume: 0.28
+  - id: 10
+    clip: {fileID: 8300000, guid: 8171ab263746732438d09bbadaf5810d, type: 3}
+    start: 0.575
+    duration: 0.55
+    volume: 0.28
+  - id: 11
+    clip: {fileID: 8300000, guid: 1e3e34b1e6378ed478080a2251de27e4, type: 3}
+    start: 0.465
+    duration: 0.18
+    volume: 0.28
+  - id: 12
+    clip: {fileID: 8300000, guid: 957cbd35052b98947b85ff319317f030, type: 3}
+    start: 0.735
+    duration: 3
+    volume: 0.1
+  - id: 13
+    clip: {fileID: 8300000, guid: ffb324668b6179148afa51de2ea53baa, type: 3}
+    start: 0.765
+    duration: 3
+    volume: 0.1
+  - id: 15
+    clip: {fileID: 8300000, guid: dabe7ce079f45ed44bb1199a8b8241ab, type: 3}
+    start: 0.425
+    duration: 0.35
+    volume: 0.25

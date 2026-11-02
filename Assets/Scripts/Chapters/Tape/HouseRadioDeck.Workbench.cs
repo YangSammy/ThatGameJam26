@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 namespace MemoryWhitebox
 {
     public sealed partial class HouseRadioDeck
@@ -158,7 +158,8 @@ namespace MemoryWhitebox
                 {
                     benchGesture=BenchGesture.Spindle;var state=Chapter.Tape;int selected=state.Selected;bool verified=state.SourceVerified;
                     state.Selected=BenchIndex;state.SourceVerified=state.Candidates[BenchIndex].Intact;
-                    state.BeginSpindle(benchSpindle);state.Turn(wheel);state.EndSpindle();state.Selected=selected;state.SourceVerified=verified;
+                    float oldPosition=state.Candidates[BenchIndex].Position;bool wasBroken=state.Candidates[BenchIndex].Broken;
+                    state.BeginSpindle(benchSpindle);state.Turn(wheel);SpindleSound(state.Candidates[BenchIndex],oldPosition,wasBroken);state.EndSpindle();state.Selected=selected;state.SourceVerified=verified;
                     if(workbenchVisuals!=null)workbenchVisuals.Turn(BenchIndex,benchSpindle,wheel,state.Candidates[BenchIndex].Broken);
                 }
                 return;
@@ -201,7 +202,7 @@ namespace MemoryWhitebox
                 if(benchGesture==BenchGesture.Rotate && benchLeft && benchRight)
                 {Chapter.WorkbenchEuler+=new Vector3(-delta.y*.4f,delta.x*.4f,0);PoseWorkbenchTape();}
                 if(benchGesture==BenchGesture.Pending && benchSpindle<0 && Vector2.Distance(point,benchPress)>7)
-                {preparationDragFromMat=preparationFocused && OnPreparationMat(tapes[BenchIndex].root);preparationDragPoint=benchPress;benchGesture=BenchGesture.MoveTape;benchDrag.BeginScreenCarry(tapes[BenchIndex].root,benchGrabRay,view.transform.forward);}
+                {preparationDragFromMat=preparationFocused && OnPreparationMat(tapes[BenchIndex].root);preparationDragPoint=benchPress;benchGesture=BenchGesture.MoveTape;TapeSound(5,tapes[BenchIndex].root.position);benchDrag.BeginScreenCarry(tapes[BenchIndex].root,benchGrabRay,view.transform.forward);}
                 if(benchGesture==BenchGesture.MoveTape && BenchIndex>=0)
                 {MoveRadioTape(benchDrag,ray,CanReceive(slotHit,ray)?slotHit.transform:PreparationDrop(ray)?workMat.transform:null);TryReturnWhileDragging(ray,point);}
                 if(benchGesture==BenchGesture.PullStrip || benchGesture==BenchGesture.MoveStrip)
@@ -229,7 +230,7 @@ namespace MemoryWhitebox
                         bool crossed=workbenchVisuals==null || (Vector2.Dot(benchLast-cut,fromHead)>0 && Vector2.Dot(point-cut,fromHead)<=0);
                         float along=segment.sqrMagnitude>0?Mathf.Clamp01(Vector2.Dot(cut-benchLast,segment)/segment.sqrMagnitude):0;
                         if(crossed && !benchDrag.Blocked && Vector2.Distance(cut,benchLast+segment*along)<20 && Vector3.Distance(pullStart,adhesiveStrip.position)>.025f)
-                        {workbenchVisuals?.Cut();benchGesture=BenchGesture.MoveStrip;Chapter.LooseStripReady=true;benchDrag.End(false);benchDrag.Begin(adhesiveStrip,ray,view.transform.forward,.008f,1.8f,true,workbenchVisuals!=null?workbenchVisuals.dispenser.transform:null);WBMain.Tone(180,.08f);}
+                        {workbenchVisuals?.Cut();benchGesture=BenchGesture.MoveStrip;Chapter.LooseStripReady=true;benchDrag.End(false);benchDrag.Begin(adhesiveStrip,ray,view.transform.forward,.008f,1.8f,true,workbenchVisuals!=null?workbenchVisuals.dispenser.transform:null);TapeSound(8,adhesiveCutter.bounds.center);}
                     }
                     adhesiveRibbon.gameObject.SetActive(workbenchVisuals==null && benchGesture==BenchGesture.PullStrip);
                     var length=adhesiveStrip.position-pullStart;adhesiveRibbon.position=(adhesiveStrip.position+pullStart)*.5f;
@@ -252,6 +253,7 @@ namespace MemoryWhitebox
                         bool accepted=!benchDrag.Blocked && over;
                         bool onMat=!accepted && PreparationDrop(ray);
                         bool placed=!accepted && !onMat && benchDrag.TryPlaceInArea();benchDrag.End(!accepted && !placed && !onMat);
+                        if(onMat || placed)TapeSound(5,tapes[BenchIndex].root.position);
                         if(onMat){if(!PlaceTapeOnPreparationMat(false))PoseWorkbenchTape();}
 
                         if(accepted && State==Phase.Empty && SelectForDrag(index) && InsertDragged()){Chapter.WorkbenchTapeIndex=-1;FinishWorkbenchTransfer();return;}
@@ -283,7 +285,7 @@ namespace MemoryWhitebox
                                 }
                             }
                         }
-                        if(attached){OperationArea.ClearPlacement(adhesiveStrip);Chapter.LooseStripReady=Smoothing;adhesiveStrip.gameObject.SetActive(false);WBMain.Tone(330,.06f);}else {benchDrag.TryPlaceInArea();RestStrip();}
+                        if(attached){OperationArea.ClearPlacement(adhesiveStrip);Chapter.LooseStripReady=Smoothing;adhesiveStrip.gameObject.SetActive(false);}else {benchDrag.TryPlaceInArea();RestStrip();}
                     }
                     else if(benchGesture==BenchGesture.PullStrip){adhesiveStrip.gameObject.SetActive(false);workbenchVisuals?.CancelPull();}
                     benchDrag.End(false);

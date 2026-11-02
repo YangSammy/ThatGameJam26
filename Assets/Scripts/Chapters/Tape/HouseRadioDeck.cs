@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 namespace MemoryWhitebox
@@ -50,7 +50,7 @@ namespace MemoryWhitebox
                 t.modelPosition=t.model.localPosition;t.modelRotation=t.model.localRotation;t.modelScale=t.model.localScale;
             }
             animator.keepAnimatorStateOnDisable=true;
-            initialized=true;Chapter=new RadioTapeChapter();ResetDeck();InitializeRecording();RestoreSource();
+            initialized=true;Chapter=new RadioTapeChapter();ResetDeck();InitializeRecording();RestoreSource();InitializeSfx();
         }
         void OnEnable()
         {
@@ -62,7 +62,7 @@ namespace MemoryWhitebox
                 speaker.Play();speaker.time=Mathf.Clamp(hiddenAudioPosition,0,Mathf.Max(0,speaker.clip.length-.001f));speaker.Pause();restoreHiddenAudio=false;
             }
         }
-        void OnDisable(){if(initialized){SetStationActive(false);SettleDualDeck();}}
+        void OnDisable(){if(sfx!=null)sfx.StopAll();if(initialized){SetStationActive(false);SettleDualDeck();}}
         bool SelectForDrag(int index)
         {
             if(!initialized || State!=Phase.Empty || index<0 || index>=tapes.Length)return false;
@@ -119,7 +119,7 @@ namespace MemoryWhitebox
         }
         void LateUpdate()
         {
-            if(initialized)TickWorkbenchAssets(Time.unscaledDeltaTime);
+            if(initialized){TickWorkbenchAssets(Time.unscaledDeltaTime);TickSfx();}
             if(dualDeck!=null){TickDualDeck();FocusLoadedRadio();if(State==Phase.Returning)AdvanceReturn(Time.unscaledDeltaTime);else if(State==Phase.Dragging&&view!=null)PoseDraggedTape(Time.unscaledDeltaTime);return;}
             if(RecordingMode)return;
             if(!initialized || Selected<0)return;

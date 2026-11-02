@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19b12b5516608ad48894473ff226f516, type: 3}
+  m_Name: Commission_03_Layered_v1
+  m_EditorClassIdentifier: 
+  title: Birthday - gathering and gift
+  sourceAudio: {fileID: 8300000, guid: ab131ed90ce851a4f9445b1b8488bda4, type: 3}
+  sourceContainsNoise: 0
+  legacyDefinition: {fileID: 11400000, guid: 3f3043579c50c274a880d53b2d96f4b3, type: 2}
+  noiseAudio: {fileID: 8300000, guid: 2105e8132c958df43940927929569be4, type: 3}
+  noiseAudioStart: 1
+  sourceLayers:
+  - label: Gathering
+    clip: {fileID: 8300000, guid: afb5fff0a4f6add46b4656d045de0baa, type: 3}
+    at: 0
+    trimStart: 0
+    duration: 9.1
+    gain: 0.25
+  - label: Celebration
+    clip: {fileID: 8300000, guid: 406d49a3f1c578441830c282e3133221, type: 3}
+    at: 2
+    trimStart: 0
+    duration: 12
+    gain: 0.55
+  - label: Approaching footsteps
+    clip: {fileID: 8300000, guid: c8478ef9b5abb0b419d5fb57860f9b19, type: 3}
+    at: 16
+    trimStart: 0
+    duration: 4.19
+    gain: 0.85
+  - label: Wrapping and chain
+    clip: {fileID: 8300000, guid: 60fa4ff4e7114b34a8d20d5389e524cc, type: 3}
+    at: 21
+    trimStart: 0
+    duration: 4.46
+    gain: 0.85
+  - label: Laughter
+    clip: {fileID: 8300000, guid: ff22e1b173e5d0e449fc0b3f6d737823, type: 3}
+    at: 26
+    trimStart: 0
+    duration: 1.4
+    gain: 0.65
+  cleanDuration: 28
+  noiseSeed: 861
+  noise:
+  - atCleanSecond: 14.7
+    duration: 1.6
+    amplitude: 0.22
+  acceptance: {fileID: 11400000, guid: 81f1b5aadb6b4254ab8ebba108e10549, type: 2}

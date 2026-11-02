@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 namespace MemoryWhitebox
 {
     public sealed partial class HouseRadioDeck
@@ -208,7 +208,7 @@ namespace MemoryWhitebox
         bool StorageClick(Collider hit)
         {
             if(workbenchVisuals==null)return false;
-            if(hit==workbenchVisuals.lidHit){workbenchVisuals.ToggleLid();return true;}
+            if(hit==workbenchVisuals.lidHit){if(!workbenchVisuals.LidBusy)TapeSound(4,workbenchVisuals.storage.transform.position);workbenchVisuals.ToggleLid();return true;}
             if(hit==workbenchVisuals.finishedHit){OpenRecording();return true;}
             return false;
         }
@@ -243,7 +243,7 @@ namespace MemoryWhitebox
                     if(v>=1)
                     {
                         var data=Chapter.Tape.Candidates[smoothingTape];if(smoothingHole==0)data.HoleA=true;else data.HoleB=true;
-                        Chapter.LooseStripReady=false;smoothingTape=-1;house.SaveStableProgress();
+                        TapeSound(9,tapes[smoothingTape].root.position);Chapter.LooseStripReady=false;smoothingTape=-1;house.SaveStableProgress();
                     }
                 }
             }

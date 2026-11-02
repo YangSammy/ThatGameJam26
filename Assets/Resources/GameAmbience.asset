@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f79783c2a410371449f795ec2eb3b859, type: 3}
+  m_Name: GameAmbience
+  m_EditorClassIdentifier: 
+  globalLoop: {fileID: 8300000, guid: c052cee490325c04aa1af7f7e6019721, type: 3}
+  seasons:
+  - {fileID: 8300000, guid: c64e45cc14f4596439353df3dd4d61d9, type: 3}
+  - {fileID: 8300000, guid: cf8fe0d4badbc4342b87cefe9d425ff4, type: 3}
+  - {fileID: 8300000, guid: 012b7fc2c34bb004d8acaa00a9c3ec7f, type: 3}
+  - {fileID: 8300000, guid: 8973295417650dc47a8f679fa3a82313, type: 3}
+  globalVolume: 0.16
+  seasonVolume: 0.22
+  fadeSeconds: 2

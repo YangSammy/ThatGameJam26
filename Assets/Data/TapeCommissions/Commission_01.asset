@@ -14,6 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   title: Music 1
   sourceAudio: {fileID: 8300000, guid: a7ca80984ddeba34dac9778c96ca5d10, type: 3}
+  legacyDefinition: {fileID: 11400000, guid: d1481fb8c397d464790ffd318205b98a, type: 2}
+  noiseAudio: {fileID: 8300000, guid: 2105e8132c958df43940927929569be4, type: 3}
+  noiseAudioStart: 1
+  sourceLayers: []
   cleanDuration: 12
   noiseSeed: 861
   noise:

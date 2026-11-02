@@ -7,6 +7,7 @@ namespace MemoryWhitebox
     public sealed class DualDeckVisual:MonoBehaviour
     {
         public AnimationClip[] clips;
+        public Action<int,int> MechanicalSound;
         public Transform tapeA,tapeB;
         public Collider[] keyHits;
         public string[] keyCommands;
@@ -25,7 +26,9 @@ namespace MemoryWhitebox
         void Pose(string name,float time){Ensure();if(library.TryGetValue(name,out var clip))clip.SampleAnimation(gameObject,Mathf.Clamp(time,0,clip.length));}
         void EndPose(string name){Ensure();if(library.TryGetValue(name,out var c))Pose(name,c.length);}
         void Play(string channel,string name,Action done=null)
-        {Ensure();if(!library.TryGetValue(name,out var c))throw new InvalidOperationException("Missing radio clip: "+name);motions[channel]=new Motion{clip=c,complete=done};Pose(name,0);}
+        {Ensure();if(!library.TryGetValue(name,out var c))throw new InvalidOperationException("Missing radio clip: "+name);motions[channel]=new Motion{clip=c,complete=done};Pose(name,0);
+            if(name.Contains("Key_"))MechanicalSound?.Invoke(11,name.StartsWith("A_")?0:1);
+            else if(name.EndsWith("Open")||name.EndsWith("Close")||name.EndsWith("LoadTape")||name.EndsWith("UnloadTape"))MechanicalSound?.Invoke(10,name.StartsWith("A_")?0:1);}
         public void Snap(int deck,bool loaded,bool doorOpen=false)
         {
             string p=Prefix(deck);motions.Remove(p+"door");motions.Remove(p+"tape");busy[deck]=false;open[deck]=doorOpen;
@@ -41,7 +44,7 @@ namespace MemoryWhitebox
         {
             if(busy[deck])return false;busy[deck]=true;string p=Prefix(deck);
             Action move=()=>{open[deck]=true;ShowTape(deck,true);Play(p+"tape",p+(load?"LoadTape":"UnloadTape"),()=>{
-                if(load)Play(p+"door",p+"Close",()=>{open[deck]=false;busy[deck]=false;complete?.Invoke();});
+                if(load)Play(p+"door",p+"Close",()=>{open[deck]=false;busy[deck]=false;MechanicalSound?.Invoke(15,deck);complete?.Invoke();});
                 else {ShowTape(deck,false);busy[deck]=false;complete?.Invoke();}
             });};
             if(open[deck])move();else Play(p+"door",p+"Open",move);return true;
