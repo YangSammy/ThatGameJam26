@@ -76,14 +76,12 @@ namespace MemoryWhitebox
         public bool CanRetake => !ParkMode && !parkFilmUnavailable && !Photo.Completed && Photo.Captured!=null && (Photo.Phase==PhotoChapter.FilmPhase.Exposed || Photo.Phase==PhotoChapter.FilmPhase.Rewound || Photo.Phase==PhotoChapter.FilmPhase.Developed);
         public float ProgressUIHeight => ParkMode || parkLoading?108:CanRetake && Photo.FailureReason!=""?116:60;
         public Rect ProgressActionRect => new Rect(28,Screen.height-51,220,30);
-        public bool PointerOverUI {
-            get {
-                var point=new Vector2(Input.mousePosition.x,Screen.height-Input.mousePosition.y);
+        public bool PointerOverUI => PointerOverUIAt(new Vector2(Input.mousePosition.x,Screen.height-Input.mousePosition.y));
+        public bool PointerOverUIAt(Vector2 point) {
                 return parkGallery || parkFilmUnavailable ||
                     ((parkLoading && Photo.Phase==PhotoChapter.FilmPhase.Ready || ParkPrintsReady) && ProgressActionRect.Contains(point)) ||
                     (CanRetake && Photo.FailureReason!="" && new Rect(Mathf.Min(760,Screen.width-180),Screen.height-58,155,32).Contains(point)) ||
-                    (Photo.InViewfinder && !View.pixelRect.Contains(Input.mousePosition));
-            }
+                    (Photo.InViewfinder && !View.pixelRect.Contains(new Vector2(point.x,Screen.height-point.y)));
         }
         void UpdateFinderViewport()
         {

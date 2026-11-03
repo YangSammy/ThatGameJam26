@@ -29,7 +29,7 @@ namespace MemoryWhitebox
             if(id==InputContextId.Darkroom)return InputContext.ExitPressed(id,()=>
             {
                 if(!DarkroomWorld.HasActiveGesture)return false;
-                DarkroomWorld.CancelInteraction();DarkroomWorld.SaveProgress();darkroomWasLeft=false;SuspendHouseInput();return true;
+                DarkroomWorld.CancelInteraction();DarkroomWorld.SaveProgress();SuspendHouseInput();return true;
             },()=>SetHelpVisible(true));
             if(id==InputContextId.Station || id==InputContextId.AutumnWriting || id==InputContextId.WinterObserve || id==InputContextId.WinterBook || id==InputContextId.WardWalk)return InputContext.ExitPressed(id,()=>
             {

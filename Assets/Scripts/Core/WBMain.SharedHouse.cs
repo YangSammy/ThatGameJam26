@@ -34,7 +34,7 @@ namespace MemoryWhitebox
             InStation || DirectDarkroomActive || DirectTapeHandling || (radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode || radioDeck.SuccessPopupOpen))?PlayerControlState.Operation:PlayerControlState.Exploration;
         public void SuspendHouseInput()
         {
-            darkroomPressPending=false;darkroomWasLeft=false;
+            photoPointer.Clear();
             InputContext.Handoff();
             houseReturnGate=true;houseHandoff.Arm();Room?.StopMotion();
             InputState.Keys.Clear();InputState.Down=false;wasDown=wasRightDown=false;
@@ -363,8 +363,19 @@ namespace MemoryWhitebox
             pointerRay=CurrentWorld.PointerRay(pointer);string id=CurrentWorld.Pick(pointerRay);CurrentWorld.HoverId=id;
             var photoWorld=CurrentWorld as PhotoWorld3D;
             bool photoUI=deskStudy && photoWorld!=null && photoWorld.PointerOverUI;
-            if(down&&!wasDown && !photoUI){bool curtainClick=deskStudy && photoWorld!=null && !photoWorld.Photo.InViewfinder && !photoWorld.Photo.MeterVisible && TryToggleStudyCurtain(pointerRay);if(!curtainClick)CurrentWorld.Press(id,pointerRay,0);}if(right&&!wasRightDown && !photoUI)CurrentWorld.Press(id,pointerRay,1);
-            CurrentWorld.Move(pointerRay);if(!down&&wasDown || !down&&!right&&wasRightDown)CurrentWorld.Release(id,pointerRay);
+            bool winterPress=CurrentWorld is PaintingWorld3D && ((PaintingWorld3D)CurrentWorld).BeginCapturedPointerPress();
+            Ray capturedRay;
+            if(photoWorld!=null && photoPointer.TryBegin(out capturedRay))
+            {
+                bool curtainClick=deskStudy && !photoWorld.Photo.InViewfinder && !photoWorld.Photo.MeterVisible && TryToggleStudyCurtain(capturedRay);
+                if(!curtainClick)photoWorld.Press(photoWorld.Pick(capturedRay),capturedRay,0);
+            }
+            if(photoWorld==null && down&&!wasDown && !winterPress)CurrentWorld.Press(id,pointerRay,0);
+            if(right&&!wasRightDown && !photoUI)CurrentWorld.Press(id,pointerRay,1);
+            CurrentWorld.Move(pointerRay);
+            if(photoWorld!=null && photoPointer.TryEnd(down,out capturedRay))
+            {photoWorld.Move(capturedRay);photoWorld.Release(photoWorld.Pick(capturedRay),capturedRay);}
+            else if((photoWorld==null && !down&&(wasDown||winterPress)) || (!down&&!right&&wasRightDown))CurrentWorld.Release(id,pointerRay);
             if(!photoUI && Mathf.Abs(Input.mouseScrollDelta.y)>.01f)CurrentWorld.Scroll(id,Input.mouseScrollDelta.y,pointerRay);
             CurrentWorld.Tick(ChapterIndex==2?Time.unscaledDeltaTime:dt,InputState);if(!InStation)return;if(!CurrentWorld.WantsMouseLook)CurrentWorld.ApplyPose();
             Done[ChapterIndex]=story.IsComplete(ChapterIndex);wasDown=down;wasRightDown=right;
@@ -407,7 +418,7 @@ namespace MemoryWhitebox
             if(!InStation && transition<=0)
             {
                 if(DirectTapeHandling || radioDeck.RecordingMode || radioDeck.WorkbenchMode)return;
-                InteractionUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"Â·",style);
+                InteractionUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"·",style);
                 string hint=Room.AimedStation>=0?"LMB  "+InteractionUI.ChapterName(Room.AimedStation)+(safeInspection!=null && Room.AimedStation!=5?"  /  E  Inspect":""):"WASD  Move   /   Mouse  Look   /   LMB  Interact   /   E  Inspect";
                 if(radioDeck!=null)hint=radioDeck.GetHint(Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f)))??hint;
                 if(safeInspection!=null && Room.AimedStation<0)
@@ -432,7 +443,7 @@ namespace MemoryWhitebox
                     InteractionUI.Label(new Rect(20,12,600,35),InteractionUI.ChapterName(ChapterIndex)+"  /  H  Help",style);
                     if(ShowHelp){InteractionUI.Label(new Rect(32,72,Mathf.Min(870,Screen.width-64),210),CurrentWorld.Help,style);}
                     else if(ChapterIndex>=2)InteractionUI.Label(new Rect(28,Screen.height-72,Screen.width-56,52),OperationHint(),style);
-                    if(CurrentWorld.WantsMouseLook)InteractionUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"Â·",style);
+                    if(CurrentWorld.WantsMouseLook)InteractionUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"·",style);
                     if(deskStudy && ChapterIndex==1 && transition<=0 && !awaitRelease && !ShowHelp)
                     {bool enabled=GUI.enabled;GUI.enabled=enabled && InputContext.Ready;((PhotoWorld3D)CurrentWorld).DrawProgress(style);GUI.enabled=enabled;}
                 }

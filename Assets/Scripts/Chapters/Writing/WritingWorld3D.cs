@@ -31,7 +31,7 @@ namespace MemoryWhitebox
         int originalMask, previousDraft, previousRow = -1;
         float time, lineExtent, penLift, crumple;
         bool writingHeld, draggingPaper;
-        public override Transform[] PlayerHandTargets => new Transform[]{null,penHand};
+        public override Transform[] PlayerHandTargets => new Transform[]{null,writingHandContact != null ? writingHandContact : penHand};
         public override bool PlayerHandsEngaged => writingHeld || draggingPaper;
         public override bool HasPointerGesture => writingHeld || draggingPaper;
         public override void CancelPointerGesture()
@@ -113,7 +113,7 @@ namespace MemoryWhitebox
             MemoryCamera.fieldOfView = 49; MemoryCamera.nearClipPlane = .05f; MemoryCamera.farClipPlane = 25;
             MemoryCamera.clearFlags = CameraClearFlags.SolidColor; MemoryCamera.backgroundColor = new Color(.12f, .17f, .18f); MemoryCamera.cullingMask = 1 << MemoryLayer;
             MemoryCamera.depth = View != null ? View.depth + 1 : 1; MemoryCamera.rect = new Rect(.5f, 0, .5f, 1); MemoryCamera.enabled = false;
-            BuildAutumnProps();UpdateActors(.02f);
+            BuildAutumnProps();BuildWritingVisuals();UpdateActors(.02f);
         }
 
         void BuildMemoryRoom()
@@ -162,6 +162,7 @@ namespace MemoryWhitebox
         {
             base.Activate();
             RestoreInk();
+            UpdateActors(0);UpdateWritingVisuals(0, true);RestoreDiscardedPaper();
             if(State.WritingProgress==0)
             {
                 foreach(var stroke in ink)ReleaseObject(stroke.gameObject);
@@ -197,7 +198,7 @@ namespace MemoryWhitebox
             if (button != 0 || State.Completed || HasPointerGesture) return;
             if (State.Phase == "crumple" && id == "paper")
             {
-                draggingPaper = true; crumple = 0;
+                draggingPaper = true; crumple = 0;crumpleVisual.SetCrumpleProgress(0);
                 State.PointerDown(new Vector2(1195, 590), 0);
                 sheet.SetActive(false); foreach (LineRenderer stroke in ink) stroke.gameObject.SetActive(false);
                 paperBall.gameObject.SetActive(true); paperBall.position = Point(ray, 1.07f);
@@ -299,7 +300,7 @@ namespace MemoryWhitebox
                 foreach (var stroke in ink) ReleaseObject(stroke.gameObject);
                 ink.Clear(); strokeRows.Clear(); activeStroke.Clear(); currentStroke = null; lineExtent = 0; previousRow = -1;
                 previousDraft = State.Draft; penPoint = new Vector3(-.44f, 1.02f, .38f);
-                Part(null, binAt + new Vector3(0, .43f, 0), Vector3.one * .15f, "#d3c7ad", PrimitiveType.Sphere);
+                AddDiscardedPaper();
             }
             if (State.Phase != previousPhase && State.Phase == "crumple") writingHeld = false;
             previousPhase = State.Phase;
@@ -307,9 +308,9 @@ namespace MemoryWhitebox
             penHand.localPosition = Vector3.Lerp(penHand.localPosition, penPoint + Vector3.up * penLift, Mathf.Clamp01(dt * 24));
             if (State.Phase == "crumple") penHand.localEulerAngles = new Vector3(0, Mathf.Sin(time * 5) * 5, 0);
             else penHand.localEulerAngles = Vector3.zero;
-            if (draggingPaper) { crumple = Mathf.Min(1, crumple + dt * 4); paperBall.localScale = Vector3.one * Mathf.Lerp(1.7f, 1, crumple); }
+            if (draggingPaper) { crumple = Mathf.Min(1, crumple + dt * 4); crumpleVisual.SetCrumpleProgress(crumple); }
             binLip.sharedMaterial.color = Color.Lerp(new Color(.55f, .59f, .52f), new Color(.95f, .75f, .40f), State.Phase == "crumple" ? .5f + Mathf.Sin(time * 3) * .25f : 0);
-            UpdateActors(dt);
+            UpdateActors(dt);UpdateWritingVisuals(dt);
         }
         void UpdateActors(float dt){UpdateAutumnActors(dt);}
     }

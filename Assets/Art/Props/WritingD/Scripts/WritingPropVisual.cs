@@ -50,7 +50,7 @@ namespace MemoryWhitebox.Art
 
         void Apply()
         {
-            if(rest!=null)rest.SampleAnimation(gameObject,0);
+            if(rest!=null)rest.SamplePropAnimation(gameObject,0);
             foreach(var binding in bindings)
             {
                 if(binding.clip==null)continue;
@@ -68,7 +68,7 @@ namespace MemoryWhitebox.Art
                     case Channel.Dial:u=state.dial;break;
                     default:continue;
                 }
-                binding.clip.SampleAnimation(gameObject,u*binding.clip.length);
+                binding.clip.SamplePropAnimation(gameObject,u*binding.clip.length);
             }
             if(inkSurface!=null)
             {
@@ -80,6 +80,6 @@ namespace MemoryWhitebox.Art
             }
         }
         // Intentionally no Awake/OnEnable reset: pooled or temporarily hidden props keep their sampled pose.
-        // Intentionally no Update, input, coroutines, Animator, gameplay callbacks or file writes.
+        // Intentionally no Update, input, coroutines, controller, gameplay callbacks or file writes.
     }
 }

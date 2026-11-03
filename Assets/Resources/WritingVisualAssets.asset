@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cdc9eec5483c4ccd97250e6e47062d2f, type: 3}
+  m_Name: WritingVisualAssets
+  m_EditorClassIdentifier:
+  writingSet: {fileID: 4412080681894423101, guid: 1dc3d60e5bb330048a358dadc239b11d, type: 3}
+  collectedItems:
+  - {fileID: 2762341024032263840, guid: c871ac7dbdff4424da55068c2397c255, type: 3}
+  - {fileID: 4441357685300351731, guid: 9d4b65b9a09bb4e4ca683cb8df205fe1, type: 3}
+  - {fileID: 3628336359634307977, guid: 6e7adc74cda272047b422744e41ce0eb, type: 3}
+  - {fileID: 2484454478670991162, guid: a7b9bc7b3ea101b46b4b7e897e6bf4e9, type: 3}
+  paperBalls:
+  - {fileID: 3596780891389035381, guid: 91d6a6cb680a9f34eb8d620d65b6a4e8, type: 3}
+  - {fileID: 2143482026039762570, guid: 9c3fe162ce4cfd54ea4b85065d8b2290, type: 3}
+  - {fileID: 7365815569966647139, guid: cdf7617e1c530f644be9d02674894c64, type: 3}
+  timer: {fileID: 761648688681711684, guid: 8e3666097b6b5834ebad58dde7bf5bcc, type: 3}

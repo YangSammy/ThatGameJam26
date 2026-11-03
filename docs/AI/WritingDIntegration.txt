@@ -1,0 +1,45 @@
+秋季 D01-D06 正式接入与验证 — 2026-11-02
+
+接入范围
+WritingWorld3D 保留原根节点、Hotspot ID、双视角、相机位置及 WritingChapter 状态规则。
+新增 WritingVisualAssets 配置（Assets/Resources/WritingVisualAssets.asset）引用原始 D01-D06 Prefab；运行时沿用章节原有生成入口，在其视觉子层实例化。
+原 Prefab、模型 GUID、HouseScene/ParkScene、定位物体与存档格式均未由本次修改。
+
+映射
+D01：纸面、笔、纸篓分别实例化并适配旧操作空间，保留原命中区域；源 Prefab 不改尺寸、不改动画路径。
+纸面沿用 LineRenderer 不可读笔迹；实际笔尖对齐原笔迹落点；手部使用稳定的 WritingHandContact 目标。
+揉纸用 WritingPropVisual.SetCrumpleProgress 驱动 D01 形变，不再缩放白模球。取消回到原稿；有效投放才调用原换稿规则。
+纸篓内废稿按已有 Draft 重建，最多展示最近 12 个装饰纸团；不新增存档字段。
+D02/D03/D04/D05 对应 pendant/flower/luggage/letter，未收集与携带视觉沿用原 Collected 位掩码。花束有拾取落定表现，行李箱携带时提手抬起。未增设开箱/开信玩法。
+D06 计时器跟随 1 - Remaining / writingSeconds，不自行计时。重新进入按状态重新采样。
+模型建议碰撞体禁用；原玩法接收区域保留，避免新视觉抢占射线。
+
+修改文件
+Assets/Scripts/Chapters/Writing/WritingWorld3D.cs：构建、激活、Tick、揉纸、废稿与手部接口接入。
+Assets/Scripts/Chapters/Writing/WritingWorld3D.Visuals.cs：视觉实例、均匀比例适配、部件隔离、握持目标及状态恢复。
+Assets/Scripts/Chapters/Writing/WritingVisualAssets.cs 和 Assets/Resources/WritingVisualAssets.asset：正式资源引用。
+Assets/Editor/Validation/WritingDIntegrationValidation.cs：Play Mode 集成回归，调用真实世界输入处理器、射线拾取和章节规则。
+
+实际验证
+通过 MCP 连接 ThatGamejam2026@30a76e6df2cd0fba，Unity 2022.3.62f3，HouseScene。
+Play 中验证真实 paper/bin 射线、运笔产墨、首件收集、半程揉纸、取消不消耗稿次、有效投篓开始正式稿、四件收集、计时器同步、返回入口、送别及完成保存。
+通过普通 Select(2) 重新进入，笔迹、Draft、Collected、Remaining 以及无残留拖动均恢复。
+在 Play 中实际重新加载 HouseScene，通过原 FiveDayProgress 磁盘存档恢复，再完成剩余关卡，测试通过。
+最终运行回归控制台返回 0 条 error/warning。
+原编辑器存档 26 个文件已恢复并逐文件 SHA256 校验；测试存档保留在原存档同级 EditorPlaySession-WritingDTest-* 目录。自动刷新/程序集重载临时保护已解除。
+
+证据
+QA/WritingDIntegration-2026-11-02/runtime-checks.txt 保留首轮测试失败及最终通过记录。
+首轮 Walk 断言把目标设为 y=565，而玩法在 y>=555 即停止移动并进入 arrival；已修正测试条件，未更改游戏规则。
+01-entry.png：新模型初始游戏画面。
+04-completed-writing.png：完整笔迹与通关后的游戏画面。
+03-restored-writing.png 为延迟截图时场景已重载，显示主房间，不作为恢复视觉证据。
+save-restore.txt：原存档恢复校验。
+
+限制
+本轮通过 MCP 在实际 Play Mode 调用已有 Press/Move/Release/Tick 与真实 Physics.Raycast 测试，不能等同完整原生鼠标键盘人工验收。
+角色逐指握笔/揉纸贴合、低帧率手感、Player 构建与性能未验证；仍使用既有第一人称手部系统。
+其他制作工作期间脚本重载曾引发 GameAmbience NullReference 与 Animator 警告；稳定会话重测未出现，未改动无关系统。
+
+回退
+回退 WritingWorld3D.cs 的本次接入调用，并移除新增 Visuals、VisualAssets 配置与测试脚本即可；不需要回滚原 D01-D06 美术资产或场景。

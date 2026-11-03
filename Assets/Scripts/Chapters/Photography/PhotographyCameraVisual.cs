@@ -84,12 +84,12 @@ namespace MemoryWhitebox
         public static void SampleFilm(PhotographyVisualAssets a,GameObject film,int stage,float u)
         {
             // Each sample begins with a complete stable pose, preventing stale blendshape channels.
-            a.leaderReady.SampleAnimation(film,0);
-            if(stage==1)a.pullLeader.SampleAnimation(film,Mathf.Clamp01(u));
-            else if(stage==2){a.pullLeader.SampleAnimation(film,1);a.seatLeader.SampleAnimation(film,Mathf.Clamp01(u));}
-            else if(stage==3){if(u>=1)a.advanced.SampleAnimation(film,0);else{a.pullLeader.SampleAnimation(film,1);a.seatLeader.SampleAnimation(film,1);a.advance.SampleAnimation(film,Mathf.Clamp01(u));}}
-            else if(stage==4){a.advanced.SampleAnimation(film,0);a.rewind.SampleAnimation(film,Mathf.Clamp01(u));}
-            else if(stage==5)a.retracted.SampleAnimation(film,0);
+            a.leaderReady.SamplePropAnimation(film,0);
+            if(stage==1)a.pullLeader.SamplePropAnimation(film,Mathf.Clamp01(u));
+            else if(stage==2){a.pullLeader.SamplePropAnimation(film,1);a.seatLeader.SamplePropAnimation(film,Mathf.Clamp01(u));}
+            else if(stage==3){if(u>=1)a.advanced.SamplePropAnimation(film,0);else{a.pullLeader.SamplePropAnimation(film,1);a.seatLeader.SamplePropAnimation(film,1);a.advance.SamplePropAnimation(film,Mathf.Clamp01(u));}}
+            else if(stage==4){a.advanced.SamplePropAnimation(film,0);a.rewind.SamplePropAnimation(film,Mathf.Clamp01(u));}
+            else if(stage==5)a.retracted.SamplePropAnimation(film,0);
         }
         void OnDestroy(){if(tipMesh!=null){if(Application.isPlaying)Destroy(tipMesh);else DestroyImmediate(tipMesh);}}
     }

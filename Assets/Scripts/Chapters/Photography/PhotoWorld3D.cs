@@ -536,7 +536,10 @@ namespace MemoryWhitebox
             string target = Pick(ray);
             if(target=="tank-lid")target="tank";
             string item = dragged;
-            if(objectDrag.TryPlaceInArea())
+            // A bottle aimed at the tank is an attempted pour, even if it is the
+            // wrong chemical. Do not silently place it behind/inside the tank.
+            bool bottleAtTank=item.StartsWith("chemical-") && CanDropDarkroom(ray,"tank");
+            if(!bottleAtTank && objectDrag.TryPlaceInArea())
             {
                 SetColliders(Nodes[item],true);dragged=null;pour.gameObject.SetActive(false);
                 DarkroomNotice("Placed on work area.");SyncProps();SaveProgress();Host.SaveStableProgress();return;
@@ -568,7 +571,14 @@ namespace MemoryWhitebox
             {
                 int index = int.Parse(item.Substring(9));
                 if (CanPourChemical(item) && CanCommitDarkroom(ray,"tank")) { Photo.ProcessingTime = clockDuration = index == 0 ? 3 : index == 1 ? .8f : 2; Photo.Agitated = false; Photo.Phase = PhotoChapter.FilmPhase.Processing; WBMain.Tone(240, .08f); }
-                else { DarkroomNotice(CanPourChemical(item)?"Release the bottle over the tank.":"Use the highlighted bottle after sealing and draining.");WBMain.Tone(100,.08f); }
+                else
+                {
+                    string reason=CanPourChemical(item)?"Release the bottle over the tank.":
+                        Photo.Phase==PhotoChapter.FilmPhase.Tank && Photo.Chemistry<3 && index!=Photo.Chemistry?
+                        "Wrong chemical. Use "+new[]{"developer","stop bath","fixer"}[Photo.Chemistry]+".":
+                        needsDrain?"Drain the tank first.":!tankSealed?"Seal the tank first.":"Finish the current step first.";
+                    DarkroomNotice(reason);WBMain.Tone(100,.08f);
+                }
             }
             else if(item=="exposed-film")DarkroomNotice("Release the film over the dark bag.");
             objectDrag.End(true);

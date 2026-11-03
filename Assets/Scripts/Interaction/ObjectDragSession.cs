@@ -194,10 +194,24 @@ namespace MemoryWhitebox
             if (receiver == null || !receiver.gameObject.activeInHierarchy) return false;
             Vector3 closest = receiver.position;
             float best = float.MaxValue;
+            bool directHit = false;
             var colliders = onlyCollider != null ? new[] { onlyCollider } : receiver.GetComponentsInChildren<Collider>();
             foreach (var col in colliders)
             {
                 if (!col.enabled || !col.gameObject.activeInHierarchy || (col.isTrigger && onlyCollider == null)) continue;
+                // Preserve the actual cursor ray when it hits a receiver. Clamping the
+                // expanded bounds' entry point to its edge can invent an occlusion
+                // through a neighbouring prop even though the receiver is visible.
+                RaycastHit surface;
+                if (col.Raycast(ray, out surface, reach))
+                {
+                    if (!directHit || surface.distance < best)
+                    {
+                        directHit = true; best = surface.distance; closest = surface.point;
+                    }
+                    continue;
+                }
+                if (directHit) continue;
                 Bounds region = col.bounds; region.Expand(tolerance * 2);
                 float distance;
                 if (!region.IntersectRay(ray, out distance) || distance < 0 || distance > reach || distance >= best) continue;

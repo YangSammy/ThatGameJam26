@@ -114,7 +114,7 @@ namespace MemoryWhitebox
             string drop=CurrentDropTarget();
             if(drop!=null && CanCommitDarkroom(ray,drop))return DarkroomName(drop)+"\nRelease LMB here";
             if(name==null)return "";
-            if(id=="tank-lid" && tankSealed && guideSource=="tank"){id="tank";name=DarkroomName(id);}
+            if(id=="tank-lid" && tankSealed && (guideSource=="tank" || guideTarget=="tank")){id="tank";name=DarkroomName(id);}
             bool carrying=printDrag!=null || dragged!=null;
             if(id==guideTarget || (id=="print-frame-lid" && guideTarget=="print-frame"))
                 return name+"\n"+(carrying?"Move closer; keep target clear":"Place "+DarkroomName(guideSource)+" here");

@@ -37,7 +37,7 @@ namespace MemoryWhitebox
             Instance.audioSource.PlayOneShot(clip);Destroy(clip,duration+1);
         }
         void Update(){UpdateHouse();}
-        void OnGUI(){CaptureDarkroomPointerPress();DrawHouse();}
+        void OnGUI(){CaptureDarkroomPointerPress();CaptureWinterPointerPress();DrawHouse();}
         public void SetHelpVisible(bool visible)
         {
             if(ShowHelp==visible)return;

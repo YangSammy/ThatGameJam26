@@ -130,7 +130,9 @@ foreach(var spec in specs)
         foreach(var cc in spec["clips"]){string cn=(string)cc["name"];string suffix=cn.Substring(cn.LastIndexOf('_')+1);if(channelNames.ContainsKey(suffix))channels.Add(new MemoryWhitebox.Art.WritingPropVisual.Binding{channel=channelNames[suffix],clip=AssetDatabase.LoadAssetAtPath<AnimationClip>(art+"/Animations/"+cn+".anim")});}
         driver.Configure(AssetDatabase.LoadAssetAtPath<AnimationClip>(rp),channels.ToArray(),root.GetComponentsInChildren<Renderer>(true).FirstOrDefault(r=>r.name=="InkSurface"));
         string pf=art+"/Prefabs/"+(string)spec["prefab"]+".prefab";PrefabUtility.SaveAsPrefabAsset(root,pf);
-        report.Add(new {asset=id,prefab=pf,triangles=triangles,materials=root.GetComponentsInChildren<Renderer>(true).SelectMany(r=>r.sharedMaterials).Distinct().Count(),renderers=root.GetComponentsInChildren<Renderer>(true).Length,blendShapes=shapes,clips=spec["clips"].Count()+1,size=new[]{bounds.size.x,bounds.size.y,bounds.size.z},min=new[]{bounds.min.x,bounds.min.y,bounds.min.z},max=new[]{bounds.max.x,bounds.max.y,bounds.max.z}});
+        var usedMaterials=root.GetComponentsInChildren<Renderer>(true).SelectMany(r=>r.sharedMaterials).Distinct().ToArray();
+        var textures=usedMaterials.SelectMany(m=>m.GetTexturePropertyNames().Select(m.GetTexture)).Where(t=>t!=null).Distinct().Select(t=>new{path=AssetDatabase.GetAssetPath(t),width=t.width,height=t.height}).Where(t=>t.path.StartsWith("Assets/")).ToArray();
+        report.Add(new {asset=id,prefab=pf,triangles=triangles,materials=usedMaterials.Length,materialNames=usedMaterials.Select(m=>m.name).ToArray(),textures=textures,renderers=root.GetComponentsInChildren<Renderer>(true).Length,blendShapes=shapes,clips=spec["clips"].Count()+1,size=new[]{bounds.size.x,bounds.size.y,bounds.size.z},min=new[]{bounds.min.x,bounds.min.y,bounds.min.z},max=new[]{bounds.max.x,bounds.max.y,bounds.max.z}});
     }
     finally{UnityEditor.SceneManagement.EditorSceneManager.ClosePreviewScene(scene);}
 }
@@ -219,7 +221,16 @@ m.Invoke(c,new object[]{.83f});m.Invoke(c,new object[]{.37f});check(snapshot()==
 type.GetMethod("ResetVisual").Invoke(c,null);check(snapshot()==rest,p+method+" complete cancel");m.Invoke(c,new object[]{float.NaN});check(!snapshot().Contains("NaN"),p+method+" finite guard");
 check(go.transform.position==new Vector3(1,2,3)&&Quaternion.Angle(go.transform.rotation,Quaternion.Euler(12,40,7))<.01f,p+method+" stable placed root");
 }
-type.GetMethod("ResetVisual").Invoke(c,null);var needle=all.FirstOrDefault(t=>t.name=="NeedlePivot");if(needle!=null){type.GetMethod("SetTimerProgress").Invoke(c,new object[]{.25f});check(Quaternion.Angle(needle.localRotation,Quaternion.Euler(0,90,0))<.01f,"Timer quarter is clockwise 90 degrees viewed from +Z");var before=snapshot();check(snapshot()==before,"Timer does not advance itself");}
+type.GetMethod("ResetVisual").Invoke(c,null);var basePose=snapshot();
+foreach(string method in new[]{"SetCrumpleProgress","SetChainPoseProgress","SetSwayProgress","SetPickupSettleProgress","SetHandleProgress","SetWheelProgress","SetFlapProgress","SetTimerProgress","SetDialProgress"})type.GetMethod(method).Invoke(c,new object[]{.31f});
+var combined=snapshot();var combinedState=type.GetMethod("Capture").Invoke(c,null);
+foreach(string method in new[]{"SetCrumpleProgress","SetChainPoseProgress","SetSwayProgress","SetHandleProgress","SetWheelProgress","SetFlapProgress","SetTimerProgress","SetDialProgress"})type.GetMethod(method).Invoke(c,new object[]{.79f});
+type.GetMethod("Restore").Invoke(c,new[]{combinedState});check(snapshot()==combined,p+" combined channels restore after divergent changes");
+go.SetActive(false);go.SetActive(true);check(snapshot()==combined,p+" disable and reenable retains combined pose");
+type.GetMethod("ResetVisual").Invoke(c,null);check(snapshot()==basePose,p+" combined cancel resets every channel");
+var flags=System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.Instance;
+check(new[]{"Update","LateUpdate","FixedUpdate","Start","OnEnable","Awake"}.All(m=>type.GetMethod(m,flags)==null),"Presentation has no autonomous frame/time callbacks");
+var needle=all.FirstOrDefault(t=>t.name=="NeedlePivot");if(needle!=null){type.GetMethod("SetTimerProgress").Invoke(c,new object[]{.25f});check(Quaternion.Angle(needle.localRotation,Quaternion.Euler(0,90,0))<.01f,"Timer quarter clockwise, looking down +Y face from +Z working edge");var before=snapshot();for(int i=0;i<30;i++)type.GetMethod("SetTimerProgress").Invoke(c,new object[]{.25f});check(snapshot()==before,"Repeated unchanged elapsed fraction holds needle pose");}
 UnityEngine.Object.DestroyImmediate(go);
 }
 var result=new{status=fails.Count==0?"PASS":"FAIL",checks=checks,failures=fails};System.IO.File.WriteAllText("output/D_WritingProps_v1/validation/driver_checks.json",Newtonsoft.Json.JsonConvert.SerializeObject(result,Newtonsoft.Json.Formatting.Indented));return result;

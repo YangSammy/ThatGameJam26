@@ -24,6 +24,7 @@ namespace MemoryWhitebox
         [Header("临时模型动作；正式模型可清空这些引用")]
         public Transform visual,leftArm,rightArm,leftLeg,rightLeg;
         [Tooltip("可选正式动画控制器；只在存在 Speed 浮点参数时写入。") ] public Animator animator;
+        public ParkGirlPresentation visualPresentation;
         public AudioSource footsteps;
         public AudioClip footstep;
         public Moment CurrentMoment {get;private set;}
@@ -45,11 +46,13 @@ namespace MemoryWhitebox
             if(photoHeadPivot!=null)photoHeadPivot.localRotation=photoHeadHome*Quaternion.Euler(0,12,-7);
             else if(head!=null)head.localRotation=headHome*Quaternion.Euler(0,12,-7);
             if(photoHairPivot!=null)photoHairPivot.localRotation=photoHairHome*Quaternion.Euler(0,-4,3);
+            if(visualPresentation!=null)visualPresentation.ApplyPhotoPose();
         }
         public void PosePhotoResponseForShutter()
         {
             // Commit the visible hand pose before Camera.Render, independent of Update ordering.
             Animate(false,0);
+            if(visualPresentation!=null)visualPresentation.ApplyPhotoPose();
         }
         public bool AtPhotoNode=>atNode && route!=null && index<route.Length && route[index]==photoHoldNode;
         public bool Waiting {get;private set;}
@@ -174,7 +177,7 @@ namespace MemoryWhitebox
                 }
             }
             if(visual!=null)visual.localPosition=visualHome+Vector3.up*(walking?Mathf.Abs(Mathf.Sin(phase))*.025f:0);
-            if(hasSpeed && animator!=null)animator.SetFloat("Speed",walking?walkSpeed:0);
+            if(hasSpeed && animator!=null)animator.SetFloat("Speed",walking?walkSpeed:0,.18f,Time.deltaTime);
         }
     }
 }

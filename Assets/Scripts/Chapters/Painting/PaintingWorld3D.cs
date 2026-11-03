@@ -45,6 +45,7 @@ namespace MemoryWhitebox
             var page=Block(paper,"album-page",new Vector3(0,0,-.012f),new Vector3(1.2f,.675f,1),"#ffffff",PrimitiveType.Quad);
             var material=new Material(Shader.Find("Unlit/Texture"));material.mainTexture=albumTexture;page.GetComponent<Renderer>().sharedMaterial=material;pageMaterial=material;
             pageCollider=page.GetComponent<Collider>();Layer(paper,PaperLayer);
+            BuildWinterVisuals();
             BuildWard();
         }
         Material pageMaterial;
@@ -106,7 +107,7 @@ namespace MemoryWhitebox
             Defocus=View.GetComponent<PaintingDefocus>();if(Defocus==null)Defocus=View.gameObject.AddComponent<PaintingDefocus>();Defocus.Begin();
             albumCamera.enabled=true;edgeArmed=false;RefreshAlbum();
         }
-        public override void CancelPointerGesture(){focusHeld=looking=false;if(keyDragging){keyDragging=false;key.localPosition=keyHome;}State.CancelInput();}
+        public override void CancelPointerGesture(){winterPressPending=false;focusHeld=looking=false;if(keyDragging){keyDragging=false;key.localPosition=keyHome;}State.CancelInput();}
         public override void Deactivate()
         {
             CancelPointerGesture();if(albumCamera!=null)albumCamera.enabled=false;if(Defocus!=null)Defocus.End();
@@ -190,6 +191,7 @@ namespace MemoryWhitebox
             actor.localPosition=new Vector3(State.Actor.x,State.Actor.y+.3f,-.05f);actor.localRotation=Quaternion.identity;
             paper.gameObject.SetActive(State.BookOpen || State.Phase>=2);paper.SetPositionAndRotation(fixedEye+View.transform.rotation*new Vector3(0,-.14f,.85f),View.transform.rotation);
             observation.gameObject.SetActive(State.Phase<3);
+            RefreshWinterVisuals();
         }
     }
 }

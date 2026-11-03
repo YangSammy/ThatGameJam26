@@ -21,12 +21,12 @@ namespace MemoryWhitebox
         public void Sample(string id,string clip,float progress=1)
         {
             var root=ModelRoot(id);if(root==null)return;
-            foreach(var c in clips)if(c!=null && c.name=="AN_"+clip){c.SampleAnimation(root.gameObject,Mathf.Clamp01(progress)*c.length);return;}
+            foreach(var c in clips)if(c!=null && c.name=="AN_"+clip){c.SamplePropAnimation(root.gameObject,Mathf.Clamp01(progress)*c.length);return;}
         }
         public void ResetModels()
         {
             foreach(var m in models)foreach(var c in clips)
-                if(c!=null && c.name.EndsWith("_RestAll") && c.name.StartsWith("AN_"+m.root.GetComponent<DarkroomVisualIdentity>().assetName+"_"))c.SampleAnimation(m.root,0);
+                if(c!=null && c.name.EndsWith("_RestAll") && c.name.StartsWith("AN_"+m.root.GetComponent<DarkroomVisualIdentity>().assetName+"_"))c.SamplePropAnimation(m.root,0);
         }
         public void Surface(string id,string materialName,Texture image,float reveal,float wetness)
         {

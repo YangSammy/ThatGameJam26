@@ -36,7 +36,12 @@ namespace MemoryWhitebox
             float white=State.Phase>=3?1:Mathf.Clamp01(State.WhiteTime/(NarrativeDefinition.Resolve(State)?.whiteTransitionSeconds??1.2f));
             if(State.Phase==2)
             {
-                foreach(var r in observation.GetComponentsInChildren<Renderer>())r.material.color=Color.Lerp(r.material.color,Color.white,white);
+                foreach(var r in observation.GetComponentsInChildren<Renderer>())
+                {
+                    // Reveal/page shaders own their appearance and may not expose a tint.
+                    if(r.sharedMaterial==null || !r.sharedMaterial.HasProperty("_Color"))continue;
+                    var m=r.material;m.color=Color.Lerp(m.color,Color.white,white);
+                }
                 View.backgroundColor=Color.Lerp(originalBackground,Color.white,white);
             }
             else

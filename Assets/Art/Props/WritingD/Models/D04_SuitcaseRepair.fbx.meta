@@ -67,6 +67,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: M_D_LeatherWorn
+    second: {fileID: 2100000, guid: f91215a0407e506408257e5bfe70a3fe, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: M_D_Markings
     second: {fileID: 2100000, guid: 8b3f92e1c53d57748804fa9918860a9c, type: 2}
   - first:
