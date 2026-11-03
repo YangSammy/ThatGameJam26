@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "source_repository": "https://github.com/alchaincyf/huashu-bird-sticker",
+  "source_dataset_version": "0.1.0",
+  "source_index_sha256": "ca4ec7f6b8a8496e8cb1a63d8bb4f6e0d85d88689284c08d17f4d8cae7bacee7",
+  "prepared_utc": "2026-11-02T01:15:04.877723+00:00",
+  "purpose": "Six selected AI-illustrated bird stickers for decorative props in the seasonal bedroom game.",
+  "license_boundary": "All sticker images and their converted derivatives are PolyForm-Shield-1.0.0, NOT CC0 or MIT. The CC0/Public domain fields below describe only the reference images as recorded by the upstream local index.",
+  "verification_scope": "Local source records and files inspected only; reference pages and their licenses were not re-verified online. No reference photographs are copied.",
+  "required_notice": "Required Notice: Copyright (c) 2026 Huashu (alchaincyf), https://github.com/alchaincyf/huashu-bird-sticker",
+  "source_text_files": [
+    {
+      "path": "LICENSE.md",
+      "sha256": "7edc1efaf93cb1103d8cbae7047ff60338275c7089dd9b7127760bada988c245",
+      "bytes": 1887
+    },
+    {
+      "path": "NOTICE.md",
+      "sha256": "f7f173e16f346e11b0659d6119fa48f62b1344e02f3ec3fb76b6fd4c65fab714",
+      "bytes": 3319
+    },
+    {
+      "path": "LICENSES/PolyForm-Shield-1.0.0.md",
+      "sha256": "27e39d1000315bb445f5d4d3a03a9093b4f23461f7ddbcbc2f23d3e65ccfacbb",
+      "bytes": 5837
+    },
+    {
+      "path": "LICENSES/MIT.txt",
+      "sha256": "111f9e1db17cf9e33cad0745a24ada3d95d28d1bfd52fd1a84587e86887ad865",
+      "bytes": 1097
+    },
+    {
+      "path": "data/README.md",
+      "sha256": "bcf03dcfde6811102b10e523431a24ae1183ba673c8b50f07d222faeebe35d6d",
+      "bytes": 4545
+    }
+  ],
+  "stickers": [
+    {
+      "id": "Passer_montanus",
+      "source_path": "stickers/Passeriformes/Passeridae/Passer_montanus.webp",
+      "source_file_sha256": "2354ccc501f1cc2436f9bc3e284039239b5737cdfe4041155a0e9520ec65e59b",
+      "source_file_bytes": 64346,
+      "production_archive_path": "ThirdParty/Huashu_Bird_Stickers/originals/Passer_montanus.webp",
+      "sticker_license": "PolyForm-Shield-1.0.0",
+      "sticker_author": "Huashu (alchaincyf)",
+      "reference": {
+        "type": "photo",
+        "author": "Laitche",
+        "page": "https://commons.wikimedia.org/wiki/File:Tree_Sparrow_August_2007_Osaka_Japan.jpg",
+        "license": "Public domain"
+      }
+    },
+    {
+      "id": "Emberiza_jankowskii",
+      "source_path": "stickers/Passeriformes/Emberizidae/Emberiza_jankowskii.webp",
+      "source_file_sha256": "e776a04a4232ca3cdafc36923f1c0c6798e318cce6114b21d538011ae195390a",
+      "source_file_bytes": 72162,
+      "production_archive_path": "ThirdParty/Huashu_Bird_Stickers/originals/Emberiza_jankowskii.webp",
+      "sticker_license": "PolyForm-Shield-1.0.0",
+      "sticker_author": "Huashu (alchaincyf)",
+      "reference": {
+        "type": "photo",
+        "author": "John Gerrard Keulemans",
+        "page": "https://commons.wikimedia.org/wiki/File:EmberizaJankowskiKeulemans.jpg",
+        "license": "Public domain"
+      }
+    },
+    {
+      "id": "Cyanoptila_cyanomelana",
+      "source_path": "stickers/Passeriformes/Muscicapidae/Cyanoptila_cyanomelana.webp",
+      "source_file_sha256": "d18d46b8c2d533aadf6cd9629c11f5b9a907471d94ac051036d9132b0c1285a1",
+      "source_file_bytes": 74532,
+      "production_archive_path": "ThirdParty/Huashu_Bird_Stickers/originals/Cyanoptila_cyanomelana.webp",
+      "sticker_license": "PolyForm-Shield-1.0.0",
+      "sticker_author": "Huashu (alchaincyf)",
+      "reference": {
+        "type": "photo",
+        "author": "Tokumi Ohsaka",
+        "page": "https://commons.wikimedia.org/wiki/File:Wiki-c-ooruri.jpg",
+        "license": "Public domain"
+      }
+    },
+    {
+      "id": "Todiramphus_australasia",
+      "source_path": "stickers/Coraciiformes/Alcedinidae/Todiramphus_australasia.webp",
+      "source_file_sha256": "4d8ba7080b743f19b1ab7ad8df32b785e55e56a88f0b52e21280d5c647a5bde4",
+      "source_file_bytes": 58374,
+      "production_archive_path": "ThirdParty/Huashu_Bird_Stickers/originals/Todiramphus_australasia.webp",
+      "sticker_license": "PolyForm-Shield-1.0.0",
+      "sticker_author": "Huashu (alchaincyf)",
+      "reference": {
+        "type": "photo",
+        "author": "James Eaton",
+        "page": "https://www.inaturalist.org/photos/337787815",
+        "license": "CC0 1.0"
+      }
+    },
+    {
+      "id": "Treron_aromaticus",
+      "source_path": "stickers/Columbiformes/Columbidae/Treron_aromaticus.webp",
+      "source_file_sha256": "dc87476665de60e2566a7a9976ad52f0dc420788e5d3574a289d99264d333252",
+      "source_file_bytes": 55272,
+      "production_archive_path": "ThirdParty/Huashu_Bird_Stickers/originals/Treron_aromaticus.webp",
+      "sticker_license": "PolyForm-Shield-1.0.0",
+      "sticker_author": "Huashu (alchaincyf)",
+      "reference": {
+        "type": "photo",
+        "author": "James Eaton",
+        "page": "https://commons.wikimedia.org/wiki/File:Buru_green_pigeon_(Treron_aromaticus)_02.jpg",
+        "license": "CC0 1.0"
+      }
+    },
+    {
+      "id": "Turdus_arthuri",
+      "source_path": "stickers/Passeriformes/Turdidae/Turdus_arthuri.webp",
+      "source_file_sha256": "c81ee9ff18da0e27ce009fefaf985aa22577da917ce5ce2a3d01b74576e67701",
+      "source_file_bytes": 52276,
+      "production_archive_path": "ThirdParty/Huashu_Bird_Stickers/originals/Turdus_arthuri.webp",
+      "sticker_license": "PolyForm-Shield-1.0.0",
+      "sticker_author": "Huashu (alchaincyf)",
+      "reference": {
+        "type": "photo",
+        "author": "NINA WENÓLI",
+        "page": "https://www.inaturalist.org/photos/351159552",
+        "license": "CC0 1.0"
+      }
+    }
+  ]
+}

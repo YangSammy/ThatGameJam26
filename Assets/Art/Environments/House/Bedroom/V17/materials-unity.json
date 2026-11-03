@@ -1,0 +1,3058 @@
+{
+  "materials": [
+    {
+      "color": [
+        0.28999999165534973,
+        0.11999999731779099,
+        0.03500000014901161,
+        1.0
+      ],
+      "roughness": 0.949999988079071,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Autumn_floor / leaf 0"
+    },
+    {
+      "color": [
+        0.4000000059604645,
+        0.20999999344348907,
+        0.054999999701976776,
+        1.0
+      ],
+      "roughness": 0.949999988079071,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Autumn_floor / leaf 1"
+    },
+    {
+      "color": [
+        0.23000000417232513,
+        0.18000000715255737,
+        0.06499999761581421,
+        1.0
+      ],
+      "roughness": 0.949999988079071,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Autumn_floor / leaf 2"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Bark_BaseColor.png",
+      "Roughness": "Bark_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "Bark_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Bark",
+      "MetallicSmoothness": "Bark_fbd0df18_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.6399999856948853,
+        0.5799999833106995,
+        0.4399999976158142,
+        1.0
+      ],
+      "roughness": 0.9100000262260437,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Book / label aged 0"
+    },
+    {
+      "color": [
+        0.7200000286102295,
+        0.6700000166893005,
+        0.550000011920929,
+        1.0
+      ],
+      "roughness": 0.9100000262260437,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Book / label aged 1"
+    },
+    {
+      "color": [
+        0.5099999904632568,
+        0.49000000953674316,
+        0.4000000059604645,
+        1.0
+      ],
+      "roughness": 0.9100000262260437,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Book / label aged 2"
+    },
+    {
+      "color": [
+        0.1850000023841858,
+        0.23000000417232513,
+        0.20999999344348907,
+        1.0
+      ],
+      "roughness": 0.7200000286102295,
+      "metallic": 0.0,
+      "Roughness": "FinishPaper_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "FinishPaper_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Bookcloth / archive 0",
+      "MetallicSmoothness": "Bookcloth_archive_0_dcfb7165_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.27000001072883606,
+        0.11500000208616257,
+        0.07999999821186066,
+        1.0
+      ],
+      "roughness": 0.7200000286102295,
+      "metallic": 0.0,
+      "Roughness": "FinishPaper_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "FinishPaper_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Bookcloth / archive 1",
+      "MetallicSmoothness": "Bookcloth_archive_1_f364270e_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.3100000023841858,
+        0.23499999940395355,
+        0.11500000208616257,
+        1.0
+      ],
+      "roughness": 0.7200000286102295,
+      "metallic": 0.0,
+      "Roughness": "FinishPaper_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "FinishPaper_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Bookcloth / archive 2",
+      "MetallicSmoothness": "Bookcloth_archive_2_61566ee3_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.10499999672174454,
+        0.16500000655651093,
+        0.2199999988079071,
+        1.0
+      ],
+      "roughness": 0.7200000286102295,
+      "metallic": 0.0,
+      "Roughness": "FinishPaper_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "FinishPaper_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Bookcloth / archive 3",
+      "MetallicSmoothness": "Bookcloth_archive_3_dc22ec70_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.24500000476837158,
+        0.2150000035762787,
+        0.17499999701976776,
+        1.0
+      ],
+      "roughness": 0.7200000286102295,
+      "metallic": 0.0,
+      "Roughness": "FinishPaper_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "FinishPaper_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Bookcloth / archive 4",
+      "MetallicSmoothness": "Bookcloth_archive_4_ec236ed4_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.30000001192092896,
+        0.10499999672174454,
+        1.0
+      ],
+      "roughness": 0.3499999940395355,
+      "metallic": 0.75,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Brass"
+    },
+    {
+      "color": [
+        0.30000001192092896,
+        0.20499999821186066,
+        0.09000000357627869,
+        0.18000000715255737
+      ],
+      "roughness": 0.20999999344348907,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "BLEND",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Cassette / amber polycarbonate window"
+    },
+    {
+      "color": [
+        0.09000000357627869,
+        0.15000000596046448,
+        0.18000000715255737,
+        1.0
+      ],
+      "roughness": 0.8500000238418579,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Cassette / faded blue ballpoint"
+    },
+    {
+      "color": [
+        0.41999998688697815,
+        0.12999999523162842,
+        0.054999999701976776,
+        1.0
+      ],
+      "roughness": 0.8199999928474426,
+      "metallic": 0.0,
+      "Roughness": "FinishTerracotta_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "FinishTerracotta_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Cassette / hand marked terracotta dot",
+      "MetallicSmoothness": "Cassette_hand_marked_terracotta_dot_1895fac0_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.054999999701976776,
+        0.03200000151991844,
+        0.02199999988079071,
+        1.0
+      ],
+      "roughness": 0.3799999952316284,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Cassette / smoked ferric brown"
+    },
+    {
+      "color": [
+        0.2199999988079071,
+        0.11500000208616257,
+        0.06400000303983688,
+        1.0
+      ],
+      "roughness": 0.8799999952316284,
+      "metallic": 0.0,
+      "Roughness": "Linen_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "Linen_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Clothing_Autumn_woven_cloth",
+      "MetallicSmoothness": "Clothing_Autumn_woven_cloth_bbe0be1a_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.20499999821186066,
+        0.24500000476837158,
+        0.1850000023841858,
+        1.0
+      ],
+      "roughness": 0.8799999952316284,
+      "metallic": 0.0,
+      "Roughness": "Linen_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "Linen_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Clothing_Spring_woven_cloth",
+      "MetallicSmoothness": "Clothing_Spring_woven_cloth_4db1a688_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.6800000071525574,
+        0.6600000262260437,
+        0.5299999713897705,
+        1.0
+      ],
+      "roughness": 0.8799999952316284,
+      "metallic": 0.0,
+      "Roughness": "Linen_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "Linen_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Clothing_Summer_woven_cloth",
+      "MetallicSmoothness": "Clothing_Summer_woven_cloth_b9d57a5f_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.14000000059604645,
+        0.18000000715255737,
+        0.1899999976158142,
+        1.0
+      ],
+      "roughness": 0.8799999952316284,
+      "metallic": 0.0,
+      "Roughness": "Linen_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "Linen_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Clothing_Winter_woven_cloth",
+      "MetallicSmoothness": "Clothing_Winter_woven_cloth_0819b942_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.5400000214576721,
+        0.36000001430511475,
+        0.18000000715255737,
+        1.0
+      ],
+      "roughness": 0.75,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Craft / fresh endgrain honey wood"
+    },
+    {
+      "color": [
+        0.10000000149011612,
+        0.1899999976158142,
+        0.1599999964237213,
+        1.0
+      ],
+      "roughness": 0.6800000071525574,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Craft / unfinished sea green paint"
+    },
+    {
+      "color": [
+        0.7900000214576721,
+        0.7200000286102295,
+        0.5799999833106995,
+        1.0
+      ],
+      "roughness": 0.7200000286102295,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Cream"
+    },
+    {
+      "color": [
+        0.36000001430511475,
+        0.4000000059604645,
+        0.3400000035762787,
+        1.0
+      ],
+      "roughness": 0.9599999785423279,
+      "metallic": 0.0,
+      "Roughness": "Linen_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "Linen_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Curtain_Winter",
+      "MetallicSmoothness": "Curtain_Winter_80c4abd3_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "roughness": 0.8799999952316284,
+      "metallic": 0.0,
+      "BaseColor": "DecorAtlas.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "DecorAtlas"
+    },
+    {
+      "color": [
+        0.11999999731779099,
+        0.14000000059604645,
+        0.13500000536441803,
+        1.0
+      ],
+      "roughness": 0.75,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Desk / faded graphite ink"
+    },
+    {
+      "color": [
+        0.44999998807907104,
+        0.4350000023841858,
+        0.3700000047683716,
+        1.0
+      ],
+      "roughness": 0.9800000190734863,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Drawing / abandoned construction lines"
+    },
+    {
+      "color": [
+        0.20999999344348907,
+        0.2150000035762787,
+        0.1850000023841858,
+        1.0
+      ],
+      "roughness": 0.9399999976158142,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Drawing / lightly worked graphite"
+    },
+    {
+      "color": [
+        0.12999999523162842,
+        0.1850000023841858,
+        0.1599999964237213,
+        1.0
+      ],
+      "roughness": 0.6700000166893005,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Dressing / deep olive cassette cases"
+    },
+    {
+      "color": [
+        0.15000000596046448,
+        0.1550000011920929,
+        0.12999999523162842,
+        1.0
+      ],
+      "roughness": 0.8999999761581421,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Dressing / faded archive pencil"
+    },
+    {
+      "color": [
+        0.41999998688697815,
+        0.36000001430511475,
+        0.24500000476837158,
+        1.0
+      ],
+      "roughness": 0.9399999976158142,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Dressing / old cloth packing tape"
+    },
+    {
+      "color": [
+        0.5199999809265137,
+        0.49000000953674316,
+        0.38999998569488525,
+        1.0
+      ],
+      "roughness": 0.7200000286102295,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Dressing / old cream cassette cases"
+    },
+    {
+      "color": [
+        0.2750000059604645,
+        0.2800000011920929,
+        0.23999999463558197,
+        1.0
+      ],
+      "roughness": 0.9399999976158142,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Dressing / old grey linen document box"
+    },
+    {
+      "color": [
+        0.30000001192092896,
+        0.2549999952316284,
+        0.1850000023841858,
+        1.0
+      ],
+      "roughness": 0.9200000166893005,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Dressing / softened fibreboard archive"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "FabricAutumn_BaseColor.png",
+      "Roughness": "FabricAutumn_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "FabricAutumn_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "FabricAutumn",
+      "MetallicSmoothness": "FabricAutumn_d00759e9_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "QuiltBotanical_Print.png",
+      "Roughness": "FabricSpring_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "FabricSpring_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "FabricSpring",
+      "MetallicSmoothness": "FabricSpring_2be09981_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "FabricSummer_BaseColor.png",
+      "Roughness": "FabricSummer_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "FabricSummer_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "FabricSummer",
+      "MetallicSmoothness": "FabricSummer_73827f76_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "FabricWinter_BaseColor.png",
+      "Roughness": "FabricWinter_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "FabricWinter_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "FabricWinter",
+      "MetallicSmoothness": "FabricWinter_f015e7ed_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Finish_Desk_drawer_00_front_BaseColor.png",
+      "Roughness": "Finish_Desk_drawer_00_front_Roughness.png",
+      "NormalStrength": 1.0,
+      "Normal": "Finish_Desk_drawer_00_front_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Finish_Desk_drawer_00_front",
+      "MetallicSmoothness": "Finish_Desk_drawer_00_front_67de10df_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Finish_Desk_drawer_01_front_BaseColor.png",
+      "Roughness": "Finish_Desk_drawer_01_front_Roughness.png",
+      "NormalStrength": 1.0,
+      "Normal": "Finish_Desk_drawer_01_front_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Finish_Desk_drawer_01_front",
+      "MetallicSmoothness": "Finish_Desk_drawer_01_front_76f6d052_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Finish_Desk_drawer_02_front_BaseColor.png",
+      "Roughness": "Finish_Desk_drawer_02_front_Roughness.png",
+      "NormalStrength": 1.0,
+      "Normal": "Finish_Desk_drawer_02_front_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Finish_Desk_drawer_02_front",
+      "MetallicSmoothness": "Finish_Desk_drawer_02_front_fd6858b8_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Finish_Desk_solid_walnut_worktop_BaseColor.png",
+      "Roughness": "Finish_Desk_solid_walnut_worktop_Roughness.png",
+      "NormalStrength": 1.0,
+      "Normal": "Finish_Desk_solid_walnut_worktop_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Finish_Desk_solid_walnut_worktop",
+      "MetallicSmoothness": "Finish_Desk_solid_walnut_worktop_50699c91_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Finish_Door_inset_panel_BaseColor.png",
+      "Roughness": "Finish_Door_inset_panel_Roughness.png",
+      "NormalStrength": 1.0,
+      "Normal": "Finish_Door_inset_panel_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Finish_Door_inset_panel",
+      "MetallicSmoothness": "Finish_Door_inset_panel_bf43c5c6_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Finish_Door_inset_panel_001_BaseColor.png",
+      "Roughness": "Finish_Door_inset_panel_001_Roughness.png",
+      "NormalStrength": 1.0,
+      "Normal": "Finish_Door_inset_panel_001_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Finish_Door_inset_panel.001",
+      "MetallicSmoothness": "Finish_Door_inset_panel.001_401426bb_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Finish_Door_inset_panel_002_BaseColor.png",
+      "Roughness": "Finish_Door_inset_panel_002_Roughness.png",
+      "NormalStrength": 1.0,
+      "Normal": "Finish_Door_inset_panel_002_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Finish_Door_inset_panel.002",
+      "MetallicSmoothness": "Finish_Door_inset_panel.002_8d303b45_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Finish_Door_inset_panel_003_BaseColor.png",
+      "Roughness": "Finish_Door_inset_panel_003_Roughness.png",
+      "NormalStrength": 1.0,
+      "Normal": "Finish_Door_inset_panel_003_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Finish_Door_inset_panel.003",
+      "MetallicSmoothness": "Finish_Door_inset_panel.003_76cfbb78_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Finish_Door_leaf_BaseColor.png",
+      "Roughness": "Finish_Door_leaf_Roughness.png",
+      "NormalStrength": 1.0,
+      "Normal": "Finish_Door_leaf_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Finish_Door_leaf",
+      "MetallicSmoothness": "Finish_Door_leaf_0ed46b63_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Finish_Wardrobe_door_0_raised_panel_BaseColor.png",
+      "Roughness": "Finish_Wardrobe_door_0_raised_panel_Roughness.png",
+      "NormalStrength": 1.0,
+      "Normal": "Finish_Wardrobe_door_0_raised_panel_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Finish_Wardrobe_door_0_raised_panel",
+      "MetallicSmoothness": "Finish_Wardrobe_door_0_raised_panel_9ee76af5_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Finish_Wardrobe_door_1_raised_panel_BaseColor.png",
+      "Roughness": "Finish_Wardrobe_door_1_raised_panel_Roughness.png",
+      "NormalStrength": 1.0,
+      "Normal": "Finish_Wardrobe_door_1_raised_panel_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Finish_Wardrobe_door_1_raised_panel",
+      "MetallicSmoothness": "Finish_Wardrobe_door_1_raised_panel_04a5ae05_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Walnut_Art_v2.png",
+      "Roughness": "FinishWalnut_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "FinishWalnut_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "FloorWood",
+      "MetallicSmoothness": "FloorWood_da52d797_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.057999998331069946,
+        0.04699999839067459,
+        0.035999998450279236,
+        1.0
+      ],
+      "roughness": 0.5799999833106995,
+      "metallic": 0.07999999821186066,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Frame / charcoal patina"
+    },
+    {
+      "color": [
+        0.8100000023841858,
+        0.8899999856948853,
+        0.9100000262260437,
+        0.6499999761581421
+      ],
+      "roughness": 0.7300000190734863,
+      "metallic": 0.0,
+      "BaseColor": "Winter_WindowFrost.png",
+      "Alpha": "Winter_WindowFrost.png",
+      "AlphaChannel": "A",
+      "AlphaSource": "BaseColor",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "BLEND",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "FrostWindow"
+    },
+    {
+      "color": [
+        0.18000000715255737,
+        0.2199999988079071,
+        0.11500000208616257,
+        1.0
+      ],
+      "roughness": 0.9700000286102295,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Garden_muted_soil_and_grass"
+    },
+    {
+      "color": [
+        0.8199999928474426,
+        0.9100000262260437,
+        0.8999999761581421,
+        0.03500000014901161
+      ],
+      "roughness": 0.10000000149011612,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "BLEND",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Glass"
+    },
+    {
+      "color": [
+        0.04500000178813934,
+        0.054999999701976776,
+        0.052000001072883606,
+        1.0
+      ],
+      "roughness": 0.47999998927116394,
+      "metallic": 0.6499999761581421,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Iron"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Linen_BaseColor.png",
+      "Roughness": "Linen_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "Linen_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Linen",
+      "MetallicSmoothness": "Linen_74a1ce7d_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "LinenCream_BaseColor.png",
+      "Roughness": "LinenCream_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "LinenCream_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "LinenCream",
+      "MetallicSmoothness": "LinenCream_edbd650c_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.8600000143051147,
+      "metallic": 0.0,
+      "BaseColor": "Maple_Autumn_Leaf_01_BaseColor.png",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.3,
+      "DirectSpecularScale": 0.2,
+      "name": "MainTree_Autumn_Leaf_01"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.8600000143051147,
+      "metallic": 0.0,
+      "BaseColor": "Maple_Autumn_Leaf_02_BaseColor.png",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.3,
+      "DirectSpecularScale": 0.2,
+      "name": "MainTree_Autumn_Leaf_02"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.8600000143051147,
+      "metallic": 0.0,
+      "BaseColor": "Maple_Autumn_Leaf_03_BaseColor.png",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.3,
+      "DirectSpecularScale": 0.2,
+      "name": "MainTree_Autumn_Leaf_03"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.8199999928474426,
+      "metallic": 0.0,
+      "BaseColor": "Maple_Bark_BaseColor.png",
+      "NormalStrength": 0.41999998688697815,
+      "Normal": "Maple_Bark_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "MainTree_Maple_Bark"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.8600000143051147,
+      "metallic": 0.0,
+      "BaseColor": "Maple_Spring_Leaf_01_BaseColor.png",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.3,
+      "DirectSpecularScale": 0.2,
+      "name": "MainTree_Spring_Leaf_01"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.8600000143051147,
+      "metallic": 0.0,
+      "BaseColor": "Maple_Spring_Leaf_02_BaseColor.png",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.3,
+      "DirectSpecularScale": 0.2,
+      "name": "MainTree_Spring_Leaf_02"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.8600000143051147,
+      "metallic": 0.0,
+      "BaseColor": "Maple_Spring_Leaf_03_BaseColor.png",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.3,
+      "DirectSpecularScale": 0.2,
+      "name": "MainTree_Spring_Leaf_03"
+    },
+    {
+      "color": [
+        0.23999999463558197,
+        0.07800000160932541,
+        0.032999999821186066,
+        1.0
+      ],
+      "roughness": 0.7200000286102295,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "MainTree_Spring_Maple_Buds"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.8600000143051147,
+      "metallic": 0.0,
+      "BaseColor": "Maple_Summer_Leaf_01_BaseColor.png",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.3,
+      "DirectSpecularScale": 0.2,
+      "name": "MainTree_Summer_Leaf_01"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.8600000143051147,
+      "metallic": 0.0,
+      "BaseColor": "Maple_Summer_Leaf_02_BaseColor.png",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.3,
+      "DirectSpecularScale": 0.2,
+      "name": "MainTree_Summer_Leaf_02"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.8600000143051147,
+      "metallic": 0.0,
+      "BaseColor": "Maple_Summer_Leaf_03_BaseColor.png",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.3,
+      "DirectSpecularScale": 0.2,
+      "name": "MainTree_Summer_Leaf_03"
+    },
+    {
+      "color": [
+        0.18000000715255737,
+        0.2199999988079071,
+        0.1599999964237213,
+        1.0
+      ],
+      "roughness": 0.9399999976158142,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Memory board / muted faded olive cloth"
+    },
+    {
+      "color": [
+        0.28999999165534973,
+        0.27000001072883606,
+        0.12999999523162842,
+        1.0
+      ],
+      "roughness": 0.9900000095367432,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Autumn_yard_grass"
+    },
+    {
+      "color": [
+        0.14000000059604645,
+        0.2199999988079071,
+        0.1899999976158142,
+        1.0
+      ],
+      "roughness": 0.47999998927116394,
+      "metallic": 0.2800000011920929,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Bicycle_old_green"
+    },
+    {
+      "color": [
+        0.3400000035762787,
+        0.36000001430511475,
+        0.33000001311302185,
+        1.0
+      ],
+      "roughness": 0.3400000035762787,
+      "metallic": 0.6800000071525574,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Bicycle_steel"
+    },
+    {
+      "color": [
+        0.4300000071525574,
+        0.26499998569488525,
+        0.08500000089406967,
+        1.0
+      ],
+      "roughness": 0.9700000286102295,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Dry_fallen_leaf"
+    },
+    {
+      "color": [
+        0.3400000035762787,
+        0.2199999988079071,
+        0.17000000178813934,
+        1.0
+      ],
+      "roughness": 0.9700000286102295,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Faded_chimney_brick"
+    },
+    {
+      "color": [
+        0.1599999964237213,
+        0.14499999582767487,
+        0.10000000149011612,
+        1.0
+      ],
+      "roughness": 0.9900000095367432,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Garden_bed_soil"
+    },
+    {
+      "color": [
+        0.3100000023841858,
+        0.3499999940395355,
+        0.3199999928474426,
+        1.0
+      ],
+      "roughness": 0.6200000047683716,
+      "metallic": 0.4000000059604645,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Garden_zinc_can"
+    },
+    {
+      "color": [
+        0.38999998569488525,
+        0.4650000035762787,
+        0.42500001192092896,
+        1.0
+      ],
+      "roughness": 0.9399999976158142,
+      "metallic": 0.0,
+      "BaseColor": "YardWeather_SidingA_BaseColor.png",
+      "Roughness": "YardWeather_SidingA_Roughness.png",
+      "NormalStrength": 0.41999998688697815,
+      "Normal": "YardWeather_SidingA_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Neighbour_cottage_A_faded_clapboard",
+      "MetallicSmoothness": "Neighborhood_Neighbour_cottage_A_faded_clapboard_f804e1e5_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.19499999284744263,
+        0.26499998569488525,
+        0.23999999463558197,
+        1.0
+      ],
+      "roughness": 0.8399999737739563,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Neighbour_cottage_A_front_door"
+    },
+    {
+      "color": [
+        0.5299999713897705,
+        0.45500001311302185,
+        0.33500000834465027,
+        1.0
+      ],
+      "roughness": 0.9399999976158142,
+      "metallic": 0.0,
+      "BaseColor": "YardWeather_SidingB_BaseColor.png",
+      "Roughness": "YardWeather_SidingB_Roughness.png",
+      "NormalStrength": 0.41999998688697815,
+      "Normal": "YardWeather_SidingB_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Neighbour_cottage_B_faded_clapboard",
+      "MetallicSmoothness": "Neighborhood_Neighbour_cottage_B_faded_clapboard_aab3bdb8_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.19499999284744263,
+        0.26499998569488525,
+        0.23999999463558197,
+        1.0
+      ],
+      "roughness": 0.8399999737739563,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Neighbour_cottage_B_front_door"
+    },
+    {
+      "color": [
+        0.36000001430511475,
+        0.4000000059604645,
+        0.3400000035762787,
+        1.0
+      ],
+      "roughness": 0.9399999976158142,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Neighbour_faded_chair"
+    },
+    {
+      "color": [
+        0.5400000214576721,
+        0.4699999988079071,
+        0.3499999940395355,
+        1.0
+      ],
+      "roughness": 0.9200000166893005,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Neighbour_window_linen"
+    },
+    {
+      "color": [
+        0.3700000047683716,
+        0.36500000953674316,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.9800000190734863,
+      "metallic": 0.0,
+      "BaseColor": "YardWeather_Stone_BaseColor.png",
+      "Roughness": "YardWeather_Stone_Roughness.png",
+      "NormalStrength": 0.41999998688697815,
+      "Normal": "YardWeather_Stone_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Old_path_stone",
+      "MetallicSmoothness": "Neighborhood_Old_path_stone_b437cdc9_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.1599999964237213,
+        0.19499999284744263,
+        0.20000000298023224,
+        1.0
+      ],
+      "roughness": 0.949999988079071,
+      "metallic": 0.0,
+      "BaseColor": "YardWeather_Slate_BaseColor.png",
+      "Roughness": "YardWeather_Slate_Roughness.png",
+      "NormalStrength": 0.41999998688697815,
+      "Normal": "YardWeather_Slate_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Old_slate_roof",
+      "MetallicSmoothness": "Neighborhood_Old_slate_roof_91554f8b_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.17000000178813934,
+        0.23499999940395355,
+        0.22499999403953552,
+        1.0
+      ],
+      "roughness": 0.23999999463558197,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Old_window_glazing"
+    },
+    {
+      "color": [
+        0.49000000953674316,
+        0.46000000834465027,
+        0.3499999940395355,
+        1.0
+      ],
+      "roughness": 0.9399999976158142,
+      "metallic": 0.0,
+      "BaseColor": "YardWeather_Fence_BaseColor.png",
+      "Roughness": "YardWeather_Fence_Roughness.png",
+      "NormalStrength": 0.41999998688697815,
+      "Normal": "YardWeather_Fence_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Painted_garden_fence",
+      "MetallicSmoothness": "Neighborhood_Painted_garden_fence_cf27dcb4_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.20000000298023224,
+        0.23999999463558197,
+        0.23000000417232513,
+        1.0
+      ],
+      "roughness": 0.5600000023841858,
+      "metallic": 0.3499999940395355,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Painted_zinc_gutter"
+    },
+    {
+      "color": [
+        0.3199999928474426,
+        0.2849999964237213,
+        0.22499999403953552,
+        1.0
+      ],
+      "roughness": 0.9599999785423279,
+      "metallic": 0.0,
+      "BaseColor": "YardWeather_Porch_BaseColor.png",
+      "Roughness": "YardWeather_Porch_Roughness.png",
+      "NormalStrength": 0.41999998688697815,
+      "Normal": "YardWeather_Porch_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Porch_weathered_board",
+      "MetallicSmoothness": "Neighborhood_Porch_weathered_board_77a66281_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.20499999821186066,
+        0.25,
+        0.12999999523162842,
+        1.0
+      ],
+      "roughness": 0.9800000190734863,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Residential_muted_grass"
+    },
+    {
+      "color": [
+        0.20499999821186066,
+        0.2150000035762787,
+        0.20000000298023224,
+        1.0
+      ],
+      "roughness": 0.9800000190734863,
+      "metallic": 0.0,
+      "BaseColor": "YardWeather_Road_BaseColor.png",
+      "Roughness": "YardWeather_Road_Roughness.png",
+      "NormalStrength": 0.41999998688697815,
+      "Normal": "YardWeather_Road_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Residential_tarmac",
+      "MetallicSmoothness": "Neighborhood_Residential_tarmac_07ae18ad_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.17000000178813934,
+        0.18000000715255737,
+        0.16500000655651093,
+        1.0
+      ],
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Road_repair"
+    },
+    {
+      "color": [
+        0.4000000059604645,
+        0.2849999964237213,
+        0.0949999988079071,
+        1.0
+      ],
+      "roughness": 0.9599999785423279,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Shrub_Autumn"
+    },
+    {
+      "color": [
+        0.2800000011920929,
+        0.36000001430511475,
+        0.15000000596046448,
+        1.0
+      ],
+      "roughness": 0.9599999785423279,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Shrub_Spring"
+    },
+    {
+      "color": [
+        0.18000000715255737,
+        0.28999999165534973,
+        0.10999999940395355,
+        1.0
+      ],
+      "roughness": 0.9599999785423279,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Shrub_Summer"
+    },
+    {
+      "color": [
+        0.2199999988079071,
+        0.27000001072883606,
+        0.17000000178813934,
+        1.0
+      ],
+      "roughness": 0.9599999785423279,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Shrub_Winter"
+    },
+    {
+      "color": [
+        0.13500000536441803,
+        0.16500000655651093,
+        0.1720000058412552,
+        1.0
+      ],
+      "roughness": 0.949999988079071,
+      "metallic": 0.0,
+      "Roughness": "YardWeather_Slate_Roughness.png",
+      "NormalStrength": 0.41999998688697815,
+      "Normal": "YardWeather_Slate_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Slate_deep",
+      "MetallicSmoothness": "Neighborhood_Slate_deep_6e824fcb_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.20499999821186066,
+        0.23000000417232513,
+        0.22699999809265137,
+        1.0
+      ],
+      "roughness": 0.9599999785423279,
+      "metallic": 0.0,
+      "Roughness": "YardWeather_Slate_Roughness.png",
+      "NormalStrength": 0.41999998688697815,
+      "Normal": "YardWeather_Slate_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Slate_sun_faded",
+      "MetallicSmoothness": "Neighborhood_Slate_sun_faded_cf82c0ea_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.30000001192092896,
+        0.30000001192092896,
+        0.26499998569488525,
+        1.0
+      ],
+      "roughness": 0.9800000190734863,
+      "metallic": 0.0,
+      "BaseColor": "YardWeather_Stone_BaseColor.png",
+      "Roughness": "YardWeather_Stone_Roughness.png",
+      "NormalStrength": 0.41999998688697815,
+      "Normal": "YardWeather_Stone_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Neighborhood_Stone_foundation",
+      "MetallicSmoothness": "Neighborhood_Stone_foundation_b95630d9_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Paper_BaseColor.png",
+      "Roughness": "Paper_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "Paper_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Paper",
+      "MetallicSmoothness": "Paper_22d507f2_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.41999998688697815,
+        0.4050000011920929,
+        0.3499999940395355,
+        1.0
+      ],
+      "roughness": 0.9200000166893005,
+      "metallic": 0.0,
+      "Roughness": "FinishPaper_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "FinishPaper_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Paper / pale ruled pencil guides",
+      "MetallicSmoothness": "Paper_pale_ruled_pencil_guides_447602a3_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.6800000071525574,
+      "metallic": 0.0,
+      "BaseColor": "PH_desk_lamp_arm_01_diff_2k.jpg",
+      "Roughness": "PH_desk_lamp_arm_01_rough_2k.exr",
+      "Metallic": "PH_desk_lamp_arm_01_metal_2k.exr",
+      "NormalStrength": 0.699999988079071,
+      "Normal": "PH_desk_lamp_arm_01_nor_gl_2k.jpg",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "PH_desk_lamp_arm_01",
+      "ScalarConversions": {
+        "Metallic": "PH_desk_lamp_arm_01_metal_2k_UnityLinear.png",
+        "Roughness": "PH_desk_lamp_arm_01_rough_2k_UnityLinear.png"
+      },
+      "MetallicSmoothness": "PH_desk_lamp_arm_01_3620b013_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        1.0,
+        0.8299999833106995,
+        0.550000011920929,
+        1.0
+      ],
+      "roughness": 0.25999999046325684,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "PH_desk_lamp_arm_01_bulb"
+    },
+    {
+      "color": [
+        0.4699999988079071,
+        0.36000001430511475,
+        0.2199999988079071,
+        1.0
+      ],
+      "roughness": 0.9599999785423279,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Photo / foxed warm paper corners"
+    },
+    {
+      "color": [
+        0.7200000286102295,
+        0.6700000166893005,
+        0.550000011920929,
+        1.0
+      ],
+      "roughness": 0.9100000262260437,
+      "metallic": 0.0,
+      "Roughness": "Linen_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "Linen_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Pillowcase / washed cotton v3",
+      "MetallicSmoothness": "Pillowcase_washed_cotton_v3_09cf058b_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.1599999964237213,
+        0.23000000417232513,
+        0.07000000029802322,
+        1.0
+      ],
+      "roughness": 0.7799999713897705,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "PlantsV4_closed_bud"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.5,
+      "metallic": 0.0,
+      "BaseColor": "PlantsV4_Fern02_Autumn_PBR_642ea757_BaseColorAlpha.png",
+      "Roughness": "PH_Fern02_Roughness.png",
+      "NormalStrength": 0.6499999761581421,
+      "Normal": "PH_Fern02_Normal.png",
+      "Alpha": "PlantsV4_Fern02_Autumn_PBR_642ea757_BaseColorAlpha.png",
+      "AlphaChannel": "A",
+      "AlphaSource": "BaseColor",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "MASK",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.22,
+      "DirectSpecularScale": 1.0,
+      "name": "PlantsV4_Fern02_Autumn_PBR",
+      "OriginalBaseColor": "PH_Fern02_Autumn_BaseColor.png",
+      "OriginalAlpha": "PH_Fern02_Opacity.png",
+      "OriginalAlphaChannel": "R",
+      "UseColorTint": false,
+      "MetallicSmoothness": "PlantsV4_Fern02_Autumn_PBR_642ea757_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.5,
+      "metallic": 0.0,
+      "BaseColor": "PlantsV4_Fern02_Spring_PBR_642e2fc6_BaseColorAlpha.png",
+      "Roughness": "PH_Fern02_Roughness.png",
+      "NormalStrength": 0.6499999761581421,
+      "Normal": "PH_Fern02_Normal.png",
+      "Alpha": "PlantsV4_Fern02_Spring_PBR_642e2fc6_BaseColorAlpha.png",
+      "AlphaChannel": "A",
+      "AlphaSource": "BaseColor",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "MASK",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.22,
+      "DirectSpecularScale": 1.0,
+      "name": "PlantsV4_Fern02_Spring_PBR",
+      "OriginalBaseColor": "PH_Fern02_Spring_BaseColor.png",
+      "OriginalAlpha": "PH_Fern02_Opacity.png",
+      "OriginalAlphaChannel": "R",
+      "UseColorTint": false,
+      "MetallicSmoothness": "PlantsV4_Fern02_Spring_PBR_642e2fc6_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.5,
+      "metallic": 0.0,
+      "BaseColor": "PlantsV4_Fern02_Summer_PBR_637a33f4_BaseColorAlpha.png",
+      "Roughness": "PH_Fern02_Roughness.png",
+      "NormalStrength": 0.6499999761581421,
+      "Normal": "PH_Fern02_Normal.png",
+      "Alpha": "PlantsV4_Fern02_Summer_PBR_637a33f4_BaseColorAlpha.png",
+      "AlphaChannel": "A",
+      "AlphaSource": "BaseColor",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "MASK",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.22,
+      "DirectSpecularScale": 1.0,
+      "name": "PlantsV4_Fern02_Summer_PBR",
+      "OriginalBaseColor": "PH_Fern02_Summer_BaseColor.png",
+      "OriginalAlpha": "PH_Fern02_Opacity.png",
+      "OriginalAlphaChannel": "R",
+      "UseColorTint": false,
+      "MetallicSmoothness": "PlantsV4_Fern02_Summer_PBR_637a33f4_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.5,
+      "metallic": 0.0,
+      "BaseColor": "PlantsV4_Gazania_Autumn_PBR_57f57794_BaseColorAlpha.png",
+      "Roughness": "PH_Gazania_Roughness.png",
+      "NormalStrength": 0.6499999761581421,
+      "Normal": "PH_Gazania_Normal.png",
+      "Alpha": "PlantsV4_Gazania_Autumn_PBR_57f57794_BaseColorAlpha.png",
+      "AlphaChannel": "A",
+      "AlphaSource": "BaseColor",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "MASK",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.22,
+      "DirectSpecularScale": 1.0,
+      "name": "PlantsV4_Gazania_Autumn_PBR",
+      "OriginalBaseColor": "PH_Gazania_Autumn_BaseColor.png",
+      "OriginalAlpha": "PH_Gazania_Opacity.png",
+      "OriginalAlphaChannel": "R",
+      "UseColorTint": false,
+      "MetallicSmoothness": "PlantsV4_Gazania_Autumn_PBR_57f57794_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.5,
+      "metallic": 0.0,
+      "BaseColor": "PlantsV4_Gazania_Spring_PBR_af3403db_BaseColorAlpha.png",
+      "Roughness": "PH_Gazania_Roughness.png",
+      "NormalStrength": 0.6499999761581421,
+      "Normal": "PH_Gazania_Normal.png",
+      "Alpha": "PlantsV4_Gazania_Spring_PBR_af3403db_BaseColorAlpha.png",
+      "AlphaChannel": "A",
+      "AlphaSource": "BaseColor",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "MASK",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.22,
+      "DirectSpecularScale": 1.0,
+      "name": "PlantsV4_Gazania_Spring_PBR",
+      "OriginalBaseColor": "PH_Gazania_Spring_BaseColor.png",
+      "OriginalAlpha": "PH_Gazania_Opacity.png",
+      "OriginalAlphaChannel": "R",
+      "UseColorTint": false,
+      "MetallicSmoothness": "PlantsV4_Gazania_Spring_PBR_af3403db_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.5,
+      "metallic": 0.0,
+      "BaseColor": "PlantsV4_Gazania_Summer_PBR_63c84336_BaseColorAlpha.png",
+      "Roughness": "PH_Gazania_Roughness.png",
+      "NormalStrength": 0.6499999761581421,
+      "Normal": "PH_Gazania_Normal.png",
+      "Alpha": "PlantsV4_Gazania_Summer_PBR_63c84336_BaseColorAlpha.png",
+      "AlphaChannel": "A",
+      "AlphaSource": "BaseColor",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "MASK",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.22,
+      "DirectSpecularScale": 1.0,
+      "name": "PlantsV4_Gazania_Summer_PBR",
+      "OriginalBaseColor": "PH_Gazania_Summer_BaseColor.png",
+      "OriginalAlpha": "PH_Gazania_Opacity.png",
+      "OriginalAlphaChannel": "R",
+      "UseColorTint": false,
+      "MetallicSmoothness": "PlantsV4_Gazania_Summer_PBR_63c84336_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.5,
+      "metallic": 0.0,
+      "BaseColor": "PlantsV4_Periwinkle_Autumn_PBR_fee1b8da_BaseColorAlpha.png",
+      "Roughness": "PH_Periwinkle_Roughness.png",
+      "NormalStrength": 0.6499999761581421,
+      "Normal": "PH_Periwinkle_Normal.png",
+      "Alpha": "PlantsV4_Periwinkle_Autumn_PBR_fee1b8da_BaseColorAlpha.png",
+      "AlphaChannel": "A",
+      "AlphaSource": "BaseColor",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "MASK",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.22,
+      "DirectSpecularScale": 1.0,
+      "name": "PlantsV4_Periwinkle_Autumn_PBR",
+      "OriginalBaseColor": "PH_Periwinkle_Autumn_BaseColor.png",
+      "OriginalAlpha": "PH_Periwinkle_Opacity.png",
+      "OriginalAlphaChannel": "R",
+      "UseColorTint": false,
+      "MetallicSmoothness": "PlantsV4_Periwinkle_Autumn_PBR_fee1b8da_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.5,
+      "metallic": 0.0,
+      "BaseColor": "PlantsV4_Periwinkle_Spring_PBR_574a5bd7_BaseColorAlpha.png",
+      "Roughness": "PH_Periwinkle_Roughness.png",
+      "NormalStrength": 0.6499999761581421,
+      "Normal": "PH_Periwinkle_Normal.png",
+      "Alpha": "PlantsV4_Periwinkle_Spring_PBR_574a5bd7_BaseColorAlpha.png",
+      "AlphaChannel": "A",
+      "AlphaSource": "BaseColor",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "MASK",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.22,
+      "DirectSpecularScale": 1.0,
+      "name": "PlantsV4_Periwinkle_Spring_PBR",
+      "OriginalBaseColor": "PH_Periwinkle_Spring_BaseColor.png",
+      "OriginalAlpha": "PH_Periwinkle_Opacity.png",
+      "OriginalAlphaChannel": "R",
+      "UseColorTint": false,
+      "MetallicSmoothness": "PlantsV4_Periwinkle_Spring_PBR_574a5bd7_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.5,
+      "metallic": 0.0,
+      "BaseColor": "PlantsV4_Periwinkle_Summer_PBR_7de5d2a9_BaseColorAlpha.png",
+      "Roughness": "PH_Periwinkle_Roughness.png",
+      "NormalStrength": 0.6499999761581421,
+      "Normal": "PH_Periwinkle_Normal.png",
+      "Alpha": "PlantsV4_Periwinkle_Summer_PBR_7de5d2a9_BaseColorAlpha.png",
+      "AlphaChannel": "A",
+      "AlphaSource": "BaseColor",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "MASK",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.22,
+      "DirectSpecularScale": 1.0,
+      "name": "PlantsV4_Periwinkle_Summer_PBR",
+      "OriginalBaseColor": "PH_Periwinkle_Summer_BaseColor.png",
+      "OriginalAlpha": "PH_Periwinkle_Opacity.png",
+      "OriginalAlphaChannel": "R",
+      "UseColorTint": false,
+      "MetallicSmoothness": "PlantsV4_Periwinkle_Summer_PBR_7de5d2a9_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.5,
+      "metallic": 0.0,
+      "BaseColor": "PlantsV4_Periwinkle_Winter_PBR_ef4f4fca_BaseColorAlpha.png",
+      "Roughness": "PH_Periwinkle_Roughness.png",
+      "NormalStrength": 0.6499999761581421,
+      "Normal": "PH_Periwinkle_Normal.png",
+      "Alpha": "PlantsV4_Periwinkle_Winter_PBR_ef4f4fca_BaseColorAlpha.png",
+      "AlphaChannel": "A",
+      "AlphaSource": "BaseColor",
+      "Foliage": true,
+      "DoubleSided": true,
+      "AlphaMode": "MASK",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.22,
+      "DirectSpecularScale": 1.0,
+      "name": "PlantsV4_Periwinkle_Winter_PBR",
+      "OriginalBaseColor": "PH_Periwinkle_Winter_BaseColor.png",
+      "OriginalAlpha": "PH_Periwinkle_Opacity.png",
+      "OriginalAlphaChannel": "R",
+      "UseColorTint": false,
+      "MetallicSmoothness": "PlantsV4_Periwinkle_Winter_PBR_ef4f4fca_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.23999999463558197,
+        0.0949999988079071,
+        0.041999999433755875,
+        1.0
+      ],
+      "roughness": 0.8799999952316284,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "PlantsV4_Saucer_clay"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.5,
+      "metallic": 0.0,
+      "BaseColor": "PH_Potted02_GardenSoil_BaseColor.png",
+      "Roughness": "PH_Potted02_GardenSoil_Roughness.png",
+      "NormalStrength": 0.8500000238418579,
+      "Normal": "PH_Potted02_GardenSoil_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "PlantsV4_ScannedGardenSoil_PBR",
+      "MetallicSmoothness": "PlantsV4_ScannedGardenSoil_PBR_f742248c_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "roughness": 0.5,
+      "metallic": 0.0,
+      "BaseColor": "PH_Potted02_Pot_BaseColor.png",
+      "Roughness": "PH_Potted02_Pot_Roughness.png",
+      "NormalStrength": 0.75,
+      "Normal": "PH_Potted02_Pot_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "PlantsV4_ScannedTerracottaAndEarth_PBR",
+      "MetallicSmoothness": "PlantsV4_ScannedTerracottaAndEarth_PBR_43351970_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.20499999821186066,
+        0.24500000476837158,
+        0.22499999403953552,
+        1.0
+      ],
+      "roughness": 0.47999998927116394,
+      "metallic": 0.20000000298023224,
+      "Roughness": "FinishEnamel_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "FinishEnamel_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Radio / aged olive enamel",
+      "MetallicSmoothness": "Radio_aged_olive_enamel_389333a1_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.550000011920929,
+        0.3199999928474426,
+        0.10000000149011612,
+        1.0
+      ],
+      "roughness": 0.3199999928474426,
+      "metallic": 0.07999999821186066,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Radio / amber tuning glass"
+    },
+    {
+      "color": [
+        0.02199999988079071,
+        0.02800000086426735,
+        0.027000000700354576,
+        1.0
+      ],
+      "roughness": 0.7200000286102295,
+      "metallic": 0.0,
+      "Roughness": "FinishRubber_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "FinishRubber_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Radio / charcoal rubber",
+      "MetallicSmoothness": "Radio_charcoal_rubber_c93e9e20_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.3100000023841858,
+        0.32499998807907104,
+        0.3070000112056732,
+        1.0
+      ],
+      "roughness": 0.6399999856948853,
+      "metallic": 0.5600000023841858,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Radio / exposed dull aluminium"
+    },
+    {
+      "color": [
+        0.3799999952316284,
+        0.07500000298023224,
+        0.04699999839067459,
+        1.0
+      ],
+      "roughness": 0.5,
+      "metallic": 0.05000000074505806,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Radio / muted recording red"
+    },
+    {
+      "color": [
+        0.02500000037252903,
+        0.02800000086426735,
+        0.02500000037252903,
+        1.0
+      ],
+      "roughness": 0.9200000166893005,
+      "metallic": 0.0,
+      "Roughness": "FinishRubber_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "FinishRubber_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Rubber",
+      "MetallicSmoothness": "Rubber_4c7cfb2e_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Rug_BaseColor.png",
+      "Roughness": "Rug_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "Rug_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Rug",
+      "MetallicSmoothness": "Rug_eba802a8_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.7799999713897705,
+        0.6899999976158142,
+        0.5099999904632568,
+        0.6800000071525574
+      ],
+      "roughness": 0.9100000262260437,
+      "metallic": 0.0,
+      "Roughness": "Linen_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "Linen_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "BLEND",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "SheerLinen",
+      "MetallicSmoothness": "SheerLinen_bd08ea69_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.8999999761581421,
+        0.9399999976158142,
+        0.9700000286102295,
+        1.0
+      ],
+      "roughness": 0.8399999737739563,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Snow"
+    },
+    {
+      "color": [
+        0.20999999344348907,
+        0.2849999964237213,
+        0.22499999403953552,
+        1.0
+      ],
+      "roughness": 0.550000011920929,
+      "metallic": 0.2199999988079071,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Spring_can / worn green enamel"
+    },
+    {
+      "color": [
+        0.017999999225139618,
+        0.012000000104308128,
+        0.008999999612569809,
+        1.0
+      ],
+      "roughness": 0.9800000190734863,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Subfloor / dark dry timber"
+    },
+    {
+      "color": [
+        0.18000000715255737,
+        0.23499999940395355,
+        0.20499999821186066,
+        1.0
+      ],
+      "roughness": 0.47999998927116394,
+      "metallic": 0.18000000715255737,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Summer_fan / aged sage enamel"
+    },
+    {
+      "color": [
+        0.6700000166893005,
+        0.6200000047683716,
+        0.47999998927116394,
+        1.0
+      ],
+      "roughness": 0.5299999713897705,
+      "metallic": 0.11999999731779099,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Summer_fan / cream painted blades"
+    },
+    {
+      "color": [
+        0.38999998569488525,
+        0.1899999976158142,
+        0.10999999940395355,
+        1.0
+      ],
+      "roughness": 0.8700000047683716,
+      "metallic": 0.0,
+      "Roughness": "FinishTerracotta_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "FinishTerracotta_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Terracotta",
+      "MetallicSmoothness": "Terracotta_8be6e64e_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.7799999713897705,
+      "metallic": 0.0,
+      "BaseColor": "Walnut_Art_v2.png",
+      "Roughness": "FinishWalnut_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "FinishWalnut_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "V16 chair natural walnut",
+      "MetallicSmoothness": "V16_chair_natural_walnut_ebdc5d47_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.33000001311302185,
+        0.36000001430511475,
+        0.28999999165534973,
+        1.0
+      ],
+      "roughness": 0.8799999952316284,
+      "metallic": 0.0,
+      "Roughness": "Linen_Roughness.png",
+      "NormalStrength": 0.2199999988079071,
+      "Normal": "Linen_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "V16 chair plain linen pad",
+      "MetallicSmoothness": "V16_chair_plain_linen_pad_04be3f3e_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.36000001430511475,
+        0.2800000011920929,
+        0.20000000298023224,
+        1.0
+      ],
+      "roughness": 0.8799999952316284,
+      "metallic": 0.0,
+      "Roughness": "FabricAutumn_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "FabricAutumn_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "V16 plain Autumn cotton",
+      "MetallicSmoothness": "V16_plain_Autumn_cotton_eb920b6d_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.25,
+        0.23000000417232513,
+        0.1899999976158142,
+        1.0
+      ],
+      "roughness": 0.8799999952316284,
+      "metallic": 0.0,
+      "Roughness": "FabricWinter_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "FabricWinter_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "V16 plain folded winter wool",
+      "MetallicSmoothness": "V16_plain_folded_winter_wool_954c5ff3_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.4000000059604645,
+        0.4300000071525574,
+        0.3499999940395355,
+        1.0
+      ],
+      "roughness": 0.8799999952316284,
+      "metallic": 0.0,
+      "Roughness": "FabricSpring_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "FabricSpring_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "V16 plain Spring cotton",
+      "MetallicSmoothness": "V16_plain_Spring_cotton_fcff6609_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.5199999809265137,
+        0.5099999904632568,
+        0.4300000071525574,
+        1.0
+      ],
+      "roughness": 0.8799999952316284,
+      "metallic": 0.0,
+      "Roughness": "FabricSummer_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "FabricSummer_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "V16 plain Summer cotton",
+      "MetallicSmoothness": "V16_plain_Summer_cotton_d6e8c7c3_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.3100000023841858,
+        0.3400000035762787,
+        0.3199999928474426,
+        1.0
+      ],
+      "roughness": 0.8799999952316284,
+      "metallic": 0.0,
+      "Roughness": "FabricWinter_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "FabricWinter_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "V16 plain Winter cotton",
+      "MetallicSmoothness": "V16_plain_Winter_cotton_8cd79d73_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Walnut_Art_v2.png",
+      "Roughness": "FinishWalnut_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "FinishWalnut_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Wainscot_existing_walnut_v5",
+      "MetallicSmoothness": "Wainscot_existing_walnut_v5_b800d629_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.23000000417232513,
+        0.27000001072883606,
+        0.20999999344348907,
+        1.0
+      ],
+      "roughness": 0.8700000047683716,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "WallLife / archive book tone 0"
+    },
+    {
+      "color": [
+        0.36000001430511475,
+        0.25,
+        0.15000000596046448,
+        1.0
+      ],
+      "roughness": 0.8700000047683716,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "WallLife / archive book tone 1"
+    },
+    {
+      "color": [
+        0.30000001192092896,
+        0.28999999165534973,
+        0.2199999988079071,
+        1.0
+      ],
+      "roughness": 0.8700000047683716,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "WallLife / archive book tone 2"
+    },
+    {
+      "color": [
+        0.18000000715255737,
+        0.23999999463558197,
+        0.23499999940395355,
+        1.0
+      ],
+      "roughness": 0.8700000047683716,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "WallLife / archive book tone 3"
+    },
+    {
+      "color": [
+        0.3199999928474426,
+        0.25,
+        0.1599999964237213,
+        1.0
+      ],
+      "roughness": 0.9599999785423279,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "WallLife / old cork working board"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Wallpaper_BaseColor.png",
+      "Roughness": "Wallpaper_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "Wallpaper_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Wallpaper",
+      "MetallicSmoothness": "Wallpaper_466891e2_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "Walnut_Art_v2.png",
+      "Roughness": "FinishWalnut_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "FinishWalnut_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Walnut",
+      "MetallicSmoothness": "Walnut_691ecbcb_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.10499999672174454,
+        0.17000000178813934,
+        0.18000000715255737,
+        1.0
+      ],
+      "roughness": 0.25,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Winter_mug / deep glazed indigo"
+    },
+    {
+      "color": [
+        0.07500000298023224,
+        0.03500000014901161,
+        0.012000000104308128,
+        1.0
+      ],
+      "roughness": 0.1599999964237213,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Winter_mug / quiet dark tea"
+    },
+    {
+      "color": [
+        0.7799999713897705,
+        0.7699999809265137,
+        0.7099999785423279,
+        0.07500000298023224
+      ],
+      "roughness": 0.9399999976158142,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "BLEND",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Winter_mug / subtle warm steam"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "WoodDarkV4_BaseColor.png",
+      "Roughness": "WoodDark_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "WoodDark_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "WoodDark",
+      "MetallicSmoothness": "WoodDark_24dbfe2a_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.46000000834465027,
+        0.4000000059604645,
+        0.30000001192092896,
+        1.0
+      ],
+      "roughness": 0.6499999761581421,
+      "metallic": 0.0,
+      "BaseColor": "PaintedSage_Art_v2.png",
+      "Roughness": "FinishPaint_Roughness.png",
+      "NormalStrength": 0.23999999463558197,
+      "Normal": "FinishPaint_Normal.png",
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "WoodPaint",
+      "MetallicSmoothness": "WoodPaint_52065f50_MetallicSmoothness.png"
+    },
+    {
+      "color": [
+        0.1899999976158142,
+        0.2199999988079071,
+        0.17000000178813934,
+        1.0
+      ],
+      "roughness": 0.9300000071525574,
+      "metallic": 0.0,
+      "Foliage": false,
+      "DoubleSided": true,
+      "AlphaMode": "OPAQUE",
+      "AlphaCutoff": 0.45,
+      "Transmission": 0.0,
+      "DirectSpecularScale": 1.0,
+      "name": "Wool throw / dull binding"
+    }
+  ]
+}

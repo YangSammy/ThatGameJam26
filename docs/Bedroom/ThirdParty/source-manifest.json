@@ -1,0 +1,534 @@
+{
+  "scope": "Seven Poly Haven sources used by bedroom runtime derivatives. This is compact source provenance, not hashes of the current Unity exports. Original source packages and unused source files are not included.",
+  "source_records": "Derived from the production source-manifest.json and provenance.json listed in record-integrity.json.",
+  "license": "CC0-1.0",
+  "assets": [
+    {
+      "asset_id": "painted_wooden_chair_01",
+      "name": "Painted Wooden Chair 01",
+      "authors": {
+        "Kuutti Siitonen": "All"
+      },
+      "source_page": "https://polyhaven.com/a/painted_wooden_chair_01",
+      "source_info_api": "https://api.polyhaven.com/info/painted_wooden_chair_01",
+      "source_files_api": "https://api.polyhaven.com/files/painted_wooden_chair_01",
+      "license": "CC0-1.0",
+      "license_source": "https://polyhaven.com/license",
+      "license_legalcode": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+      "downloaded_utc": "2026-10-28T18:30:11.8334847Z",
+      "texture_resolution": "2k",
+      "used_parts": "Chair source mesh; appearance subsequently adjusted to natural wood in the bedroom.",
+      "source_files": [
+        {
+          "relative_path": "painted_wooden_chair_01_2k.blend",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/blend/2k/painted_wooden_chair_01/painted_wooden_chair_01_2k.blend",
+          "bytes": 140995,
+          "source_md5": "b22e3e27afb957e87fbc96c6037b62c5",
+          "md5_verified": true,
+          "sha256": "cac1e8364045e2b3ca052457373f3378dd90f1d9531a839083630cdcb13f6d77"
+        },
+        {
+          "relative_path": "painted_wooden_chair_01_2k.fbx",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/fbx/2k/painted_wooden_chair_01/painted_wooden_chair_01_2k.fbx",
+          "bytes": 45884,
+          "source_md5": "4984f94ae987c536c8eedb34ba4e430b",
+          "md5_verified": true,
+          "sha256": "6feb167ec07525ae195aaea1091cadb36037ccc7e32787697a72e65b8c04934a"
+        },
+        {
+          "relative_path": "painted_wooden_chair_01_2k.gltf",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/painted_wooden_chair_01/painted_wooden_chair_01_2k.gltf",
+          "bytes": 2785,
+          "source_md5": "3ec4f92b791b4de1bc0d82a52b4a65ae",
+          "md5_verified": true,
+          "sha256": "f079552d8564e9dfa247114dd1cb650c89b69d7c56dfc90fd26b1df5adbd8a2c"
+        },
+        {
+          "relative_path": "painted_wooden_chair_01.bin",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/painted_wooden_chair_01/painted_wooden_chair_01.bin",
+          "bytes": 37112,
+          "source_md5": "7fd011acaef4730770108a7932191768",
+          "md5_verified": true,
+          "sha256": "eaf952048db1e770c45898049b8abe28deb83d3dbbaad81d5e7e43e22a322295"
+        },
+        {
+          "relative_path": "textures/painted_wooden_chair_01_arm_2k.jpg",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/painted_wooden_chair_01/painted_wooden_chair_01_arm_2k.jpg",
+          "bytes": 452527,
+          "source_md5": "b1fad7186a62205394bd1bc5dd30b62d",
+          "md5_verified": true,
+          "sha256": "65d0dface1fe516d43e6594d1c587692ce99a6ebc2e8e7027920c3d3e4711289"
+        },
+        {
+          "relative_path": "textures/painted_wooden_chair_01_diff_2k.jpg",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/painted_wooden_chair_01/painted_wooden_chair_01_diff_2k.jpg",
+          "bytes": 540489,
+          "source_md5": "bc227634cd2b6584f3f18bac808e25cf",
+          "md5_verified": true,
+          "sha256": "7c2914843fd3e73c91c7a25058e20460195095a99b8d4ffd78ea61391f0966a9"
+        },
+        {
+          "relative_path": "textures/painted_wooden_chair_01_metal_2k.exr",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/exr/2k/painted_wooden_chair_01/painted_wooden_chair_01_metal_2k.exr",
+          "bytes": 13296,
+          "source_md5": "99274ddebd770ab27d959b83b70efa21",
+          "md5_verified": true,
+          "sha256": "04c0ec0bb6938981a49adf46c12a316981decdf6bda80f664838be8ae19e77c6"
+        },
+        {
+          "relative_path": "textures/painted_wooden_chair_01_nor_gl_2k.exr",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/exr/2k/painted_wooden_chair_01/painted_wooden_chair_01_nor_gl_2k.exr",
+          "bytes": 3832258,
+          "source_md5": "66b396014fbda0bd5cd91b75769d00a3",
+          "md5_verified": true,
+          "sha256": "52f28bec69ddb3c6b4fc2a29039f82394cf4020736720283da74bf3e71c04c2b"
+        },
+        {
+          "relative_path": "textures/painted_wooden_chair_01_nor_gl_2k.jpg",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/painted_wooden_chair_01/painted_wooden_chair_01_nor_gl_2k.jpg",
+          "bytes": 499193,
+          "source_md5": "6fd3dc868e8c9ae838f3eaaaa09cc8c2",
+          "md5_verified": true,
+          "sha256": "70e4fbbe62831f7a93c0e821479ee463fef30ef43599589c46a6b5d23a359181"
+        },
+        {
+          "relative_path": "textures/painted_wooden_chair_01_rough_2k.jpg",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/painted_wooden_chair_01/painted_wooden_chair_01_rough_2k.jpg",
+          "bytes": 417784,
+          "source_md5": "c9c47f13044d620a3d33e354ec11f1b0",
+          "md5_verified": true,
+          "sha256": "b3d7ce48a2628c2643a5786d0a8dddb85d92b9089874ad773318c6bb2c9c78db"
+        }
+      ]
+    },
+    {
+      "asset_id": "desk_lamp_arm_01",
+      "name": "Desk Lamp Arm 01",
+      "authors": {
+        "Yann Kervran": "Rigging",
+        "Kuutti Siitonen": "Modeling & texturing"
+      },
+      "source_page": "https://polyhaven.com/a/desk_lamp_arm_01",
+      "source_info_api": "https://api.polyhaven.com/info/desk_lamp_arm_01",
+      "source_files_api": "https://api.polyhaven.com/files/desk_lamp_arm_01",
+      "license": "CC0-1.0",
+      "license_source": "https://polyhaven.com/license",
+      "license_legalcode": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+      "downloaded_utc": "2026-10-28T18:30:11.9452043Z",
+      "texture_resolution": "2k",
+      "used_parts": "Static desk lamp meshes after evaluating armature, weighted normals and auto-smooth; rig-display meshes excluded.",
+      "source_files": [
+        {
+          "relative_path": "desk_lamp_arm_01_2k.blend",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/blend/2k/desk_lamp_arm_01/desk_lamp_arm_01_2k.blend",
+          "bytes": 802957,
+          "source_md5": "5c55990afe5f67692c74fd2606513f3b",
+          "md5_verified": true,
+          "sha256": "798e9046f65c01e39a4a2ef2200a6cdbc20f5867705e34a04bfc067390ff2fec"
+        },
+        {
+          "relative_path": "desk_lamp_arm_01_2k.fbx",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/fbx/2k/desk_lamp_arm_01/desk_lamp_arm_01_2k.fbx",
+          "bytes": 2304508,
+          "source_md5": "f51c0a48a59bef1e8cbde149f91e6f11",
+          "md5_verified": true,
+          "sha256": "ff2dd235926e553e335b285d45925881862b9eadeeba0c1e09f6ab97451df79d"
+        },
+        {
+          "relative_path": "desk_lamp_arm_01_2k.gltf",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/desk_lamp_arm_01/desk_lamp_arm_01_2k.gltf",
+          "bytes": 4453,
+          "source_md5": "93587e189642dc55cd6567703dc88fd6",
+          "md5_verified": true,
+          "sha256": "b3f03ff2c7c186ec73682f7447b3594db2362cbfc0d72a89d2d8967111d2a2b6"
+        },
+        {
+          "relative_path": "desk_lamp_arm_01.bin",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/desk_lamp_arm_01/desk_lamp_arm_01.bin",
+          "bytes": 736804,
+          "source_md5": "29ffa5bb6bee35b066e46073124fee1a",
+          "md5_verified": true,
+          "sha256": "07f34e32abecbaa63d28b9d12d6a0eb82b775a0f50c92327655909d72ff8489b"
+        },
+        {
+          "relative_path": "textures/desk_lamp_arm_01_arm_2k.jpg",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/desk_lamp_arm_01/desk_lamp_arm_01_arm_2k.jpg",
+          "bytes": 2801607,
+          "source_md5": "7f4335c90f5be6ac9d9e0073a12cc7e5",
+          "md5_verified": true,
+          "sha256": "d2d55bb3d929ab583d4068adc3dce4e45d29852fd37602ddbb992183a9471b79"
+        },
+        {
+          "relative_path": "textures/desk_lamp_arm_01_diff_2k.jpg",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/desk_lamp_arm_01/desk_lamp_arm_01_diff_2k.jpg",
+          "bytes": 2438937,
+          "source_md5": "18b2a20186590642bf99537784bdc414",
+          "md5_verified": true,
+          "sha256": "c5f8c5be367a40585f89ce0aeac0224e36146eef63c12864222af080a9784869"
+        },
+        {
+          "relative_path": "textures/desk_lamp_arm_01_mask01_2k.png",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/png/2k/desk_lamp_arm_01/desk_lamp_arm_01_mask01_2k.png",
+          "bytes": 21479,
+          "source_md5": "e05fc4a0d21e2b39de5ce42ba50c0520",
+          "md5_verified": true,
+          "sha256": "dd3dde689c7a5b09417aab463ce8e78bb7d9b5321e40a0d01b3c1d3af7d02647"
+        },
+        {
+          "relative_path": "textures/desk_lamp_arm_01_metal_2k.exr",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/exr/2k/desk_lamp_arm_01/desk_lamp_arm_01_metal_2k.exr",
+          "bytes": 2804270,
+          "source_md5": "1ff25182395f59e496793fd9af8dfe97",
+          "md5_verified": true,
+          "sha256": "269268870cd731ee8c6d4af777182c499c3dc40438ade01a8c495e752c4427a8"
+        },
+        {
+          "relative_path": "textures/desk_lamp_arm_01_nor_gl_2k.exr",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/exr/2k/desk_lamp_arm_01/desk_lamp_arm_01_nor_gl_2k.exr",
+          "bytes": 5306315,
+          "source_md5": "e2d78dce0b96ff9dd5dad9ba3241b518",
+          "md5_verified": true,
+          "sha256": "f056008b2b5ebf588acfe5d5906fe85f13cf6c01a7016d135ae82848ef628518"
+        },
+        {
+          "relative_path": "textures/desk_lamp_arm_01_nor_gl_2k.jpg",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/desk_lamp_arm_01/desk_lamp_arm_01_nor_gl_2k.jpg",
+          "bytes": 2491219,
+          "source_md5": "f576a49c0203d1115fd4fb4b68f0548c",
+          "md5_verified": true,
+          "sha256": "289e2b9a9d0dcbc02dd8d8dbe612380c13dc48fb7c4484fb39c303f6cf822379"
+        },
+        {
+          "relative_path": "textures/desk_lamp_arm_01_rough_2k.exr",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/exr/2k/desk_lamp_arm_01/desk_lamp_arm_01_rough_2k.exr",
+          "bytes": 4633095,
+          "source_md5": "29d2c85871ce704f68995e66bd8ffb92",
+          "md5_verified": true,
+          "sha256": "233c58c11c924db2a04622c09695509d2612f60f3b42d9407b592508aec809cf"
+        }
+      ]
+    },
+    {
+      "asset_id": "throw_pillows_01",
+      "name": "Throw Pillows 01",
+      "authors": {
+        "Serhii Khromov": "All"
+      },
+      "source_page": "https://polyhaven.com/a/throw_pillows_01",
+      "source_info_api": "https://api.polyhaven.com/info/throw_pillows_01",
+      "source_files_api": "https://api.polyhaven.com/files/throw_pillows_01",
+      "license": "CC0-1.0",
+      "license_source": "https://polyhaven.com/license",
+      "license_legalcode": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+      "downloaded_utc": "2026-10-28T18:30:12.0127309Z",
+      "texture_resolution": "2k",
+      "used_parts": "One cushion used as a chair seat pad. The second cushion and replacements of the two sleeping pillows are excluded.",
+      "source_files": [
+        {
+          "relative_path": "textures/throw_pillows_01_diff_2k.jpg",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/throw_pillows_01/throw_pillows_01_diff_2k.jpg",
+          "bytes": 898774,
+          "source_md5": "674fe201ddf5a98c3b806b842bc0e2ea",
+          "md5_verified": true,
+          "sha256": "119dc2fa364113e862fd09805bf70fc24e96119f0cefd8ecf32d18ac3dbfb831"
+        },
+        {
+          "relative_path": "textures/throw_pillows_01_nor_gl_2k.exr",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/exr/2k/throw_pillows_01/throw_pillows_01_nor_gl_2k.exr",
+          "bytes": 10798338,
+          "source_md5": "e661ae9ac21920c694599de514bbaebd",
+          "md5_verified": true,
+          "sha256": "6467e4a8a1acd361d4eed84f539642117aa972e402313102b92771e93993cc66"
+        },
+        {
+          "relative_path": "textures/throw_pillows_01_nor_gl_2k.jpg",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/throw_pillows_01/throw_pillows_01_nor_gl_2k.jpg",
+          "bytes": 2134240,
+          "source_md5": "44490e3234340ea81c6be713b77fb688",
+          "md5_verified": true,
+          "sha256": "970d77b8ff6bca0d9482cd10d36d942ca1a26a61768103b6379986e66071902a"
+        },
+        {
+          "relative_path": "textures/throw_pillows_01_rough_2k.jpg",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/throw_pillows_01/throw_pillows_01_rough_2k.jpg",
+          "bytes": 1275948,
+          "source_md5": "f3bed6f9674ce715aa27feae8b35daa0",
+          "md5_verified": true,
+          "sha256": "d3e1956bfedf62d50b527bdfcfd053aabf674f4d6df931a2d8b87e554fe8b24f"
+        },
+        {
+          "relative_path": "throw_pillows_01_2k.blend",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/blend/2k/throw_pillows_01/throw_pillows_01_2k.blend",
+          "bytes": 390419,
+          "source_md5": "2bba40da1a966c5d2e9fca020b816a79",
+          "md5_verified": true,
+          "sha256": "ba430553adfa9831a3cf0373728db142886203c5dbc8578963a12cee3957d8af"
+        },
+        {
+          "relative_path": "throw_pillows_01_2k.fbx",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/fbx/2k/throw_pillows_01/throw_pillows_01_2k.fbx",
+          "bytes": 322092,
+          "source_md5": "16dc9b4fb481a41b52239320c3bcd2b1",
+          "md5_verified": true,
+          "sha256": "a95a1dad0866e3960b379f210247dbb52065e6bb51fbcbcfda6863cc09c48c71"
+        },
+        {
+          "relative_path": "throw_pillows_01_2k.gltf",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/throw_pillows_01/throw_pillows_01_2k.gltf",
+          "bytes": 4548,
+          "source_md5": "2bc55dde790cb19b4d64ba8b8e8fd0a6",
+          "md5_verified": true,
+          "sha256": "3869830ba5fb524efc0d2dbc6fb3d01162fa06fc70c367b50594ccf8b15a61f1"
+        },
+        {
+          "relative_path": "throw_pillows_01.bin",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/throw_pillows_01/throw_pillows_01.bin",
+          "bytes": 146012,
+          "source_md5": "dd26dd164ecfa138e0bb51d94a4197ed",
+          "md5_verified": true,
+          "sha256": "cac134c38612894a301d265a0b2ad4ddbe57d15d7473d57592c397d445366476"
+        }
+      ]
+    },
+    {
+      "asset_id": "fern_02",
+      "authors": "Rico Cilliers (modeling), Rob Tuytel (scanning)",
+      "source_page": "https://polyhaven.com/a/fern_02",
+      "source_files_api": "https://api.polyhaven.com/files/fern_02",
+      "source_blend_url": "https://dl.polyhaven.org/file/ph-assets/Models/blend/2k/fern_02/fern_02_2k.blend",
+      "license": "CC0-1.0",
+      "license_source": "https://polyhaven.com/license",
+      "production_license_verified_date": "2026-10-29",
+      "selected_meshes": [
+        {
+          "source_object": "fern_02_a",
+          "selected_lod": "original",
+          "triangles": 784
+        },
+        {
+          "source_object": "fern_02_b",
+          "selected_lod": "original",
+          "triangles": 2384
+        },
+        {
+          "source_object": "fern_02_c",
+          "selected_lod": "original",
+          "triangles": 2248
+        }
+      ],
+      "used_parts": "Selected native plant meshes and PBR/opacity textures, with seasonal geometry subsets.",
+      "source_files": [
+        {
+          "file": "fern_02/fern_02_2k.blend",
+          "bytes": 262018,
+          "sha256": "cf721e00ed5bb72f0b9c3fb59b8febc7b2b9b2082f162d5a80ba3a11e4e7028d"
+        },
+        {
+          "file": "fern_02/textures/fern_02_alpha_2k.png",
+          "bytes": 230089,
+          "sha256": "f51eb9b8f9f4b25a882f8fe12d1ef53ba69448bac7e71396ec1f05b684e9ea75"
+        },
+        {
+          "file": "fern_02/textures/fern_02_diff_2k.jpg",
+          "bytes": 993703,
+          "sha256": "9ee18172170728050871772e2cd6d8d37b52f9138e61b49b04486623f9caf84b"
+        },
+        {
+          "file": "fern_02/textures/fern_02_nor_gl_2k.exr",
+          "bytes": 2895843,
+          "sha256": "2787b69707c37a4b90627085f36e818b13816c6587aa0d06c5c6d004ccde7557"
+        },
+        {
+          "file": "fern_02/textures/fern_02_rough_2k.exr",
+          "bytes": 901394,
+          "sha256": "877fd64af4d815a2522700c676b2c32c6f075ce8bca59c6a2d267309b2fca550"
+        }
+      ]
+    },
+    {
+      "asset_id": "flower_gazania",
+      "authors": "James Ray Cock (modeling), Jenelle van Heerden (photography)",
+      "source_page": "https://polyhaven.com/a/flower_gazania",
+      "source_files_api": "https://api.polyhaven.com/files/flower_gazania",
+      "source_blend_url": "https://dl.polyhaven.org/file/ph-assets/Models/blend/2k/flower_gazania/flower_gazania_2k.blend",
+      "license": "CC0-1.0",
+      "license_source": "https://polyhaven.com/license",
+      "production_license_verified_date": "2026-10-29",
+      "selected_meshes": [
+        {
+          "source_object": "flower_gazania_c_LOD1",
+          "selected_lod": "native 1",
+          "triangles": 376
+        },
+        {
+          "source_object": "flower_gazania_e_LOD1",
+          "selected_lod": "native 1",
+          "triangles": 808
+        }
+      ],
+      "used_parts": "Selected native plant meshes and PBR/opacity textures, with seasonal geometry subsets.",
+      "source_files": [
+        {
+          "file": "flower_gazania/flower_gazania_2k.blend",
+          "bytes": 839183,
+          "sha256": "a7450eb38cbca650c5ff30750d514898d2ebb71ea4c1666021395a3bbbe92871"
+        },
+        {
+          "file": "flower_gazania/textures/flower_gazania_alpha_2k.png",
+          "bytes": 281216,
+          "sha256": "9f871a62eaa9ac15c86878d5f5419ded2146b89c0e5407059e1ab834ff49f94a"
+        },
+        {
+          "file": "flower_gazania/textures/flower_gazania_diff_2k.jpg",
+          "bytes": 1313843,
+          "sha256": "46f0a1a7dde2c3f7e9fb09f674bea7841484a3b21c1b184daccd441256741080"
+        },
+        {
+          "file": "flower_gazania/textures/flower_gazania_disp_2k.png",
+          "bytes": 4508264,
+          "sha256": "a44b7dd989ea88f5cf819055aa0e3bc3a7fb4e39901bc33be140d24a899b14c9"
+        },
+        {
+          "file": "flower_gazania/textures/flower_gazania_nor_gl_2k.exr",
+          "bytes": 6268163,
+          "sha256": "22161905ec7df75fb774f529e310dd443a685fb97e5b1eb313fe09d42ef4592f"
+        },
+        {
+          "file": "flower_gazania/textures/flower_gazania_rough_2k.exr",
+          "bytes": 1521094,
+          "sha256": "62742e5ebd6abd7b33df574a29e172843a68431f17a4b51ec4119d22c25df3de"
+        }
+      ]
+    },
+    {
+      "asset_id": "periwinkle_plant",
+      "authors": "Amal Kumar",
+      "source_page": "https://polyhaven.com/a/periwinkle_plant",
+      "source_files_api": "https://api.polyhaven.com/files/periwinkle_plant",
+      "source_blend_url": "https://dl.polyhaven.org/file/ph-assets/Models/blend/2k/periwinkle_plant/periwinkle_plant_2k.blend",
+      "license": "CC0-1.0",
+      "license_source": "https://polyhaven.com/license",
+      "production_license_verified_date": "2026-10-29",
+      "selected_meshes": [
+        {
+          "source_object": "periwinkle_plant_01_LOD1",
+          "selected_lod": "native 1",
+          "triangles": 5480
+        },
+        {
+          "source_object": "periwinkle_plant_02_LOD2",
+          "selected_lod": "native 2",
+          "triangles": 2106
+        },
+        {
+          "source_object": "periwinkle_plant_03_LOD2",
+          "selected_lod": "native 2",
+          "triangles": 1197
+        }
+      ],
+      "used_parts": "Selected native plant meshes and PBR/opacity textures, with seasonal geometry subsets.",
+      "source_files": [
+        {
+          "file": "periwinkle_plant/periwinkle_plant_2k.blend",
+          "bytes": 1681322,
+          "sha256": "e9fc4300a8be05a9e7ec4423c239e9af37a2f3e4be9e6175a19ba82e1ffafd8a"
+        },
+        {
+          "file": "periwinkle_plant/textures/periwinkle_plant_diff_2k.jpg",
+          "bytes": 1025276,
+          "sha256": "015ae7b001fa72a2be9a4297590e30d9e29ec4d686ca1f19d8a313671ac3d137"
+        },
+        {
+          "file": "periwinkle_plant/textures/periwinkle_plant_disp_2k.png",
+          "bytes": 4535665,
+          "sha256": "a250a419e036265f81d0308ae91fc09087c5a83badfa684e843376e80f83c6c9"
+        },
+        {
+          "file": "periwinkle_plant/textures/periwinkle_plant_nor_gl_2k.exr",
+          "bytes": 2614895,
+          "sha256": "6020c6645f6c3ea5eeec709d9b9b222bacccd406936346a8201a7e7161c69f0d"
+        },
+        {
+          "file": "periwinkle_plant/textures/periwinkle_plant_opacity_2k.png",
+          "bytes": 195845,
+          "sha256": "969a29f3c44bd9be704e7acc22746785ac7ca26746eec7c157c9c7d1bee2e841"
+        },
+        {
+          "file": "periwinkle_plant/textures/periwinkle_plant_rough_2k.exr",
+          "bytes": 543847,
+          "sha256": "696fd66e5105193d3808e1966c7404e0171efffc7f96cce131621bcaa2fecdf0"
+        },
+        {
+          "file": "periwinkle_plant/textures/periwinkle_plant_translucency_2k.png",
+          "bytes": 18487011,
+          "sha256": "196ab842b29575688a77e5fcbf5163fb3393d6406ce73a956e5ffd34f139c469"
+        }
+      ]
+    },
+    {
+      "asset_id": "potted_plant_02",
+      "authors": "Rico Cilliers",
+      "source_page": "https://polyhaven.com/a/potted_plant_02",
+      "source_files_api": "https://api.polyhaven.com/files/potted_plant_02",
+      "source_blend_url": "https://dl.polyhaven.org/file/ph-assets/Models/blend/2k/potted_plant_02/potted_plant_02_2k.blend",
+      "license": "CC0-1.0",
+      "license_source": "https://polyhaven.com/license",
+      "production_license_verified_date": "2026-10-29",
+      "selected_meshes": [
+        {
+          "source_object": "potted_plant_02_pot",
+          "selected_lod": "original",
+          "triangles": 5184
+        },
+        {
+          "source_object": "potted_plant_02_dirt",
+          "selected_lod": "original",
+          "triangles": 6470
+        }
+      ],
+      "used_parts": "scanned terracotta pot and soil only; tropical foliage excluded",
+      "source_files": [
+        {
+          "file": "potted_plant_02/potted_plant_02_2k.blend",
+          "bytes": 8110103,
+          "sha256": "b62ded8ac23b439d2d4457916241f45e029d1455cd792f426ef3b0e5f889589c"
+        },
+        {
+          "file": "potted_plant_02/textures/potted_plant_02_pot_diff_2k.png",
+          "bytes": 19344861,
+          "sha256": "5c7623b2b337bc9e996446eaa0fb851f441e0f26febe53fb19dde5c03fa89551"
+        },
+        {
+          "file": "potted_plant_02/textures/potted_plant_02_pot_nor_gl_2k.png",
+          "bytes": 14010302,
+          "sha256": "7777ef34cd4bf72280b387b739a553b98856b301ba9323259f2235dd290f1ee6"
+        },
+        {
+          "file": "potted_plant_02/textures/potted_plant_02_pot_rough_2k.png",
+          "bytes": 4580543,
+          "sha256": "0d4e9695804d40d44da77dcc9d749d410e8546e8eebd2e40b4e337941347871d"
+        }
+      ],
+      "garden_soil_crop": {
+        "source_pixels": [
+          1408,
+          1740,
+          1616,
+          1948
+        ],
+        "source_resolution": [
+          2048,
+          2048
+        ],
+        "tile_width_metres": 0.2
+      }
+    }
+  ],
+  "plant_modifications": [
+    "Native LOD selection, source-derived seasonal mesh subsets, object grid offsets removed",
+    "2K source PBR textures converted to uniquely named PNG maps; real opacity preserved",
+    "Source flower/leaf islands selected for spring bloom, summer buds, autumn pruning and winter dormancy",
+    "Planting layout, saucer contact, maple and unrelated objects retained; scanned sill pot/soil added in the targeted refinement",
+    "Potted Plant 02 scanned pot and 12% native soil surface replace smooth sill pot/disc; shared across seasons; actual soil-center raycast used for height fitting"
+  ]
+}

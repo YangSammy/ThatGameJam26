@@ -1,0 +1,46 @@
+{
+  "base_version": 17,
+  "manual_update": "BirdStickers-20261102",
+  "source_sha256": "d707b11598f21957d42b1716f74c32aa13fbeae1d8a0926ad0656fd5fd470982",
+  "sticker_count": 12,
+  "distinct_hosts": 11,
+  "texture_count": 6,
+  "source_license": "PolyForm-Shield-1.0.0",
+  "source_existing_objects_protected": 3625,
+  "old_GI_files_byte_identical": 24,
+  "native_real_pngs_decoded": 20,
+  "all_sampled_inspection_sightlines_clear": true,
+  "scenes": [
+    {
+      "path": "Assets/Scenes/Bedroom/V17/Bedroom_Spring.unity",
+      "sha256": "2642a715494c5dd1a166f0577178e0a151ed5fa0dc152c1870928f7b39f80a14"
+    },
+    {
+      "path": "Assets/Scenes/Bedroom/V17/Bedroom_Summer.unity",
+      "sha256": "f8ae2699ab22ad6d9815fbaabd2a8d3260595bbe8c60f3950d89209f3a01115b"
+    },
+    {
+      "path": "Assets/Scenes/Bedroom/V17/Bedroom_Autumn.unity",
+      "sha256": "b11542f5eee30ba6748d25644595911c77269fabaadd42d9560174739b41c2c6"
+    },
+    {
+      "path": "Assets/Scenes/Bedroom/V17/Bedroom_Winter.unity",
+      "sha256": "c2854bf092c0345fd45b128865ad82f013d6ed90e7a845a421a4d6bcb8356be7"
+    }
+  ],
+  "dedicated_color_space": "Linear",
+  "repository_color_space": "Gamma",
+  "repository_validation": "Unity2022.3 saved sticker validation passed for all four scenes; original colliders191 per scene unchanged",
+  "historical_v17_import_report": "History/v17-import-verification.json",
+  "no_new_full_game_or_walking_test": true,
+  "remote_push_performed": false,
+  "independent_visual_review_sha256": "5876fca833964daad8c6b1982a89362ccda06ca9412bafbcbf9519830967bc42",
+  "windows_package": {
+    "path": "E:\\thatgamejam\\Dist\\QuietRoom-FourSeasons-BirdStickers-20261102-Windows.zip",
+    "bytes": 616520162,
+    "sha256": "ae1bb9fa8e6ad6388f4bb5954d75c447412aaca9e13971870368302b0de69fc5",
+    "entries": 162,
+    "crc_passed": true
+  },
+  "local_worktree_changes": "Sticker update synchronized and validated; not committed or pushed in this task."
+}
