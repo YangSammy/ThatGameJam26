@@ -38,8 +38,11 @@ namespace MemoryWhitebox
         bool restoreHiddenAudio;
         Renderer[] proxyRenderers;
 
-        void Awake()
+        // The scene owns the hardware. Bind the House player and restored model before enabling it.
+        public void Initialize(WBMain host,RadioTapeChapter chapter)
         {
+            if(initialized)return;
+            house=host;view=host.playerCamera;Chapter=chapter;
             if(animator==null || speaker==null || carrier==null || proxyTape==null || tapes==null || tapes.Length!=3)
             { Debug.LogError("House radio is missing its authored references.",this);enabled=false;return; }
             proxyRenderers=proxyTape.GetComponentsInChildren<Renderer>(true);
@@ -50,7 +53,7 @@ namespace MemoryWhitebox
                 t.modelPosition=t.model.localPosition;t.modelRotation=t.model.localRotation;t.modelScale=t.model.localScale;
             }
             animator.keepAnimatorStateOnDisable=true;
-            initialized=true;Chapter=new RadioTapeChapter();ResetDeck();InitializeRecording();RestoreSource();InitializeSfx();
+            initialized=true;ResetDeck(false);InitializeRecording();RestoreSource();InitializeSfx();
         }
         void OnEnable()
         {
@@ -87,7 +90,9 @@ namespace MemoryWhitebox
         }
         public void TogglePlayback(){OpenRecording();}
         public void PrepareForHide(){StopRecordingInput();SetStationActive(false);restoreHiddenAudio=false;}
-        public void ResetDeck()
+        public void ResetDeck()=>ResetDeck(true);
+
+        void ResetDeck(bool clearWorkingTape)
         {
             if(!initialized)return;
             CancelTapeDrag();ReleaseSpindle();
@@ -100,7 +105,7 @@ namespace MemoryWhitebox
                 if(t.leftReel!=null)t.leftReel.localRotation=Quaternion.identity;
                 if(t.rightReel!=null)t.rightReel.localRotation=Quaternion.identity;
             }
-            Selected=-1;State=Phase.Empty;Chapter.Tape.Selected=-1;Chapter.WorkingTapeIndex=-1;
+            Selected=-1;State=Phase.Empty;Chapter.Tape.Selected=-1;if(clearWorkingTape)Chapter.WorkingTapeIndex=-1;
             if(dualDeck!=null)dualDeck.Snap(1,false);
             if(dualDeck==null && animator.isActiveAndEnabled){animator.Play("Ready_Open",0,0);animator.Update(0);}
         }

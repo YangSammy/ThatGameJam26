@@ -31,12 +31,18 @@ namespace MemoryWhitebox
             public Vector3 position;
             public Quaternion rotation;
             public float grip,push,contact;
+            public bool directWristRotation;
+            public float bodyReachLimit;
             public static Pose At(Vector3 position,Quaternion rotation,float grip=0,float push=0)
             {return new Pose{position=position,rotation=rotation,grip=grip,push=push,contact=1};}
+            public static Pose AtWrist(Vector3 position,Quaternion rotation,float grip)
+            {var pose=At(position,rotation,grip);pose.directWristRotation=true;return pose;}
         }
         readonly float[] grip=new float[2],push=new float[2],contact=new float[2];
         readonly Vector3[] targets=new Vector3[2];
         readonly Quaternion[] rotations={Quaternion.identity,Quaternion.identity};
+        readonly Quaternion[] directRotations={Quaternion.identity,Quaternion.identity};
+        readonly float[] directWeights=new float[2];
         static readonly int idle=Animator.StringToHash("Idle.Relax");
         static readonly int[] grabs={Animator.StringToHash("LeftGrab.Grab"),Animator.StringToHash("RightGrab.Grab")};
         static readonly int[] pushes={Animator.StringToHash("LeftPush.Push"),Animator.StringToHash("RightPush.Push")};
@@ -79,7 +85,9 @@ namespace MemoryWhitebox
                 if(reach.sqrMagnitude>requested.sqrMagnitude)requested=reach;
             }
             requested+=lowering;
-            requested=Vector3.ClampMagnitude(transform.InverseTransformVector(requested),maximumBodyReach);
+            // Optional presentation-only allowance for a distant, authored hand contact.
+            float reachLimit=Mathf.Max(maximumBodyReach,Mathf.Clamp(Mathf.Max(left.bodyReachLimit,right.bodyReachLimit),0,.65f));
+            requested=Vector3.ClampMagnitude(transform.InverseTransformVector(requested),reachLimit);
             bodyReach=Vector3.Lerp(bodyReach,requested,immediate?1:1-Mathf.Exp(-dt/Mathf.Max(.01f,reachSeconds)*4));
             model.localPosition=modelOffset+bodyReach;
             Solve(0);Solve(1);
@@ -90,6 +98,7 @@ namespace MemoryWhitebox
             grip[side]=Mathf.MoveTowards(grip[side],Mathf.Clamp01(pose.grip),step);
             push[side]=Mathf.MoveTowards(push[side],Mathf.Clamp01(pose.push),step);
             contact[side]=Mathf.MoveTowards(contact[side],Mathf.Clamp01(pose.contact),step);
+            directWeights[side]=Mathf.MoveTowards(directWeights[side],pose.directWristRotation?1:0,step);
             if(pose.contact>0)
             {
                 float blend=immediate?1:1-Mathf.Exp(-dt/Mathf.Max(.01f,reachSeconds)*4);
@@ -97,6 +106,11 @@ namespace MemoryWhitebox
                 if(contact[side]<=step)targets[side]=transform.InverseTransformPoint(wrists[side].position);
                 targets[side]=Vector3.Lerp(targets[side],local,blend);
                 rotations[side]=Quaternion.Slerp(rotations[side],Quaternion.Inverse(transform.rotation)*pose.rotation,blend);
+                if(pose.directWristRotation)
+                {
+                    if(directWeights[side]<=step)directRotations[side]=Quaternion.Inverse(transform.rotation)*wrists[side].rotation;
+                    directRotations[side]=Quaternion.Slerp(directRotations[side],Quaternion.Inverse(transform.rotation)*pose.rotation,blend);
+                }
             }
             int layer=1+side*2;
             animator.SetLayerWeight(layer,grip[side]);animator.SetLayerWeight(layer+1,push[side]);
@@ -125,11 +139,12 @@ namespace MemoryWhitebox
             a.rotation=Quaternion.FromToRotation(b.position-a.position,elbow-a.position)*a.rotation;
             b.rotation=Quaternion.FromToRotation(c.position-b.position,target-b.position)*b.rotation;
             c.rotation=Quaternion.Slerp(wristRotation,desiredRotation,contact[side]*contactRotationWeight);
+            c.rotation=Quaternion.Slerp(c.rotation,transform.rotation*directRotations[side],contact[side]*directWeights[side]);
         }
         public void ResetPose()
         {
             elapsed=0;bodyReach=Vector3.zero;
-            for(int i=0;i<2;i++){grip[i]=push[i]=contact[i]=0;targets[i]=Vector3.zero;rotations[i]=Quaternion.identity;}
+            for(int i=0;i<2;i++){grip[i]=push[i]=contact[i]=directWeights[i]=0;targets[i]=Vector3.zero;rotations[i]=directRotations[i]=Quaternion.identity;}
             if(initialized && Valid && gameObject.activeInHierarchy)Evaluate(default(Pose),default(Pose),0,true);
         }
         void OnDisable(){ResetPose();initialized=false;}

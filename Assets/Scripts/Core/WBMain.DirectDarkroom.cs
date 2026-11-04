@@ -23,7 +23,7 @@ namespace MemoryWhitebox
         }
         public void PrepareContinuousDarkroom()
         {
-            var photo=DarkroomWorld;if(photo==null || !photo.DirectDarkroomAvailable)return;
+            var photo=DarkroomWorld;if(DepartureRoom!=null || photo==null || !photo.DirectDarkroomAvailable)return;
             if(InStation && ChapterIndex==1)
             {
                 photo.CancelInteraction();if(!photo.SaveProgress())return;

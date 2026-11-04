@@ -4,6 +4,28 @@ namespace MemoryWhitebox.Editor
 {
     public static class DragReceiverRegression
     {
+        public static string RunPrintPlacement()
+        {
+            var state=new DarkroomPrintState();
+            state.negative.locationId="area/house.darkroom.work-area";
+            state.ValidateProgress(ParkPrintStage.NegativeDrying,false);
+            state.negative.locationId="print-frame";
+            state.paper.locationId="area/house.darkroom.work-area";
+            state.ValidateProgress(ParkPrintStage.PaperDeveloper,false);
+            var restored=JsonUtility.FromJson<DarkroomPrintState>(JsonUtility.ToJson(state));
+            restored.ValidateProgress(ParkPrintStage.PaperDeveloper,false);
+            bool rejected=false;
+            try{state.ValidateProgress(ParkPrintStage.PaperDeveloper,true);}catch(System.IO.InvalidDataException){rejected=true;}
+            Require(rejected,"Table placement must not count as processing");
+            state.frameClosed=true;rejected=false;
+            try{state.Validate();state.ValidateProgress(ParkPrintStage.ContactReady,false);}catch(System.IO.InvalidDataException){rejected=true;}
+            Require(rejected,"Closed frame still requires both materials");
+            state.frameClosed=false;state.paper.locationId="area/";rejected=false;
+            try{state.Validate();}catch(System.IO.InvalidDataException){rejected=true;}
+            Require(rejected,"Empty work area rejected");
+            state.paper.locationId="print-paper-home";state.Validate();
+            return "PASS print tabletop placement, JSON restore, processing/frame guards and legacy home";
+        }
         public static string Run()
         {
             var receiver = new GameObject("Receiver regression");
@@ -22,9 +44,14 @@ namespace MemoryWhitebox.Editor
                 obstruction.transform.position = ray.GetPoint(1);
                 Physics.SyncTransforms();
                 Require(!DragReceiverProbe.Accepts(ray, receiver.transform, null, .4f), "Actual obstruction must still reject drop");
+                Require(DragReceiverProbe.Evaluate(ray, receiver.transform, null, .4f)==DragReceiverProbe.Result.Occluded, "Explain occlusion");
                 obstruction.SetActive(false);
                 Require(!DragReceiverProbe.Accepts(ray, receiver.transform, null, .4f, .5f), "Out of reach rejected");
-                return "PASS receiver visibility, real obstruction, reach";
+                Require(DragReceiverProbe.Evaluate(ray, receiver.transform, null, .4f,.5f)==DragReceiverProbe.Result.TooFar, "Explain reach");
+                Require(DragReceiverProbe.Evaluate(new Ray(origin,Vector3.left),receiver.transform,null,.4f)==DragReceiverProbe.Result.Outside,"Explain missed target");
+                receiver.SetActive(false);
+                Require(DragReceiverProbe.Evaluate(ray,receiver.transform,null,.4f)==DragReceiverProbe.Result.Unavailable,"Explain unavailable target");
+                return "PASS receiver acceptance and four distinct rejection reasons";
             }
             finally
             {

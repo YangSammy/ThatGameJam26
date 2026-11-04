@@ -5741,6 +5741,7 @@ MonoBehaviour:
   lookAt: {fileID: 0}
   watersideMoment: 0
   referenceView: {fileID: 0}
+  resumePoint: {fileID: 0}
   referencePhoto: {fileID: 0}
   referenceEv100: 13
 --- !u!4 &61317756
@@ -11227,6 +11228,7 @@ Transform:
   m_Children:
   - {fileID: 1478011969}
   - {fileID: 859288883}
+  - {fileID: 438577021}
   m_Father: {fileID: 245122093}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!64 &107520442
@@ -11463,6 +11465,7 @@ MonoBehaviour:
   lookAt: {fileID: 0}
   watersideMoment: 0
   referenceView: {fileID: 0}
+  resumePoint: {fileID: 0}
   referencePhoto: {fileID: 0}
   referenceEv100: 13
 --- !u!4 &110501403
@@ -19841,6 +19844,7 @@ MonoBehaviour:
   lookAt: {fileID: 231031299}
   watersideMoment: 1
   referenceView: {fileID: 1477497022}
+  resumePoint: {fileID: 2060497628}
   referencePhoto: {fileID: 2800000, guid: 43f3fa26e4c794647a416375fc997508, type: 3}
   referenceEv100: 13
 --- !u!4 &230530795
@@ -22315,6 +22319,37 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 261889076}
   m_Mesh: {fileID: 4300000, guid: 380bbf45112cbb84e97a6ce04e8e3853, type: 2}
+--- !u!1 &261951031
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 261951032}
+  m_Layer: 0
+  m_Name: Resume_Meadow
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &261951032
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261951031}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.11323516, y: 0.5083067, z: -0.06763471, w: 0.8510157}
+  m_LocalPosition: {x: -2.0924244, y: 0, z: -1.1266894}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 517911392}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &262831344
 GameObject:
   m_ObjectHideFlags: 0
@@ -34117,6 +34152,37 @@ CapsuleCollider:
   m_Height: 2.6
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &438577020
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 438577021}
+  m_Layer: 0
+  m_Name: Resume_Entrance
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &438577021
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 438577020}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.06484443, y: 0.38173974, z: -0.02685944, w: 0.9216011}
+  m_LocalPosition: {x: -2.6363964, y: 0, z: -2.6363964}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 106109639}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &439229618
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -36678,6 +36744,7 @@ MonoBehaviour:
   lookAt: {fileID: 747382558}
   watersideMoment: 0
   referenceView: {fileID: 1492112117}
+  resumePoint: {fileID: 261951032}
   referencePhoto: {fileID: 2800000, guid: 6921a09e270b36a47b23bee883794183, type: 3}
   referenceEv100: 13
 --- !u!4 &473785162
@@ -36792,6 +36859,7 @@ MonoBehaviour:
   lookAt: {fileID: 0}
   watersideMoment: 0
   referenceView: {fileID: 0}
+  resumePoint: {fileID: 0}
   referencePhoto: {fileID: 0}
   referenceEv100: 13
 --- !u!4 &475239800
@@ -40961,6 +41029,7 @@ Transform:
   - {fileID: 747382558}
   - {fileID: 1492112117}
   - {fileID: 361394242}
+  - {fileID: 261951032}
   m_Father: {fileID: 245122093}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &517921591
@@ -42041,6 +42110,7 @@ MonoBehaviour:
   lookAt: {fileID: 899123578}
   watersideMoment: 0
   referenceView: {fileID: 0}
+  resumePoint: {fileID: 0}
   referencePhoto: {fileID: 0}
   referenceEv100: 13
 --- !u!4 &531224287
@@ -44899,6 +44969,7 @@ MonoBehaviour:
   lookAt: {fileID: 1478011969}
   watersideMoment: 0
   referenceView: {fileID: 859288883}
+  resumePoint: {fileID: 438577021}
   referencePhoto: {fileID: 2800000, guid: 59a12432629bb7542b3d90b587eac9e2, type: 3}
   referenceEv100: 13
 --- !u!4 &570680797
@@ -72502,6 +72573,7 @@ MonoBehaviour:
   lookAt: {fileID: 0}
   watersideMoment: 0
   referenceView: {fileID: 0}
+  resumePoint: {fileID: 0}
   referencePhoto: {fileID: 0}
   referenceEv100: 13
 --- !u!4 &859261272
@@ -81887,6 +81959,7 @@ MonoBehaviour:
   lookAt: {fileID: 0}
   watersideMoment: 0
   referenceView: {fileID: 0}
+  resumePoint: {fileID: 0}
   referencePhoto: {fileID: 0}
   referenceEv100: 13
 --- !u!4 &1021512268
@@ -118167,6 +118240,7 @@ MonoBehaviour:
   lookAt: {fileID: 0}
   watersideMoment: 0
   referenceView: {fileID: 0}
+  resumePoint: {fileID: 0}
   referencePhoto: {fileID: 0}
   referenceEv100: 13
 --- !u!4 &1573428686
@@ -143463,6 +143537,7 @@ MonoBehaviour:
   lookAt: {fileID: 0}
   watersideMoment: 0
   referenceView: {fileID: 0}
+  resumePoint: {fileID: 0}
   referencePhoto: {fileID: 0}
   referenceEv100: 13
 --- !u!4 &1916887386
@@ -147035,6 +147110,7 @@ MonoBehaviour:
   lookAt: {fileID: 0}
   watersideMoment: 0
   referenceView: {fileID: 0}
+  resumePoint: {fileID: 0}
   referencePhoto: {fileID: 0}
   referenceEv100: 13
 --- !u!4 &1962387047
@@ -153847,6 +153923,7 @@ MonoBehaviour:
   lookAt: {fileID: 0}
   watersideMoment: 0
   referenceView: {fileID: 0}
+  resumePoint: {fileID: 0}
   referencePhoto: {fileID: 0}
   referenceEv100: 13
 --- !u!4 &2050627037
@@ -154590,6 +154667,37 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2059676989}
   m_Mesh: {fileID: 4300000, guid: f0e4cdcc8c49950489cad266d6f84bfe, type: 2}
+--- !u!1 &2060497627
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2060497628}
+  m_Layer: 0
+  m_Name: Resume_Bridge
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2060497628
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2060497627}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.06080348, y: 0.70448774, z: -0.06080348, w: 0.70448774}
+  m_LocalPosition: {x: -3.1999998, y: 0, z: 0.000000101241824}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2127483194}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2060587622
 GameObject:
   m_ObjectHideFlags: 0
@@ -158042,6 +158150,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1477497022}
+  - {fileID: 2060497628}
   m_Father: {fileID: 245122093}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2127553999

@@ -18,7 +18,12 @@ namespace MemoryWhitebox.EditorTools
             System.IO.File.AppendAllText(ReportPath, (condition ? "PASS " : "FAIL ") + message + "\n");
             if (!condition) throw new InvalidOperationException(message);
         }
-        static Ray PaperRay(WritingWorld3D w, float x) => new Ray(w.World(new Vector3(x, 3, .25f)), Vector3.down);
+        static AutumnWritingDesk Desk=>UnityEngine.Object.FindObjectOfType<AutumnWritingDesk>();
+        static Ray PaperRay(WritingWorld3D w,float x)
+        {
+            var t=Desk.paper.transform;
+            return new Ray(t.TransformPoint(new Vector3(x+.075f,1,.13f)),-t.up);
+        }
         static void WriteStep(WritingWorld3D w, WBInput input, float dt)
         {
             var ray = PaperRay(w, -.46f);
@@ -45,7 +50,7 @@ namespace MemoryWhitebox.EditorTools
             var w = World; var h = WBMain.Instance;
             Check(Application.isPlaying && w != null && w.Active, "House autumn active in Play Mode");
             h.SetHelpVisible(false);
-            Check(w.Root.GetComponentsInChildren<WritingPropVisual>(true).Length >= 13, "D01-D06 instantiated through production chapter");
+            Check(Desk.foldedPaper!=null && Desk.timer!=null && w.Root.GetComponentsInChildren<WritingPropVisual>(true).Length >= 8, "D01-D06 instantiated through production chapter");
             Physics.SyncTransforms();
             Check(w.Pick(PaperRay(w, -.3f)) == "paper", "Actual ray hits retained paper hotspot");
             WriteStep(w, new WBInput(), .02f);
@@ -53,7 +58,7 @@ namespace MemoryWhitebox.EditorTools
             Walk(w, w.State.ItemPositions[3], true);
             Check(w.State.Phase == "crumple" && w.State.HasItem(3), "Tutorial collection enters stalled draft");
             w.Press("paper", PaperRay(w, -.3f), 0); w.Tick(.125f, new WBInput());
-            var folded = w.Root.GetComponentsInChildren<WritingPropVisual>(true).First(v => v.Capture().crumple > 0);
+            var folded = Desk.foldedPaper;
             Check(w.PaperGrabbed && folded.Capture().crumple > 0 && folded.Capture().crumple < 1, "Partial crumple uses D01 continuous morph");
             w.CancelPointerGesture();
             Check(!w.PaperGrabbed && w.State.Draft == 1 && w.Nodes["paper"].activeSelf, "Cancel restores paper without consuming draft");
@@ -65,10 +70,10 @@ namespace MemoryWhitebox.EditorTools
             Check(bin.StartsWith("bin", StringComparison.Ordinal), "Actual ray reaches basket receiver");
             w.Move(binRay); w.Release(bin, binRay); w.Tick(0,new WBInput());
             Check(w.State.Draft == 2 && w.State.Collected == 0 && w.State.Phase == "collect", "Drop starts formal draft and clears tutorial collection");
-            Check(w.Root.GetComponentsInChildren<Transform>(true).Any(t=>t.name=="DiscardedDraft_0"), "Discarded D01 paper ball visible");
+            Check(Desk.discardedDrafts[0].activeInHierarchy, "Discarded D01 paper ball visible");
             Walk(w,w.State.ItemPositions[3],true);
             Check(w.State.HasItem(3) && w.State.Remaining < 60, "Formal collection and clock advance");
-            var timer=w.Root.GetComponentsInChildren<WritingPropVisual>(true).First(v=>v.name.Contains("MechanicalTimer"));
+            var timer=Desk.timer;
             Check(Mathf.Abs(timer.Capture().timer-(1-w.State.Remaining/60))<.001f,"D06 follows remaining time");
             h.SetHelpVisible(true);
             Check(h.SaveStableProgress(), "Existing stable save succeeds");

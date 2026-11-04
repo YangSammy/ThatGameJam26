@@ -78,6 +78,7 @@ namespace MemoryWhitebox.Editor
             var house=Object.FindObjectOfType<WBMain>();
             var entries=house.houseShell.transform.Find("Study entry props");
             var radio=entries.Find("Radio - tape chapter");var tapeGroup=entries.Find("Cassettes - tape chapter");
+            if(radio==null || tapeGroup==null)throw new InvalidOperationException("The authored tape workspace is in Bedroom_Spring.");
             if(radio.GetComponent<HouseRadioDeck>()!=null)return "Radio is already installed.";
             foreach(var tex in AssetDatabase.FindAssets("t:Texture2D",new[]{Folder+"/Textures"}).Select(AssetDatabase.GUIDToAssetPath))
             {
@@ -92,7 +93,7 @@ namespace MemoryWhitebox.Editor
             model.name="Radio case";Materials(model);
             var animator=model.GetComponent<Animator>();if(animator==null)animator=model.AddComponent<Animator>();
             animator.runtimeAnimatorController=controller;animator.applyRootMotion=false;animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
-            var deck=radio.gameObject.AddComponent<HouseRadioDeck>();deck.animator=animator;deck.house=house;deck.view=house.playerCamera;house.radioDeck=deck;
+            var deck=radio.gameObject.AddComponent<HouseRadioDeck>();deck.animator=animator;deck.house=house;deck.view=house.playerCamera;
             deck.carrier=Find(model.transform,"Tape_LOAD_MOTION");deck.proxyTape=Find(model.transform,"Tape_01_ROOT");
             deck.leftDriver=Find(model.transform,"Tape_01_Reel_L_PIVOT");deck.rightDriver=Find(model.transform,"Tape_01_Reel_R_PIVOT");deck.startSocket=Find(model.transform,"Socket_TapeStart");
             foreach(var r in deck.proxyTape.GetComponentsInChildren<Renderer>(true))r.enabled=false;

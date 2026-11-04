@@ -169,6 +169,7 @@ namespace MemoryWhitebox
         {
             var next=Copy();next.returnFromPark=true;next.housePosition=position;next.houseRotation=rotation;next.houseFov=fov;return Commit(next);
         }
+        public bool HasHouseReturn=>Available && data.returnFromPark;
         public void RestoreReturn(Camera camera)
         {
             if(!data.returnFromPark || !Available)return;

@@ -28,6 +28,13 @@ namespace MemoryWhitebox.Editor
                     Stroke(w);w.Tick(.02f,Keys());Require(!w.Carried,"Writing alone collected");w.Tick(.02f,Keys(KeyCode.E));Require(w.Phase=="crumple","Tutorial did not stall");
                     w.PointerDown(new Vector2(800,200),0);w.PointerUp(new Vector2(1185,635));Require(w.Draft==2&&w.Phase=="collect"&&!w.Started&&!w.Carried,"Draft reset incorrect");
                 });
+                Case("Autumn re-entering paper resumes at the new contact point",()=>{
+                    var w=Formal();w.Player=w.ItemPositions[3];var start=new Vector2(690,200);
+                    w.PointerDown(start,0);w.PointerMove(new Vector2(600,200));w.PointerMove(start);w.Tick(.02f,Keys(KeyCode.E));
+                    Require(w.WritingProgress==0 && !w.Started && !w.Carried,"Off-paper travel produced ink");
+                    w.PointerMove(start+Vector2.right*12);w.Tick(.02f,Keys(KeyCode.E));
+                    Require(w.WritingProgress==12 && w.Started && w.HasItem(3),"On-paper movement failed to resume");
+                });
                 Case("Autumn independent timer and retry",()=>{
                     var w=Formal();w.Tick(5,Keys());Require(w.Remaining==60,"Timer started before ink");Stroke(w);w.PointerUp(Vector2.zero);w.Tick(5,Keys());Require(w.Remaining==55,"Timer paused without writing");w.Tick(55,Keys());Require(w.Phase=="crumple"&&!w.Completed,"Timeout completed");
                 });

@@ -14,20 +14,22 @@ namespace MemoryWhitebox
         public PhotographyMode PhotoMode=>photoMode;
         public bool HandPresentationBlocked=>inputGate || !focused || changingScene || Paused;
         public Transform HandContactTarget=>dragPart!=null && instrumentParts.ContainsKey(dragPart)?instrumentParts[dragPart]:null;
-        public int FilmIso=>roll!=null && roll.cameraLoading!=null?roll.cameraLoading.iso:100;
+        public int FilmIso=>roll?.FilmIso??100;
         public float Aperture=>apertures[apertureIndex];
         public float ShutterSeconds=>speeds[speedIndex];
-        public float ExposureError=>Mathf.Log(Aperture*Aperture/ShutterSeconds,2)-Mathf.Log(FilmIso/100f,2)-sceneEv100;
+        public float ExposureError=>ParkCameraResponse.ExposureError(Aperture,ShutterSeconds,FilmIso,sceneEv100);
         static readonly int[] filmIsos={100,200,400,800};
         static readonly float[] apertures={2.8f,4,5.6f,8,11,16};
-        static readonly float[] speeds={1f/4,1f/8,1f/15,1f/30,1f/60,1f/125,1f/250,1f/500,1f/1000};
+        static readonly float[] speeds=ParkCameraResponse.ShutterSpeeds;
         int apertureIndex=3,speedIndex=5,meterIsoIndex,loadingStep;
         PhotographyMode photoMode;
+        bool PreciseInstrumentPointer=>photoMode==PhotographyMode.Body || photoMode==PhotographyMode.Meter || PhotoHandPointerActive;
         Vector2 virtualPointer=new Vector2(.5f,.5f);
         int edgeCandidate=-1;
         float dwell,cooldown;
         bool edgeArmed=true;
         string dragPart;
+        readonly PointerGestureBuffer bodyPointer=new PointerGestureBuffer();
         Vector3 dragStart;
         Transform instruments,bodyRoot,meterRoot;
         readonly Dictionary<string,Transform> instrumentParts=new Dictionary<string,Transform>();
@@ -39,8 +41,7 @@ namespace MemoryWhitebox
         void InitializePhotographyModes()
         {
             var saved=roll!=null?roll.cameraLoading:null;
-            loadingStep=saved==null?0:saved.phase==PhotoChapter.FilmPhase.Ready?7:
-                saved.mechanicalStep>0?saved.mechanicalStep:saved.phase==PhotoChapter.FilmPhase.Closed?6:saved.threaded?4:saved.phase==PhotoChapter.FilmPhase.LoadedOpen?2:0;
+            loadingStep=saved!=null?saved.StableStep:0;
             meterIsoIndex=Mathf.Max(0,Array.IndexOf(filmIsos,FilmIso));
             if(roll!=null && roll.frames.Count>0)
             {
@@ -87,6 +88,8 @@ namespace MemoryWhitebox
         void SetPhotographyMode(PhotographyMode mode)
         {
             CancelInstrumentDrag();photoMode=mode;Aiming=mode==PhotographyMode.Viewfinder;
+            // Esc and edge transitions can return before Update's normal render sync.
+            if(focusEffect!=null)SyncCameraPreview();
             if(mode!=PhotographyMode.Aperture && mode!=PhotographyMode.Shutter)virtualPointer=new Vector2(.5f,.5f);
             dwell=0;cooldown=.2f;edgeCandidate=-1;edgeArmed=false;
             moveVelocity=Vector3.zero;inputGate=true;handoff.Arm();
@@ -95,19 +98,25 @@ namespace MemoryWhitebox
         }
         void CancelInstrumentDrag()
         {
+            bodyPointer.Clear();
             if(dragPart!=null && instrumentParts.ContainsKey(dragPart))instrumentParts[dragPart].localPosition=partHomes[dragPart];
             dragPart=null;
         }
         bool TickPhotographyModes(float dt)
         {
-            Vector2 motion=PlayerInputPolicy.LookDelta*virtualCursorSpeed;
-            virtualPointer+=new Vector2(motion.x/Mathf.Max(1,Screen.width),motion.y/Mathf.Max(1,Screen.height));
+            if(PreciseInstrumentPointer)
+                virtualPointer=new Vector2(Input.mousePosition.x/Mathf.Max(1,Screen.width),Input.mousePosition.y/Mathf.Max(1,Screen.height));
+            else
+            {
+                Vector2 motion=PlayerInputPolicy.LookDelta*virtualCursorSpeed;
+                virtualPointer+=new Vector2(motion.x/Mathf.Max(1,Screen.width),motion.y/Mathf.Max(1,Screen.height));
+            }
             virtualPointer=new Vector2(Mathf.Clamp01(virtualPointer.x),Mathf.Clamp01(virtualPointer.y));
             cooldown=Mathf.Max(0,cooldown-dt);
             bool centered=virtualPointer.x>.25f && virtualPointer.x<.75f && virtualPointer.y>.25f && virtualPointer.y<.75f;
             if(centered && cooldown<=0)edgeArmed=true;
             int edge=-1;
-            if(dragPart==null && !Input.GetMouseButton(0))
+            if(dragPart==null && !Input.GetMouseButton(0) && !(PhotoHandPointerActive && PointerOnHand))
             {
                 if(photoMode!=PhotographyMode.Exploration && virtualPointer.y>.94f)edge=0;
                 else if(photoMode==PhotographyMode.Exploration && virtualPointer.y<.2f)edge=virtualPointer.x<.18f?1:virtualPointer.x>.82f?2:-1;
@@ -151,8 +160,26 @@ namespace MemoryWhitebox
         }
         void HandleBody()
         {
-            var ray=view.ViewportPointToRay(virtualPointer);string hit=PickInstrument(ray);
-            if(Input.GetMouseButtonDown(0))
+            var ray=view.ViewportPointToRay(virtualPointer);
+            Ray captured;
+            if(bodyPointer.TryBegin(out captured))BeginBodyPointer(captured);
+            if(dragPart!=null && Input.GetMouseButton(0))MoveBodyPointer(ray);
+            if(bodyPointer.TryEnd(Input.GetMouseButton(0),out captured) && dragPart!=null)
+            {MoveBodyPointer(captured);EndBodyPointer(captured);}
+        }
+        void CaptureBodyPointer(Event e)
+        {
+            if(photoMode!=PhotographyMode.Body || HandPresentationBlocked || !InputContext.Allows(InputContextId.ParkBody))
+            {bodyPointer.Clear();return;}
+            if(e==null || e.button!=0 || (e.type!=EventType.MouseDown && e.type!=EventType.MouseUp))return;
+            // Preserve the press origin even if a whole drag occurs between Updates.
+            bodyPointer.Capture(e.type==EventType.MouseDown,view.ScreenPointToRay(new Vector2(e.mousePosition.x,Screen.height-e.mousePosition.y)));
+        }
+        // The native input path and regression tests share the same ray/collider routing.
+        void BeginBodyPointer(Ray ray)
+        {
+            string hit=PickInstrument(ray);
+            if(dragPart==null)
             {
                 if((hit=="rewind" && loadingStep==0) || (hit.StartsWith("film-") && loadingStep==1) || (hit=="leader" && loadingStep==2))
                 {dragPart=hit;dragStart=ray.GetPoint(.55f);}
@@ -160,29 +187,47 @@ namespace MemoryWhitebox
                 else if(hit=="back" && loadingStep==5)SaveLoadingStep(6,FilmIso);
                 else if(hit=="eyepiece" && roll!=null && roll.ReadyForPark){SetPhotographyMode(PhotographyMode.Viewfinder);return;}
             }
-            if(dragPart!=null && Input.GetMouseButton(0))
+        }
+        void MoveBodyPointer(Ray ray)
+        {
+            if(dragPart!=null)
             {
                 if(dragPart=="rewind")
                 {if(Vector3.Dot(ray.GetPoint(.55f)-dragStart,view.transform.up)>.025f){SaveLoadingStep(1,FilmIso);CancelInstrumentDrag();}}
                 else instrumentParts[dragPart].position=ray.GetPoint(.54f);
             }
-            if(Input.GetMouseButtonUp(0) && dragPart!=null)
+        }
+        void EndBodyPointer(Ray ray)
+        {
+            if(dragPart!=null)
             {
                 string dragged=dragPart;
                 // Ignore the held object when finding its drop destination.
-                instrumentParts[dragged].GetComponent<Collider>().enabled=false;hit=PickInstrument(ray);instrumentParts[dragged].GetComponent<Collider>().enabled=true;
+                instrumentParts[dragged].GetComponent<Collider>().enabled=false;string hit=PickInstrument(ray);instrumentParts[dragged].GetComponent<Collider>().enabled=true;
                 if(dragged.StartsWith("film-") && hit=="chamber")SaveLoadingStep(2,int.Parse(dragged.Substring(5)));
                 else if(dragged=="leader" && hit=="spool")SaveLoadingStep(4,FilmIso);
                 CancelInstrumentDrag();
             }
         }
+        string LoadingNextAction()
+        {
+            switch(loadingStep)
+            {
+                case 0:return "Pull the rewind knob up to open the back.";
+                case 1:return "Drag one film cartridge into the left chamber.";
+                case 2:case 3:return "Pull the film leader onto the right take-up spool.";
+                case 4:return "Click the advance lever to check film tension.";
+                case 5:return "Close the camera back.";
+                case 6:return "Click the advance lever to prepare the first frame.";
+                default:return "Click the eyepiece to compose.";
+            }
+        }
         void SaveLoadingStep(int step,int iso)
         {
-            if(roll==null || roll.frames.Count>0)return;
-            var progress=new ParkCameraLoading{mechanicalStep=step,iso=iso,threaded=step>=4,
-                phase=step>=7?PhotoChapter.FilmPhase.Ready:step>=6?PhotoChapter.FilmPhase.Closed:step>=2?PhotoChapter.FilmPhase.LoadedOpen:PhotoChapter.FilmPhase.Empty};
+            if(roll==null || roll.frames.Count>0 || !ParkCameraLoading.CanAdvance(loadingStep,step))return;
+            var progress=ParkCameraLoading.AtStep(step,iso);
             try{roll=ParkFilmStore.SaveCameraLoading(roll.id,progress);loadingStep=step;}
-            catch(Exception e){Debug.LogWarning("Camera step not saved; previous state retained: "+e.Message);}
+            catch(Exception e){Notify("Camera step not saved. Release and retry.",6);Debug.LogWarning("Camera step not saved; previous state retained: "+e.Message);}
         }
         void SyncInstruments()
         {
@@ -196,7 +241,7 @@ namespace MemoryWhitebox
             if(loadingStep>=4){instrumentParts["leader"].localPosition=new Vector3(.025f,-.05f,.56f);instrumentParts["leader"].localScale=new Vector3(.19f,.065f,.008f);}
             instrumentParts["speed"].localRotation=Quaternion.Euler(0,speedIndex*24,0);
             instrumentParts["aperture"].localRotation=Quaternion.Euler(0,0,apertureIndex*24);
-            float suggested=64/Mathf.Pow(2,sceneEv100+Mathf.Log(filmIsos[meterIsoIndex]/100f,2));
+            float suggested=ParkCameraResponse.SuggestedShutter(8,filmIsos[meterIsoIndex],sceneEv100);
             meterReadout.text=filmIsos[meterIsoIndex]+"\nf/8\n1/"+Mathf.RoundToInt(1/suggested);
             cameraReadout.text=photoMode==PhotographyMode.Aperture?"f/"+Aperture:photoMode==PhotographyMode.Shutter?"1/"+Mathf.RoundToInt(1/ShutterSeconds):FilmIso+"   "+ExposedFrames+"/"+(roll!=null?roll.Capacity:3);
         }
@@ -204,7 +249,7 @@ namespace MemoryWhitebox
         {
             if(photoMode==PhotographyMode.Viewfinder)
                 GUI.Label(new Rect(Screen.width*.5f-140,Screen.height-60,280,30),"f/"+Aperture+"   1/"+Mathf.RoundToInt(1/ShutterSeconds)+"   "+FilmIso+"   "+focusDistance.ToString("0.0")+"m");
-            if(photoMode!=PhotographyMode.Exploration || edgeCandidate>=0)
+            if(!PreciseInstrumentPointer && (photoMode!=PhotographyMode.Exploration || edgeCandidate>=0))
                 GUI.Label(new Rect(virtualPointer.x*Screen.width-5,(1-virtualPointer.y)*Screen.height-10,20,20),"·");
         }
         void DisposePhotographyModes(){if(instruments!=null)Destroy(instruments.gameObject);if(instrumentMaterial!=null)Destroy(instrumentMaterial);}

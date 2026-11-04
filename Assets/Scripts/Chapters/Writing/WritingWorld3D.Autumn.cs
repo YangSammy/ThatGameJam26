@@ -4,7 +4,7 @@ namespace MemoryWhitebox
     public sealed partial class WritingWorld3D
     {
         readonly Transform[] collectionProps=new Transform[4],inventoryProps=new Transform[4];
-        Transform timerNeedle,farewellArm;
+        Transform farewellArm;
         void BuildAutumnProps()
         {
             npc.localPosition=new Vector3(3.3f,0,.28f);
@@ -18,9 +18,6 @@ namespace MemoryWhitebox
                 inventoryProps[i]=Child(player,"held-"+WritingChapter.ItemIds[i],new Vector3((i-1.5f)*.15f,.55f,-.23f),sizes[i]*.45f,colors[i]).transform;
             }
             Child(memory,"entrance-mat",new Vector3(3.1f,.01f,.35f),new Vector3(1.7f,.02f,.7f),"#d4c3a3");
-            var clock=Group("Autumn mechanical timer",new Vector3(.62f,1.05f,.15f));
-            Child(clock,"",Vector3.zero,new Vector3(.17f,.025f,.17f),"#d9cdb3",PrimitiveType.Cylinder);
-            timerNeedle=Child(clock,"",new Vector3(0,.03f,0),new Vector3(.008f,.012f,.14f),"#4a5049").transform;
             // Hair covers the prototype head at every viewpoint; shoulder/arm motion carries farewell.
             Child(npc,"hair",new Vector3(0,1.15f,0),new Vector3(.34f,.36f,.33f),"#2e302e",PrimitiveType.Sphere);
             farewellArm=Child(npc,"farewell-arm",new Vector3(.28f,.85f,0),new Vector3(.1f,.45f,.1f),"#c2ad91",PrimitiveType.Capsule).transform;
@@ -38,8 +35,6 @@ namespace MemoryWhitebox
             for(int i=0;i<4;i++){collectionProps[i].gameObject.SetActive(!State.HasItem(i));inventoryProps[i].gameObject.SetActive(State.HasItem(i));}
             scarf.gameObject.SetActive(false);npcBox.gameObject.SetActive(false);doorHand.gameObject.SetActive(false);
             door.localRotation=Quaternion.Euler(0,-100,0);
-            var duration=NarrativeDefinition.Resolve(State)?.writingSeconds??60;
-            timerNeedle.localRotation=Quaternion.Euler(0,(1-State.Remaining/duration)*360,0);
             float warmth=State.Completed?1:State.InkFresh?.85f:.35f;
             memoryLight.intensity=Mathf.Lerp(memoryLight.intensity,.65f+warmth*1.7f,Mathf.Clamp01(dt*3));
             memoryWindow.sharedMaterial.color=Color.Lerp(new Color(.37f,.46f,.49f),new Color(.9f,.85f,.65f),warmth);

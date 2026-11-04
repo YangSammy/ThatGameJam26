@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Acceptance_01_Legacy
   m_EditorClassIdentifier: 
   minimumCleanCoverage: 0.8
-  allowedNoiseSeconds: 2
+  allowedNoiseSeconds: 0.75
   allowedSilenceSeconds: 2
   requiredSounds:
   - label: Opening

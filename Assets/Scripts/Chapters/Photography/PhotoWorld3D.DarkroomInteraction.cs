@@ -19,12 +19,13 @@ namespace MemoryWhitebox
         string DrainTarget=>sceneProcessing?"film-drain-basin":"water";
         bool CanPourChemical(string id)=>Photo.Phase==PhotoChapter.FilmPhase.Tank && !Printing && id=="chemical-"+Photo.Chemistry && (!ManualTank || (tankSealed && !needsDrain));
         // Preview, hover feedback and release share the same reachable receiving region.
-        bool CanDropDarkroom(Ray ray,string id)
+        bool CanDropDarkroom(Ray ray,string id)=>DarkroomReceiverResult(ray,id)==DragReceiverProbe.Result.Ready;
+        DragReceiverProbe.Result DarkroomReceiverResult(Ray ray,string id)
         {
-            if(id=="print-frame" && printObjectsState!=null && printObjectsState.frameClosed)return false;
-            GameObject target;if(!Nodes.TryGetValue(id,out target) || !target.activeInHierarchy)return false;
+            if(id=="print-frame" && printObjectsState!=null && printObjectsState.frameClosed)return DragReceiverProbe.Result.Unavailable;
+            GameObject target;if(!Nodes.TryGetValue(id,out target) || !target.activeInHierarchy)return DragReceiverProbe.Result.Unavailable;
             float tolerance=printObjects!=null && printObjects.definition!=null?printObjects.definition.dropTolerance:.14f;
-            return DragReceiverProbe.Accepts(ray,target.transform,objectDrag.Item,tolerance,2.5f,col=>
+            return DragReceiverProbe.Evaluate(ray,target.transform,objectDrag.Item,tolerance,2.5f,col=>
             {
                 var hotspot=col.GetComponent<WorldHotspot>();
                 if(id=="chamber" && col.GetComponent<PhotographyInteractionHit>()!=null)return true;
@@ -34,6 +35,19 @@ namespace MemoryWhitebox
             });
         }
         bool CanCommitDarkroom(Ray ray,string id)=>!objectDrag.Blocked && CanDropDarkroom(ray,id);
+        string DropInstruction(Ray ray,string id)
+        {
+            if(id=="print-frame" && printObjectsState!=null && printObjectsState.frameClosed)return "Open the contact frame first.";
+            if(objectDrag.Blocked)return "Path blocked. Move around the obstacle.";
+            switch(DarkroomReceiverResult(ray,id))
+            {
+                case DragReceiverProbe.Result.Ready:return "Release LMB here.";
+                case DragReceiverProbe.Result.TooFar:return "Move closer to "+DarkroomName(id)+".";
+                case DragReceiverProbe.Result.Occluded:return "Target blocked. Find a clear angle.";
+                case DragReceiverProbe.Result.Unavailable:return "Target unavailable. Follow the highlighted step.";
+                default:return "Move over "+DarkroomName(id)+".";
+            }
+        }
         Transform DragReceiver(Ray ray)
         {
             string id=CurrentDropTarget();
@@ -61,6 +75,7 @@ namespace MemoryWhitebox
                     // The same drag can travel between rooms. No area clamp or fixed
                     // world plane: a safe near-view offset follows walking and looking.
                     var carry=View.transform.TransformPoint(new Vector3(.12f,-.16f,.6f));
+                    carry=Host.FilmCarryTarget(View.transform.position,carry);
                     return objectDrag.MoveTo(Vector3.MoveTowards(objectDrag.Item.position,carry,Time.deltaTime*3));
                 }
                 return objectDrag.Move(ray);

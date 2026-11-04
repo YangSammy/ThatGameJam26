@@ -27,12 +27,19 @@ namespace MemoryWhitebox
         string frameNotice="";
         public bool ParkGalleryOpen=>parkGallery;
         public string HouseCameraEntryHint=>parkFilmUnavailable?"Film unavailable":ParkMode?
-            (ParkPrintsReady?"LMB  View prints":"LMB  Continue developing"):"LMB  Load camera";
+            (ParkPrintsReady?"LMB  View prints":"LMB  Continue developing"):"LMB  Return to the park memory";
         bool ParkMode=>parkFilm!=null;
         bool ParkPrintsReady=>ParkMode && parkFilm.state==ParkFilmState.Developed;
+        public string DevelopedRollId=>ParkPrintsReady?parkFilm.id:null;
+        public void OpenDevelopedFrame(int number)
+        {
+            if(!ParkPrintsReady)return;
+            parkFrame=Mathf.Clamp(number,1,parkFilm.frames.Count);
+            OpenParkGallery();SaveProgress();
+        }
         const string ParkHelp="Hold rewind + Scroll / Bag + Scroll / Seal tank / Pour > Agitate > Drain / Rinse";
 
-        const string LoadingHelp="Drag film > Thread leader > Close back > Advance / Go to park";
+        const string LoadingHelp="Enter the park memory to prepare the camera.";
         // Loading and development belong to the park roll. The old single-shot
         // photography save remains untouched and cannot bypass camera preparation.
         bool LoadParkFilm()
@@ -40,12 +47,13 @@ namespace MemoryWhitebox
             try
             {
                 var active=ParkFilmStore.LoadActive();
+                Photo.Settings.ISO=active?.FilmIso??100;
                 if(active==null || active.state==ParkFilmState.Loaded)
                 {
                     parkLoading=true;loadingFilm=active;
                     var c=active!=null?active.cameraLoading:null;
                     Photo.Phase=c!=null?c.phase:PhotoChapter.FilmPhase.Empty;
-                    Photo.FilmThreaded=c!=null && c.threaded;Photo.Settings.ISO=c!=null?c.iso:100;
+                    Photo.FilmThreaded=c!=null && c.threaded;
                     if(active!=null && active.frames.Count>0){Photo.Phase=PhotoChapter.FilmPhase.Ready;Photo.FilmThreaded=true;}
                     Photo.RestoreCompleted(false);return true;
                 }
@@ -83,26 +91,14 @@ namespace MemoryWhitebox
 
         bool SaveParkLoading()
         {
-            if(loadingFilm==null && Photo.Phase==PhotoChapter.FilmPhase.Empty)return true;
-            var c=new ParkCameraLoading{phase=Photo.Phase,threaded=Photo.FilmThreaded,iso=Photo.Settings.ISO};
-            string state=JsonUtility.ToJson(c);if(state==lastSavedState)return true;
-            try
-            {
-                loadingFilm=ParkFilmStore.SaveCameraLoading(loadingFilm!=null?loadingFilm.id:null,c);
-                lastSavedState=state;saveNotice="";return true;
-            }
-            catch(Exception e)
-            {
-                saveNotice="Loading not saved. Check storage and retry.";
-                nextSave=Time.unscaledTime+5;Debug.LogWarning("Camera loading save: "+e.Message);
-                return false;
-            }
+            // Park owns loading. House is read-only until an exposed roll returns.
+            // Saving the legacy PhotoChapter here discarded shaft/tension checkpoints.
+            return !parkFilmUnavailable;
         }
         void DrawParkLoading(GUIStyle style)
         {
-
-            InteractionUI.Label(new Rect(28,Screen.height-100,Screen.width-56,42),ProgressHint,style);
-            if(InteractionUI.Button(ProgressActionRect,"Go to park"))
+            InteractionUI.Label(new Rect(28,Screen.height-100,Screen.width-56,42),LoadingHelp,style);
+            if(InteractionUI.Button(ProgressActionRect,"Enter memory"))
             {CancelInteraction();if(SaveProgress())Host.TryStartParkPhotography();}
         }
 
@@ -233,7 +229,12 @@ namespace MemoryWhitebox
 
                 string hint=ProgressHint;
                 if(ParkPrintsReady && saveNotice=="")hint="Roll: " + parkFilm.Capacity + (DirectDarkroom?" frames developed / Click the print to view.":" frames developed  /  Esc  Back");
-                InteractionUI.Label(new Rect(28,Screen.height-100,Screen.width-56,42),"Film  " + parkFilm.Capacity + " / " + parkFilm.Capacity + " frames\n"+hint,style);
+                string text="Film  " + parkFilm.Capacity + " / " + parkFilm.Capacity + " frames\n"+hint;
+                float width=Mathf.Max(1,Screen.width-56);
+                float height=InteractionUI.Text().CalcHeight(new GUIContent(text),width);
+                // Grow upwards when a failure/restoration notice adds wrapped lines.
+                float bottom=ParkPrintsReady?Screen.height-66:Screen.height-22;
+                InteractionUI.Label(new Rect(28,Mathf.Max(12,bottom-height),width,height),text,style);
                 if(ParkPrintsReady && InteractionUI.Button(ProgressActionRect,"View prints"))OpenParkGallery();
                 return;
             }

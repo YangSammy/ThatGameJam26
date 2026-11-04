@@ -109,30 +109,37 @@ namespace MemoryWhitebox
             item.SetPositionAndRotation(area.transform.TransformPoint(saved.position),area.transform.rotation*saved.rotation);return true;
         }
         public static void ClearPlacement(Transform item){var area=For(item);if(area!=null)area.Find(item).placement=null;}
-        public static AreaPlacementRecord[] Capture()
+        public static AreaPlacementRecord[] Capture(AreaPlacementRecord[] previous=null)
         {
             var result=new List<AreaPlacementRecord>();
             foreach(var area in areas)foreach(var member in area.members)if(member.placement!=null)result.Add(member.placement);
+            // A season that is not loaded cannot replace or clear its saved placements.
+            if(previous!=null)foreach(var saved in previous)
+                if(saved!=null && !areas.Exists(area=>area.areaId==saved.areaId))result.Add(saved);
             return result.ToArray();
         }
         public static void Restore(AreaPlacementRecord[] records)
         {
-            foreach(var area in areas)foreach(var member in area.members)
+            foreach(var area in areas)area.RestoreMembers(records);
+        }
+        public void RestoreMembers(AreaPlacementRecord[] records)
+        {
+            foreach(var member in members)
             {
                 member.placement=null;
-                var saved=records!=null?Array.Find(records,r=>r!=null && r.areaId==area.areaId && r.itemId==member.itemId):null;
+                var saved=records!=null?Array.Find(records,r=>r!=null && r.areaId==areaId && r.itemId==member.itemId):null;
                 if(saved==null || member.item==null)continue;
                 if(!Finite(saved.position) || !Finite(new Vector3(saved.rotation.x,saved.rotation.y,saved.rotation.z)) || float.IsNaN(saved.rotation.w) || float.IsInfinity(saved.rotation.w) || Quaternion.Dot(saved.rotation,saved.rotation)<.1f)continue;
                 var item=member.item;Vector3 old=item.position;Quaternion rotation=item.rotation;
-                item.SetPositionAndRotation(area.transform.TransformPoint(saved.position),area.transform.rotation*saved.rotation);
+                item.SetPositionAndRotation(transform.TransformPoint(saved.position),transform.rotation*saved.rotation);
                 Vector3 bounded;bool edge;
-                if(area.Constrain(item,item.position,0,out bounded,out edge))
+                if(Constrain(item,item.position,0,out bounded,out edge))
                 {
                     // A designated receiver can sit above the table (e.g. a preparation mat).
                     // Preserve its saved support clearance while still clamping XY bounds and excessive heights.
-                    float clearance=Mathf.Clamp(Vector3.Dot(item.position-bounded,area.Normal),0,.25f);
-                    bounded+=area.Normal*clearance;
-                    member.placement=new AreaPlacementRecord{areaId=saved.areaId,itemId=saved.itemId,position=area.transform.InverseTransformPoint(bounded),rotation=saved.rotation};
+                    float clearance=Mathf.Clamp(Vector3.Dot(item.position-bounded,Normal),0,.25f);
+                    bounded+=Normal*clearance;
+                    member.placement=new AreaPlacementRecord{areaId=saved.areaId,itemId=saved.itemId,position=transform.InverseTransformPoint(bounded),rotation=saved.rotation};
                 }
                 item.SetPositionAndRotation(old,rotation);
                 RestorePose(item);

@@ -73,6 +73,12 @@ namespace MemoryWhitebox
         public float SwingAngle=-.55f,SwingSpeed,FlowerAngle=-Mathf.PI/2,CrateX=2;
         public float BridgeGrowth,WhiteTime,WardDistance,WardRevealHeight;
         public float NoseHeight=1.55f;
+        float DistanceRevealHeight=>WardDistance/(NarrativeDefinition.Resolve(this)?.wardWalkDistance??8)*3.2f;
+        internal void BindWardCutoff(float height)
+        {
+            NoseHeight=height;
+            WardRevealHeight=Mathf.Min(height,DistanceRevealHeight);
+        }
         public bool KeyInserted,HighCheckpoint,MiddleCheckpoint;
         public int Riding=-1;
         public bool Grounded=true;
@@ -81,8 +87,27 @@ namespace MemoryWhitebox
         public bool CupContact=>false;
         public bool HandsContact=>false;
         public bool Ready=>true;
-        public bool AtDoor=>Phase==1 && Actor.x>=14 && Actor.y>=3.1f;
-        public bool PlatePressed=>Mathf.Abs(CrateX-4)<.36f && Painted[2] || Mathf.Abs(Actor.x-4)<.3f && Actor.y<.2f;
+        // Positions are chapter configuration, never checkpoint data. The default geometry
+        // also serves isolated model tests that do not load the winter scene.
+        Matrix4x4 swingFrame=Matrix4x4.Translate(new Vector3(4.5f,0,0));
+        Matrix4x4 wheelFrame=Matrix4x4.Translate(new Vector3(8,0,0));
+        float plateX=4,doorX=14.7f,bridgeLeft=9,bridgeRight=12,bridgeY=.7f;
+        internal void BindLayout(WinterAlbumWorkspace layout)
+        {
+            var toRoute=layout.routeOrigin.worldToLocalMatrix;
+            var metres=Matrix4x4.Scale(Vector3.one*.1f);
+            swingFrame=toRoute*layout.swing.transform.localToWorldMatrix*metres;
+            wheelFrame=toRoute*layout.wheel.transform.localToWorldMatrix*metres;
+            plateX=layout.routeOrigin.InverseTransformPoint(layout.counterweight.transform.position).x;
+            CrateX=Mathf.Clamp(CrateX,1.3f,Mathf.Max(1.3f,plateX+.2f));
+            doorX=layout.routeOrigin.InverseTransformPoint(layout.keySocket.position).x;
+            var bridgeFrame=toRoute*layout.bridge.transform.localToWorldMatrix*metres;
+            var left=bridgeFrame.MultiplyPoint3x4(Vector3.left*1.5f);
+            var right=bridgeFrame.MultiplyPoint3x4(Vector3.right*1.5f);
+            bridgeLeft=Mathf.Min(left.x,right.x);bridgeRight=Mathf.Max(left.x,right.x);bridgeY=(left.y+right.y)*.5f;
+        }
+        public bool AtDoor=>Phase==1 && Actor.x>=doorX-.7f && Actor.y>=3.1f;
+        public bool PlatePressed=>Mathf.Abs(CrateX-plateX)<.36f && Painted[2] || Mathf.Abs(Actor.x-plateX)<.3f && Actor.y<.2f;
         float Speed=>NarrativeDefinition.Resolve(this)?.albumSpeed??2.5f;
         float Jump=>NarrativeDefinition.Resolve(this)?.jumpSpeed??5;
         float Gravity=>NarrativeDefinition.Resolve(this)?.gravity??12;
@@ -108,8 +133,8 @@ namespace MemoryWhitebox
             if(n.phase<0 || n.phase>4 || n.shapes==null || n.shapes.Length!=5 || !Finite(n.crate) || !Finite(n.ward) || !Finite(n.white) || n.ward<0)throw new System.IO.InvalidDataException("Invalid album route.");
             if(n.key && !n.shapes[4] || n.phase>=2 && !n.key)throw new System.IO.InvalidDataException("Invalid pendant ownership.");
             Phase=n.phase;Painted=n.shapes;MiddleCheckpoint=n.middle;HighCheckpoint=n.high;KeyInserted=n.key;
-            CrateX=Mathf.Clamp(n.crate,1.3f,4.2f);WardDistance=n.ward;WhiteTime=Mathf.Max(0,n.white);BridgeGrowth=Painted[1]?1:0;
-            WardRevealHeight=Mathf.Min(NoseHeight,WardDistance/(NarrativeDefinition.Resolve(this)?.wardWalkDistance??8)*3.2f);
+            CrateX=Mathf.Max(1.3f,n.crate);WardDistance=n.ward;WhiteTime=Mathf.Max(0,n.white);BridgeGrowth=Painted[1]?1:0;
+            WardRevealHeight=Mathf.Min(NoseHeight,DistanceRevealHeight);
             Respawn();BookOpen=Phase>=2;
         }
         static bool Finite(float x)=>!float.IsNaN(x)&&!float.IsInfinity(x);
@@ -125,9 +150,9 @@ namespace MemoryWhitebox
         }
         public bool InsertPendant()
         {if(!BookOpen || !AtDoor || !Painted[4] || KeyInserted)return false;KeyInserted=true;return true;}
-        public Vector2 SwingSeat=>new Vector2(4.5f+Mathf.Sin(SwingAngle)*3,3.3f-Mathf.Cos(SwingAngle)*3);
+        public Vector2 SwingSeat=>swingFrame.MultiplyPoint3x4(new Vector3(Mathf.Sin(SwingAngle)*3,3.3f-Mathf.Cos(SwingAngle)*3));
         public Vector2 FlowerSeat(int petal)
-        {float a=FlowerAngle+petal*Mathf.PI/3;return new Vector2(8+Mathf.Cos(a)*2,2+Mathf.Sin(a)*2);}
+        {float a=FlowerAngle+petal*Mathf.PI/3;return wheelFrame.MultiplyPoint3x4(new Vector3(Mathf.Cos(a)*2,2+Mathf.Sin(a)*2));}
         public void Respawn()
         {
             Riding=-1;Velocity=Vector2.zero;Grounded=true;remount=0;SwingSpeed=0;SwingAngle=-.55f;
@@ -144,7 +169,7 @@ namespace MemoryWhitebox
             {
                 float axis=(input.Keys.Contains(KeyCode.D)||input.Keys.Contains(KeyCode.W)?1:0)-(input.Keys.Contains(KeyCode.A)||input.Keys.Contains(KeyCode.S)?1:0);
                 Actor.x=Mathf.Max(0,Actor.x+axis*Speed*dt);WardDistance=Mathf.Max(WardDistance,Actor.x);
-                WardRevealHeight=WardDistance/(NarrativeDefinition.Resolve(this)?.wardWalkDistance??8)*3.2f;
+                WardRevealHeight=DistanceRevealHeight;
                 if(WardRevealHeight>=NoseHeight){WardRevealHeight=NoseHeight;Phase=4;Finish();}return;
             }
             float direction=(input.Keys.Contains(KeyCode.D)?1:0)-(input.Keys.Contains(KeyCode.A)?1:0);
@@ -181,8 +206,8 @@ namespace MemoryWhitebox
             if(Phase==1)
             {
                 if(Painted[2] && !HighCheckpoint && Mathf.Abs(next.x-CrateX)<.62f && next.y<.5f)
-                {CrateX=Mathf.Clamp(CrateX+axis*Speed*dt,1.3f,4.2f);next.x=CrateX-Mathf.Sign(axis==0?1:axis)*.62f;}
-                if(!PlatePressed && before.x<6.2f && next.x>=5.9f && next.y<2.5f)next.x=5.9f;
+                {CrateX=Mathf.Clamp(CrateX+axis*Speed*dt,1.3f,plateX+.2f);next.x=CrateX-Mathf.Sign(axis==0?1:axis)*.62f;}
+                if(!PlatePressed && before.x<plateX+2.2f && next.x>=plateX+1.9f && next.y<2.5f)next.x=plateX+1.9f;
             }
             Grounded=false;
             float floor=Floor(next.x);
@@ -199,13 +224,13 @@ namespace MemoryWhitebox
             {
                 if(Grounded && Actor.x>=10.3f && Actor.y>=3.1f)HighCheckpoint=true;
                 if(Painted[3] && remount<=0 && !HighCheckpoint)for(int i=0;i<6;i++)if(Vector2.Distance(Actor,FlowerSeat(i))<.52f){Riding=i+1;Actor=FlowerSeat(i);Velocity=Vector2.zero;break;}
-                if(Actor.x>=15.5f && Grounded && KeyInserted){Phase=2;WhiteTime=0;Riding=-1;Velocity=Vector2.zero;}
-                else if(!KeyInserted && Actor.x>14.9f)Actor.x=14.9f;
+                if(Actor.x>=doorX+.8f && Grounded && KeyInserted){Phase=2;WhiteTime=0;Riding=-1;Velocity=Vector2.zero;}
+                else if(!KeyInserted && Actor.x>doorX+.2f)Actor.x=doorX+.2f;
             }
         }
         float Floor(float x)
         {
-            if(Phase==0){if(x<=3)return 0;if(x>=6 && x<=9 || x>=12)return .7f;if(x>9 && x<12 && BridgeGrowth>=1)return .7f;return -10;}
+            if(Phase==0){if(x<=3)return 0;if(x>=6 && x<=9 || x>=12)return .7f;if(x>=bridgeLeft && x<=bridgeRight && BridgeGrowth>=1)return bridgeY;return -10;}
             if(x<=6 || x<=8.2f && PlatePressed)return 0;
             if(x>=10.1f)return 3.2f;return -10;
         }

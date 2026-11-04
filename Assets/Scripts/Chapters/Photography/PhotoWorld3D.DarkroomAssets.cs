@@ -19,15 +19,24 @@ namespace MemoryWhitebox
             if(coil!=null){coil.gameObject.SetActive(!negativeOut && (Photo.Phase==PhotoChapter.FilmPhase.Tank || Photo.Phase==PhotoChapter.FilmPhase.Processing));v.Sample("internal-negative","C06_Coiled");}
             // Unfixed film stays behind the tank's light trap, including while sealing after bag work.
             v.Sample("tank","C03_MainOpen",negativeOut?1:0);
+            if(tankLid!=null)v.FitPartHit(tankLid.GetComponent<BoxCollider>(),"tank","MainLid_Mesh");
             bool liquid=Photo.Phase==PhotoChapter.FilmPhase.Processing || needsDrain || (dragged!=null && dragged.StartsWith("chemical-"));
             v.Sample("tank","C03_PortOpen",liquid?1:0);
             bool rinse=Photo.Phase==PhotoChapter.FilmPhase.Processing && Photo.Chemistry==3;
             v.Sample("film-drain-basin",rinse?"C05_WaterOn":"C05_WaterOff");
             v.Sample("film-drain-basin",dragged=="tank" && needsDrain && CanCommitDarkroom(lastRay,DrainTarget)?"C05_DrainOn":"C05_DrainOff");
             string[] bottles={"DeveloperBottle","StopBottle","FixerBottle"};
-            for(int i=0;i<3;i++)v.Sample("chemical-"+i,"C04_"+bottles[i]+"_CapUnscrew",dragged=="chemical-"+i?1:0);
+            for(int i=0;i<3;i++)
+            {
+                string id="chemical-"+i;
+                v.Sample(id,"C04_"+bottles[i]+"_CapUnscrew",dragged==id?1:0);
+                // Former whitebox boxes were wider/taller than the real bottles,
+                // intercepting clicks on the visible shoulder of the bottle behind.
+                v.FitPartHit(Nodes[id].GetComponent<BoxCollider>(),id,"Body_Mesh");
+            }
             bool closed=printObjectsState!=null && printObjectsState.frameClosed;
             v.Sample("print-frame","C07_LatchOpen",closed?0:1);v.Sample("print-frame","C07_PlateOpen",closed?0:1);
+            v.FitPartHit(framePlateHit,"print-frame","PressurePlate_Mesh");
             v.Sample("print-exposure",printHeld?"C08_Held":"C08_Release");
             bool washing=printStage==ParkPrintStage.PaperWash && printProcessing;
             v.Sample("print-wash",washing?"C10_WashTray_WaterOn":"C10_WashTray_WaterOff");

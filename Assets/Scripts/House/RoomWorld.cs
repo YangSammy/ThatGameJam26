@@ -13,6 +13,13 @@ namespace MemoryWhitebox
         private readonly List<Bounds> tables = new List<Bounds>();
         private float yaw, pitch;
         readonly List<BoxCollider> liveBlockers=new List<BoxCollider>();
+        Rect[] bedroomZones;
+        public void UseBedroomBounds(Rect[] zones,List<Bounds> obstacles,BoxCollider curtainBarrier=null)
+        {
+            bedroomZones=zones;
+            liveBlockers.Clear();tables.Clear();tables.AddRange(obstacles);
+            if(curtainBarrier!=null)liveBlockers.Add(curtainBarrier);
+        }
         Vector3 velocity;
         public float WalkSpeed=1.8f,LookSensitivity=2.1f;
         public Vector3 Velocity => velocity;
@@ -179,19 +186,25 @@ namespace MemoryWhitebox
                 float stepTime=Mathf.Min(remaining,.01f);remaining-=stepTime;
                 velocity=PlayerControlSettings.Current.ApproachVelocity(velocity,wanted,stepTime);
                 Vector3 step=velocity*stepTime,pos=Camera.transform.position;
-                var next=pos+Vector3.right*step.x;if(!InExitCorridor(next))next.x=Mathf.Clamp(next.x,shared?-3.45f:-4.6f,shared?3.45f:4.6f);
+                var next=pos+Vector3.right*step.x;if(bedroomZones==null && !InExitCorridor(next))next.x=Mathf.Clamp(next.x,shared?-3.45f:-4.6f,shared?3.45f:4.6f);
                 if(Clear(next))pos=next;else velocity.x=0;
-                next=pos+Vector3.forward*step.z;if(!InExitCorridor(next))next.z=Mathf.Clamp(next.z,shared?-4.05f:-4.6f,shared?4.05f:4.6f);
+                next=pos+Vector3.forward*step.z;if(bedroomZones==null && !InExitCorridor(next))next.z=Mathf.Clamp(next.z,shared?-4.05f:-4.6f,shared?4.05f:4.6f);
                 if(Clear(next))pos=next;else velocity.z=0;
                 Camera.transform.position=pos;
             }
             UpdateAim();
         }
-        public bool CanWalkAt(Vector3 position){return (!shared || InExitCorridor(position) || (position.x>=-3.45f && position.x<=3.45f && position.z>=-4.05f && position.z<=4.05f)) && Clear(position);}
+        public bool CanWalkAt(Vector3 position){return (bedroomZones!=null || !shared || InExitCorridor(position) || (position.x>=-3.45f && position.x<=3.45f && position.z>=-4.05f && position.z<=4.05f)) && Clear(position);}
         private bool Clear(Vector3 position)
         {
+            if(bedroomZones!=null)
+            {
+                bool inside=false;
+                foreach(var zone in bedroomZones)if(zone.Contains(new Vector2(position.x,position.z))){inside=true;break;}
+                if(!inside && !InExitCorridor(position))return false;
+            }
             if(InExitCorridor(position))return true;
-            if(curtain!=null && curtain.Blocks(position))return false;
+            if(bedroomZones==null && curtain!=null && curtain.Blocks(position))return false;
             foreach(var box in liveBlockers)
             {
                 if(box==null || !box.enabled || !box.gameObject.activeInHierarchy)continue;
@@ -241,6 +254,7 @@ namespace MemoryWhitebox
         }
         public void CreateShared(Camera camera,GameObject savedRoom=null)
         {
+            bedroomZones=null;
             shared=true;Camera=camera;Root=savedRoom;
             study=WBMain.Instance!=null && WBMain.Instance.deskStudy;
             StationPositions=new Vector3[5];

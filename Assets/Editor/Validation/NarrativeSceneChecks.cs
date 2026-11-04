@@ -38,7 +38,7 @@ namespace MemoryWhitebox.Editor
             try{ContinuousDarkroomChecks.Run(h);File.WriteAllText("QA/continuous-darkroom-result.txt","PASS");}
             catch(Exception error){File.WriteAllText("QA/continuous-darkroom-result.txt","FAIL\n"+error);Debug.LogWarning("Separate darkroom suite failed: "+error.Message);}
             finally{h.DarkroomWorld.CancelInteraction();h.DarkroomWorld.SetDirectDarkroom(false);h.SyncInputContext();h.InputContext.ContinueGesture();}
-            var binding=h.GetComponent<NarrativeSceneBinding>();Check(binding!=null&&binding.entranceDoor!=null&&binding.threshold!=null&&binding.finalPaper!=null,"Narrative scene anchors resolve");
+            var binding=h.GetComponent<NarrativeSceneBinding>();Check(binding!=null&&binding.entranceDoor!=null&&binding.threshold!=null,"Narrative scene anchors resolve");
             Enter(h,2);var writing=(WritingWorld3D)h.CurrentWorld;
             Ray pen(float x)=>new Ray(writing.World(new Vector3(x,2,.3f)),Vector3.down);
             writing.Press("paper",pen(-.4f),0);writing.Move(pen(-.3f));writing.Release("paper",pen(-.3f));
@@ -55,10 +55,10 @@ namespace MemoryWhitebox.Editor
             ray=PageRay(album,key.GetChild(0).position);album.Press("album-key",ray,0);album.Move(PageRay(album,hole.position));album.Release("key-recess",PageRay(album,hole.position));Check(p.KeyInserted,"Page drag inserts matching pendant");
             album.Defocus.SetFocusHeld(true,1);Field<Camera>(album,"albumCamera").Render();Capture(h.playerCamera,"winter-album");
             p.RestoreCheckpoint("{\"version\":2,\"phase\":3,\"shapes\":[true,true,true,true,true],\"key\":true,\"crate\":4,\"ward\":2}");album.Tick(.02f,new WBInput());
-            var paper=Field<Transform>(album,"paper");Field<Camera>(album,"albumCamera").Render();Capture(h.playerCamera,"winter-ward");
+            var paper=Field<Transform>(album,"paper");var winterImage=Field<RenderTexture>(album,"albumTexture");Field<Camera>(album,"albumCamera").Render();Capture(h.playerCamera,"winter-ward");
             var walk=new WBInput();walk.Keys.Add(KeyCode.D);for(int i=0;i<300&&h.InStation;i++)album.Tick(.02f,walk);
             Check(p.Completed&&!h.InStation,"Nose cutoff commits and returns to house immediately");
-            Check(paper!=null&&paper.parent==h.houseShell.transform&&paper.gameObject.activeInHierarchy,"Same final paper persists in room");
+            Check(paper!=null&&!paper.gameObject.activeInHierarchy&&album.GetFinalPageImage()==winterImage,"Spring receives the frozen winter image");
             Check(Vector3.Distance(start,h.playerCamera.transform.position)<.001f,"Ward cutoff restores original room view");
             Check(h.SaveStableProgress(),"Narrative snapshots commit to unified save");
             h.Select(4);var ending=(EndingWorld3D)Field<WorldChapter3D[]>(h,"worlds")[4];var eye=binding.threshold.position+Vector3.up*1.65f+binding.threshold.forward*.6f;
@@ -71,7 +71,10 @@ namespace MemoryWhitebox.Editor
             var park=UnityEngine.Object.FindObjectOfType<ParkPhotoPrototype>();Check(park!=null&&park.enabled&&park.view!=null&&park.companion!=null,"Park starts with player and companion (scene="+SceneManager.GetActiveScene().name+", player="+(park!=null)+", enabled="+(park!=null&&park.enabled)+", camera="+(park!=null&&park.view!=null)+", companion="+(park!=null&&park.companion!=null)+")");park.enabled=false;Capture(park.view,"park-startup");
             load=SceneManager.LoadSceneAsync(ParkFilmRoute.HouseScenePath);while(!load.isDone)yield return null;for(int i=0;i<15;i++)yield return null;
             h=UnityEngine.Object.FindObjectOfType<WBMain>();Check(h!=null&&h.HouseReady,"House reload restores unified progress");h.enabled=false;
-            album=(PaintingWorld3D)Field<WorldChapter3D[]>(h,"worlds")[3];paper=Field<Transform>(album,"paper");Check(paper!=null&&paper.gameObject.activeInHierarchy,"Completed final paper restored after scene reload");
+            for(int i=0;i<600 && h.DepartureRoom==null;i++)yield return null;
+            var room=h.DepartureRoom;album=(PaintingWorld3D)Field<WorldChapter3D[]>(h,"worlds")[3];
+            Check(room!=null && room.finalPage.transform.parent==room.paperAnchor && room.finalPage.gameObject.activeInHierarchy &&
+                room.finalPage.Capture().pageTexture==album.GetFinalPageImage(),"Completed image restored on the authored spring page");
             Debug.Log("NARRATIVE_SCENE_PASS "+checks.Count);
         }
     }

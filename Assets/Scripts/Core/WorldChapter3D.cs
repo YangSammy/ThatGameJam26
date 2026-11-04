@@ -70,7 +70,7 @@ namespace MemoryWhitebox
             Plane plane=new Plane(Vector3.up,World(new Vector3(0,localY,0)));
             return plane.Raycast(ray,out float d)?ray.GetPoint(d):World(Vector3.zero);
         }
-        public Vector3 World(Vector3 local){return Origin+local;}
+        public virtual Vector3 World(Vector3 local){return Origin+local;}
         protected Transform Group(string name,Vector3 localPosition)
         {
             var go=new GameObject(name);go.transform.SetParent(Root.transform,false);go.transform.localPosition=localPosition;return go.transform;
@@ -123,8 +123,9 @@ namespace MemoryWhitebox
             var lamp=new GameObject("Memory desk warm light");lamp.transform.SetParent(Root.transform,false);lamp.transform.localPosition=new Vector3(-1,2.7f,-.4f);
             var light=lamp.AddComponent<Light>();light.type=LightType.Point;light.range=12;light.intensity=1.5f;light.color=new Color(1,.86f,.66f);
         }
+        public virtual Quaternion ViewRotation=>Quaternion.LookRotation(Look-Eye);
         public void ApplyPose()
-        {if(View==null)return;View.transform.position=Eye;View.transform.rotation=Quaternion.LookRotation(Look-Eye);View.fieldOfView=Fov;}
+        {if(View==null)return;View.transform.position=Eye;View.transform.rotation=ViewRotation;View.fieldOfView=Fov;}
         public virtual void Dispose()
         {
             if(ownsRoot&&Root!=null)ReleaseObject(Root);foreach(var m in materials)if(m!=null)ReleaseObject(m);materials.Clear();

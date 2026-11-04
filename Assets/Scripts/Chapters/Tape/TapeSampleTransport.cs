@@ -13,7 +13,7 @@ namespace MemoryWhitebox
         float[] source,target;
         int[] mapping;
         int a,b,length,rate;
-        bool playA,playB,record,muted,dirty;
+        bool playA,playB,record,runBlank,muted,dirty;
         int seek;
         AudioClip clockClip;
         int commission;
@@ -27,7 +27,7 @@ namespace MemoryWhitebox
         public bool SourcePlaying {get{lock(sync)return playA;}}
         public string SourceStatus {get{lock(sync)return playA?"PLAYING":source!=null && a>=source.Length?"END":"STOPPED";}}
         public bool Writing {get{lock(sync)return configured && playB && record && seek==0 && b<target.Length;}}
-        public string TargetStatus {get{lock(sync)return seek<0?"REWINDING":seek>0?"FAST FORWARD":playB && b>=target.Length?"END":playB && record?"RECORDING":playB && b<length?"PLAYBACK":playB?"RUNNING BLANK":length==0?"EMPTY":"PAUSED";}}
+        public string TargetStatus {get{lock(sync)return seek<0?"REWINDING":seek>0?"FAST FORWARD":playB && b>=target.Length?"END":playB && record?"RECORDING":playB && runBlank?"RUNNING BLANK":playB && b<length?"PLAYBACK":playB?"RUNNING BLANK":length==0?"EMPTY":"PAUSED";}}
         public float RecordedSeconds {get{lock(sync)return length/(float)Math.Max(1,rate);}}
         public string SaveError {get;private set;}="";
         public string LastWriteError {get;private set;}="";
@@ -40,7 +40,7 @@ namespace MemoryWhitebox
             var voice=GetComponent<AudioSource>();voice.Stop();
             lock(sync)
             {
-            playA=playB=record=false;seek=0;a=b=length=0;dirty=false;
+            playA=playB=record=runBlank=false;seek=0;a=b=length=0;dirty=false;
             commission=commissionIndex;SaveError="";
             var bytes=new byte[samples.Length*sizeof(float)];Buffer.BlockCopy(samples,0,bytes,0,bytes.Length);
             using(var hash=System.Security.Cryptography.SHA256.Create())sourceHash=Convert.ToBase64String(hash.ComputeHash(bytes));
@@ -62,11 +62,14 @@ namespace MemoryWhitebox
                 }
             }
             catch(Exception e){SaveError=e.Message;Debug.LogError("Recording preserved but unavailable: "+e.Message);enabled=false;return;}
-            if(clockClip!=null)Destroy(clockClip);
-            configured=true;enabled=true;
-            clockClip=AudioClip.Create("Tape sample clock",rate,1,rate,false);
-            var audio=GetComponent<AudioSource>();audio.clip=clockClip;audio.loop=true;audio.spatialBlend=0;audio.Play();
+            configured=true;
             }
+            // AudioSource changes can wait for OnAudioFilterRead. Release its data
+            // lock first, including when switching commissions during save restore.
+            if(clockClip!=null)Destroy(clockClip);
+            enabled=true;
+            clockClip=AudioClip.Create("Tape sample clock",rate,1,rate,false);
+            voice.clip=clockClip;voice.loop=true;voice.spatialBlend=0;voice.Play();
         }
         public void SourceCommand(int command)
         {lock(sync){if(!configured || SaveError!="")return;if(command==0)playA=false;else if(command==1)playA=a<source.Length;else {playA=false;a=0;}dirty=true;}if(command!=1)Save();}
@@ -74,28 +77,33 @@ namespace MemoryWhitebox
         {
             lock(sync)
             {
-                bool writing=configured && play && write && playA && a<source.Length && length<target.Length;
+                bool writing=configured && play && write && a<source.Length && length<target.Length;
                 // Listening and winding move b, never the append point. Every new recording
                 // gesture resumes at the end of the saved copy instead of overwriting it.
                 if(writing && !record)b=length;
-                playB=writing || (configured && play && !write && b<length);
+                // Releasing REC while PLAY is held does not stop the tape motor.
+                // Remember that continuous gesture until PLAY is released; a fresh
+                // playback gesture still stops at the end of the existing copy.
+                if(!play || winding!=0 || write)runBlank=false;
+                else if(record)runBlank=true;
+                playB=writing || (configured && play && !write && (b<length || runBlank && b<target.Length));
                 record=writing;seek=!play && !write?Math.Sign(winding):0;muted=mute;
             }
         }
-        public void StopAll(){lock(sync){playA=playB=record=false;seek=0;if(configured)dirty=true;}Save();}
-        public void ClearTarget(){lock(sync){playB=record=false;seek=0;b=length=0;if(target!=null)Array.Clear(target,0,target.Length);if(mapping!=null)for(int i=0;i<mapping.Length;i++)mapping[i]=-1;dirty=true;}Save();}
+        public void StopAll(){lock(sync){playA=playB=record=runBlank=false;seek=0;if(configured)dirty=true;}Save();}
+        public void ClearTarget(){lock(sync){playB=record=runBlank=false;seek=0;b=length=0;if(target!=null)Array.Clear(target,0,target.Length);if(mapping!=null)for(int i=0;i<mapping.Length;i++)mapping[i]=-1;dirty=true;}Save();}
         public bool RetryCurrent()
         {
             lock(sync)
             {
                 if(!configured || SaveError!="")return false;
-                playA=playB=record=false;seek=0;a=b=length=0;
+                playA=playB=record=runBlank=false;seek=0;a=b=length=0;
                 Array.Clear(target,0,target.Length);for(int i=0;i<mapping.Length;i++)mapping[i]=-1;
                 dirty=true;
             }
             return Save();
         }
-        public void RewindTarget(){lock(sync){playB=record=false;seek=0;b=0;dirty=true;}Save();}
+        public void RewindTarget(){lock(sync){playB=record=runBlank=false;seek=0;b=0;dirty=true;}Save();}
         void OnAudioFilterRead(float[] output,int channels)
         {
             lock(sync)
@@ -113,13 +121,18 @@ namespace MemoryWhitebox
                             target[b]=playA?input:0;mapping[b]=playA && a<source.Length?a:-1;
                             b++;length=Math.Max(length,b);dirty=true;
                         }
+                        else if(runBlank)
+                        {
+                            target[b]=0;mapping[b]=-1;b++;length=Math.Max(length,b);dirty=true;
+                            if(b>=target.Length){playB=false;runBlank=false;}
+                        }
                         else
                         {
                             if(b<length){if(!playA)heard=target[b];b++;dirty=true;}
                             if(b>=length){b=length;playB=false;}
                         }
                     }
-                    if(playA){a++;dirty=true;if(a>=source.Length){a=source.Length;playA=false;if(record){playB=false;record=false;}}}
+                    if(playA){a++;dirty=true;if(a>=source.Length){a=source.Length;playA=false;if(record || runBlank){playB=false;record=runBlank=false;}}}
                     for(int c=0;c<channels;c++)output[i+c]=muted?0:heard*.65f;
                 }
             }

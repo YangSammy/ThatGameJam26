@@ -25,7 +25,7 @@ namespace MemoryWhitebox
         Vector2 pointer;
         public override string Help=>"LMB drag  Write / WASD  Move / Hold E while writing  Pick up\nCrumple the stalled draft into the bin. The formal draft clock keeps running when you stop writing.";
         public IReadOnlyList<float> InkRows=>rows;
-        public string TaskHint=>Phase=="crumple"?"Drag paper to the bin":Phase=="tutorial"?"Write while holding E beside an object":Phase=="arrival"?"Keep writing + hold E to say goodbye":Phase=="farewell"?"": "Write + hold E to collect / Return to the entrance";
+        public string TaskHint=>Phase=="crumple"?"Drag paper to the bin":Phase=="tutorial"?"Write on the right / Move beside a gold ring on the left and hold E":Phase=="arrival"?"Keep writing + hold E to say goodbye":Phase=="farewell"?"": "Write + hold E to collect / Return to the entrance";
         public override string DebugState=>CaptureCheckpoint();
         [Serializable] sealed class Checkpoint
         {
@@ -62,6 +62,7 @@ namespace MemoryWhitebox
             var old=pointer;pointer=p;
             if(dragging || !pressed || !havePointer || !paper.Contains(p) || Phase=="crumple" || Phase=="farewell" || Completed)return;
             if(AwaitingReturn){if(p.x<820)NextRow();return;}
+            if(!paper.Contains(old))return;
             float amount=Mathf.Min(Mathf.Max(0,p.x-old.x),425-rows[Row]);if(amount<.08f)return;
             rows[Row]+=amount;WritingProgress+=amount;lastInk=clock;AwaitingReturn=rows[Row]>=425;
             if(Draft>=2 && Phase=="collect")Started=true;

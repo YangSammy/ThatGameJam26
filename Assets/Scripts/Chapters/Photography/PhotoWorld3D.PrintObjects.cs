@@ -6,6 +6,7 @@ namespace MemoryWhitebox
     {
         DarkroomPrintSceneBinding printObjects;
         DarkroomPrintState printObjectsState;
+        BoxCollider framePlateHit;
         string printDrag;
         Texture2D contactTexture;
         MaterialPropertyBlock printProperties=new MaterialPropertyBlock();
@@ -14,12 +15,28 @@ namespace MemoryWhitebox
         bool printPosesCaptured;
         bool PhysicalPrinting=>ParkMode && darkroomWorkflow>=3;
         bool PrintInput=>Host!=null && (Host.InputContext.Allows(InputContextId.Station) || Host.InputContext.Allows(InputContextId.Darkroom)) && !parkGallery;
-        void FindPrintObjects()
+        public void AttachDarkroom(DarkroomPrintSceneBinding station)
         {
-            if(!SharedRoom)return;
-            foreach(var root in Host.gameObject.scene.GetRootGameObjects())
-            {printObjects=root.GetComponentInChildren<DarkroomPrintSceneBinding>(true);if(printObjects!=null)break;}
+            if(printObjects==station && sceneProcessing)return;
+            if(station==null || sceneProcessing)throw new InvalidOperationException("Invalid summer darkroom binding.");
+            printObjects=station;
+            BindSceneProcessing();CaptureProcessingPose();BindPrintObjects();BindOperationAreas();
+            if(PhysicalPrinting && printStage>=ParkPrintStage.PaperDeveloper)LoadContactTexture();
+            SyncProps();
         }
+
+        public void DetachDarkroom()
+        {
+            if(!sceneProcessing)return;
+            SetDirectDarkroom(false);
+            ClearDarkroomHighlight();RestoreSceneProcessing();RestorePrintPoses();
+            foreach(var prop in printObjects.props)
+            {Nodes.Remove(prop.id);homes.Remove(prop.id);homeRotations.Remove(prop.id);}
+            chemistry.Clear();bag=null;bagGrip=tankBody=tankLid=clockHand=null;
+            sceneProcessing=printPosesCaptured=false;framePlateHit=null;darkroomVisuals=null;printObjects=null;
+            Root.SetActive(false);
+        }
+
         Vector3 ProcessingAnchor(string id,Vector3 fallback)
         {
             var anchor=printObjects!=null?printObjects.Placement(id):null;
@@ -27,8 +44,6 @@ namespace MemoryWhitebox
         }
         void BindPrintObjects()
         {
-            FindPrintObjects();
-            if(printObjects==null)return;
             darkroomVisuals=printObjects.GetComponent<DarkroomAssetVisuals>();
             if(printObjects.definition==null)throw new InvalidOperationException("Darkroom print configuration is missing.");
             foreach(var prop in printObjects.props)
@@ -43,6 +58,18 @@ namespace MemoryWhitebox
             }
             foreach(var id in new[]{"print-negative","print-paper","print-negative-home","print-paper-home","print-negative-clip","print-photo-clip","print-frame","print-frame-lid","print-exposure","print-developer","print-stop","print-fixer","print-wash","print-tap"})
                 if(printObjects.Get(id)==null)throw new InvalidOperationException("Darkroom binding missing: "+id);
+            if(HasDarkroomAssets)
+            {
+                // The old frame has rim hits only. Follow the supplied moving plate
+                // while keeping its original hotspot and drop receiver identities.
+                var lid=Nodes["print-frame-lid"];
+                framePlateHit=lid.GetComponent<BoxCollider>();
+                if(framePlateHit==null)framePlateHit=lid.AddComponent<BoxCollider>();
+                var hotspot=lid.GetComponent<WorldHotspot>();
+                if(hotspot==null)hotspot=lid.AddComponent<WorldHotspot>();
+                hotspot.Owner=this;hotspot.Id="print-frame-lid";
+                if(lid.GetComponent<PhotographyInteractionHit>()==null)lid.AddComponent<PhotographyInteractionHit>();
+            }
             var negative=Nodes["print-negative"].transform;var paper=Nodes["print-paper"].transform;
             negativeHomePosition=negative.localPosition;negativeHomeRotation=negative.localRotation;negativeHomeScale=negative.localScale;
             paperHomePosition=paper.localPosition;paperHomeRotation=paper.localRotation;paperHomeScale=paper.localScale;
@@ -142,7 +169,12 @@ namespace MemoryWhitebox
                 printStage==ParkPrintStage.PaperStop?"print-stop":printStage==ParkPrintStage.PaperFixer?"print-fixer":
                 printStage==ParkPrintStage.PaperWash?"print-wash":"print-photo-clip";
             bool valid=CanCommitDarkroom(ray,expected) && !(expected=="print-frame" && printObjectsState.frameClosed);
-            bool placed=!valid && objectDrag.TryPlaceInArea();
+            string rejection=valid?null:DropInstruction(ray,expected);
+            // A wrong tray is not free tabletop space. Its decorative liquid may
+            // have no physics collider, so reject by the existing interaction hit.
+            string releaseHit=Pick(ray);
+            bool overEquipment=releaseHit!=null && releaseHit!=item && Nodes.ContainsKey(releaseHit);
+            bool placed=!valid && !overEquipment && objectDrag.TryPlaceInArea();
             objectDrag.End(true);
             SetColliders(Nodes[item],true);printDrag=null;
             if(valid)
@@ -158,7 +190,7 @@ namespace MemoryWhitebox
                 record.locationId="area/"+OperationArea.For(Nodes[item].transform).areaId;
                 DarkroomNotice("Placed on work area.");
             }
-            else {WBMain.Tone(110,.05f);DarkroomNotice(expected=="print-frame" && printObjectsState.frameClosed?"Open the contact frame first.":"Move closer to "+DarkroomName(expected)+" and release.");}
+            else {WBMain.Tone(110,.05f);DarkroomNotice(rejection);}
             SyncPhysicalPrint();SaveProgress();Host.SaveStableProgress();return true;
         }
         void CancelPhysicalPrint()
@@ -205,7 +237,7 @@ namespace MemoryWhitebox
         }
         void LoadContactTexture()
         {
-            if(contactTexture!=null || !PhysicalPrinting || printStage<ParkPrintStage.PaperDeveloper)return;
+            if(printObjects==null || contactTexture!=null || !PhysicalPrinting || printStage<ParkPrintStage.PaperDeveloper)return;
             // Private process preview: no gallery or original frame files are exposed before completion.
             try{contactTexture=ParkFilmStore.CreateContactSheetPreview(parkFilm.id,HasDarkroomAssets?4f/3f:16f/9f);}
             catch(Exception e){saveNotice="Print preview unavailable. Negatives kept.";Debug.LogWarning(e.Message);}

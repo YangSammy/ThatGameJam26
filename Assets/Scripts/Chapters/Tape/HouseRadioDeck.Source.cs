@@ -84,17 +84,20 @@ namespace MemoryWhitebox
                 UITransportCommand=-1;transport.StopAll();Chapter.SourceLoaded=false;RestoreSource();house.SaveStableProgress();return;
             }
             if(dualDeck!=null && !dualDeck.Closed(0))return;
+            TickAudition();
             if(dualDeck!=null && command!=1)dualDeck.Press(0,command==2?"Rewind":"Stop");
             if(command==2 && !Chapter.AuditionComplete)Chapter.AuditionSeconds=0;
             transport.SourceCommand(command);lastAuditionPosition=transport.SourceSeconds;
         }
         void TickAudition()
         {
-            if(!Chapter.SourceLoaded || Chapter.AuditionComplete || house.Muted)return;
             float position=transport.SourceSeconds,delta=position-lastAuditionPosition;
-            // Only audible forward playback counts; rewinding cannot satisfy the tutorial.
-            if(delta>0 && delta<.5f)Chapter.AuditionSeconds+=delta;
             lastAuditionPosition=position;
+            if(!Chapter.SourceLoaded || Chapter.AuditionComplete || house.Muted)return;
+            // The audio thread keeps playing during slow render frames. Count its
+            // actual forward travel, not only frames shorter than half a second.
+            // Initialize/rewind rebases the cursor; muted ticks still advance the baseline.
+            if(delta>0)Chapter.AuditionSeconds+=delta;
             float duration=CurrentCopy==0?auditionDuration:Mathf.Max(1,transport.SourceDuration-.1f);
             if(Chapter.AuditionSeconds>=duration)
             {Chapter.AuditionComplete=true;RestoreSource();house.SaveStableProgress();}
@@ -117,19 +120,24 @@ namespace MemoryWhitebox
             {
                 bool over=CanReceive(sourceSlot,ray);benchDrag.MoveScreenCarry(ray);ShowTapeDropPreview(null);
                 bool insert=!benchDrag.Blocked && over;
+                string rejection=insert?null:TapeDropHint(sourceSlot,ray,benchDrag);
                 bool placed=!insert && benchDrag.TryPlaceInArea();benchDrag.End(!insert && !placed);movingOriginal=false;originalHit.enabled=true;
                 if(insert)LoadOriginal();else RestoreSource();
+                if(!insert && !placed)ShowTapePointerNotice(rejection);
                 if(placed){TapeSound(5,originalTape.position);house.SaveStableProgress();}
                 if(insert){internalDeckHandoff=true;try{CloseWorkbench();OpenRecording();}finally{internalDeckHandoff=false;}}
             }
             return true;
         }
         public void OpenPreparation()
-        {CloseRecording();OpenWorkbench();}
+        {StopTargetOnly();HandoffToWorkbench();}
         public void ListenToCopy()
         {
             if(!RecordingMode || recordingWait || Selected<0 || transport.RecordedSeconds<=0)return;
-            transport.SourceCommand(0);transport.RewindTarget();SetUITransportCommand(1);
+            // Compatibility entry for older authored UI: prepare B only, never
+            // stop A or latch PLAY on the player's behalf.
+            UITransportCommand=-1;transport.RewindTarget();
+            SubmissionMessage="Stop A, then hold F to listen to B.";
         }
     }
 }

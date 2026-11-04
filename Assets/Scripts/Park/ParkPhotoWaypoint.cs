@@ -12,6 +12,8 @@ namespace MemoryWhitebox
         [Tooltip("在这里停留时可以拍到望水瞬间。") ] public bool watersideMoment;
         [Header("Photography reference (optional)")]
         public Transform referenceView;
+        [Tooltip("Safe feet position used only when resuming this unfinished memory. Separate from the composition solution.")]
+        public Transform resumePoint;
         public Texture2D referencePhoto;
         [Range(0,20)] public float referenceEv100=13;
         void OnDrawGizmos(){Gizmos.color=watersideMoment?Color.cyan:Color.yellow;Gizmos.DrawWireSphere(transform.position,.22f);if(lookAt!=null)Gizmos.DrawLine(transform.position+Vector3.up,lookAt.position);}

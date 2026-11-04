@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using MemoryWhitebox.Art;
 
@@ -8,29 +9,18 @@ namespace MemoryWhitebox
     {
         WritingVisualAssets visualAssets;
         WritingPropVisual crumpleVisual, timerVisual;
-        Transform penVisual, penTip, penGrip, crumpleGrip, writingHandContact;
-        readonly System.Collections.Generic.List<GameObject> discardedVisuals = new System.Collections.Generic.List<GameObject>();
+        Transform penTip, penGrip, crumpleGrip, writingHandContact;
         readonly WritingPropVisual[] carriedVisuals = new WritingPropVisual[4];
         readonly bool[] presentedCollected = new bool[4];
         readonly float[] pickupProgress = new float[4];
 
-        static Transform VisualNode(GameObject root, string name)
-        {
-            foreach (var t in root.GetComponentsInChildren<Transform>(true))
-                if (t.name == name) return t;
-            throw new InvalidOperationException("Writing visual node missing: " + name);
-        }
-
         // Keep authored animation paths intact. A wrapper carries placement/scale, never an animated node.
-        GameObject CreateVisual(GameObject prefab, Transform parent, string onlyPart = null)
+        GameObject CreateVisual(GameObject prefab, Transform parent)
         {
             if (prefab == null) throw new InvalidOperationException("Missing WritingVisualAssets prefab.");
             var visual = UnityEngine.Object.Instantiate(prefab, parent, false);
             visual.name = "Visual_" + prefab.name;
             foreach (var col in visual.GetComponentsInChildren<Collider>(true)) col.enabled = false;
-            if (onlyPart != null)
-                foreach (var part in new[] { "PaperBody", "PenAssembly", "BasketBody" })
-                    VisualNode(visual, part).gameObject.SetActive(part == onlyPart);
             SetLayer(visual.transform, parent.gameObject.layer);
             return visual;
         }
@@ -78,39 +68,35 @@ namespace MemoryWhitebox
         {
             visualAssets = WritingVisualAssets.Load();
             if (visualAssets == null) throw new InvalidOperationException("WritingVisualAssets configuration missing.");
-            // Keep the paper hotspot and its original footprint, but remove nonuniform inherited mesh scale.
-            sheet.GetComponent<Renderer>().enabled = false;
-            sheet.GetComponent<BoxCollider>().size = sheet.transform.localScale;
-            sheet.transform.localScale = Vector3.one;
-            var paper = CreateVisual(visualAssets.writingSet, sheet.transform, "PaperBody");
-            FitVisual(paper, new Vector3(.95f, 1, .72f), new Vector3(0, .006f, 0), new Vector3(0, 90, 0));
-
-            paperBall.gameObject.SetActive(true);
-            HideMesh(paperBall);
-            var folded = CreateVisual(visualAssets.writingSet, paperBall, "PaperBody");
-            FitVisual(folded, new Vector3(.95f, 1, .72f), Vector3.zero, new Vector3(0, 90, 0));
-            crumpleVisual = folded.GetComponent<WritingPropVisual>();
-            crumpleGrip = VisualNode(folded, "CrumpleGrip_R");
-            paperBall.gameObject.SetActive(false);
-
-            HideMesh(penHand);
-            var pen = CreateVisual(visualAssets.writingSet, penHand, "PenAssembly");
-            penVisual = pen.transform;
-            penVisual.localScale = Vector3.one * 1.6f;
-            penVisual.localRotation = Quaternion.Euler(0, -22, -48);
-            penTip = VisualNode(pen, "PenTipAnchor");
-            penGrip = VisualNode(pen, "PenGripAnchor");
-            // penPoint is the existing hand target, 13 mm above the ink. Align the actual nib to it.
-            penVisual.localPosition -= penHand.InverseTransformPoint(penTip.position) + Vector3.up * .013f;
-
-            foreach (var node in Nodes)
-                if (node.Key.StartsWith("bin", StringComparison.Ordinal)) HideMesh(node.Value.transform);
-            var basketRoot = Group("Visual_PaperBasket", binAt + new Vector3(0, .54f, 0));
-            var basket = CreateVisual(visualAssets.writingSet, basketRoot, "BasketBody");
-            FitVisual(basket, new Vector3(.51f, .42f, .49f), Vector3.zero, Vector3.zero);
-            writingHandContact = Group("WritingHandContact", Vector3.zero);
-            // The existing generous receiver and paper coordinates remain unchanged.
+            writingHandContact=Group("WritingHandContact",Vector3.zero);
             BuildCollectedVisuals();
+        }
+
+        public void AttachDesk(AutumnWritingDesk layout)
+        {
+            if(desk==layout)return;
+            desk=layout;sheet=desk.paper.gameObject;
+            crumpleVisual=desk.foldedPaper;paperBall=crumpleVisual.transform.parent;
+            penHand=desk.penMotion;penTip=desk.penTip;penGrip=desk.penGrip;
+            crumpleGrip=desk.crumpleGrip;timerVisual=desk.timer;
+            BindHit(desk.paper,"paper");
+            foreach(var hit in desk.basketHits)BindHit(hit,hit.name);
+            RestoreInk();desk.ShowDrafts(State.Draft);UpdateWritingVisuals(0,true);
+        }
+        public void DetachDesk()
+        {
+            if(desk==null)return;
+            CancelPointerGesture();ReleaseTeaTable();
+            Nodes.Remove("paper");foreach(var hit in desk.basketHits)Nodes.Remove(hit.name);
+            foreach(var stroke in ink)if(stroke!=null)ReleaseObject(stroke.gameObject);
+            ink.Clear();strokeRows.Clear();desk=null;sheet=null;paperBall=penHand=null;
+            timerVisual=crumpleVisual=null;penTip=penGrip=crumpleGrip=null;
+        }
+        void BindHit(Collider hit,string id)
+        {
+            var hotspot=hit.GetComponent<WorldHotspot>();
+            if(hotspot==null)hotspot=hit.gameObject.AddComponent<WorldHotspot>();
+            hotspot.Owner=this;hotspot.Id=id;Nodes[id]=hit.gameObject;
         }
 
         void BuildCollectedVisuals()
@@ -127,6 +113,7 @@ namespace MemoryWhitebox
                     var v = CreateVisual(visualAssets.collectedItems[i], root);
                     bool carried = root == inventoryProps[i];
                     FitVisual(v, sizes[i] * (carried ? .45f : 1), Vector3.zero, Vector3.zero);
+                    if (!carried) { HighlightPickup(v); AddPickupRing(root); }
                     if (carried)
                     {
                         var driver = v.GetComponent<WritingPropVisual>();
@@ -135,12 +122,49 @@ namespace MemoryWhitebox
                     }
                 }
             }
-            var clock = timerNeedle.parent;
-            HideMesh(clock);
-            var timer = CreateVisual(visualAssets.timer, clock);
-            FitVisual(timer, new Vector3(.20f, .16f, .20f), Vector3.zero, Vector3.zero);
-            timerVisual = timer.GetComponent<WritingPropVisual>();
-            UpdateWritingVisuals(0, true);
+        }
+
+        readonly Dictionary<Material,Material> pickupMaterials=new Dictionary<Material,Material>();
+
+        void HighlightPickup(GameObject visual)
+        {
+            foreach(var r in visual.GetComponentsInChildren<Renderer>())
+            {
+                var slots=r.sharedMaterials;
+                for(int i=0;i<slots.Length;i++)
+                {
+                    var source=slots[i];
+                    if(source==null || source.renderQueue>=3000 || !source.HasProperty("_Color"))continue;
+                    if(!pickupMaterials.TryGetValue(source,out var glow))
+                    {
+                        glow=new Material(source);
+                        glow.color=Color.Lerp(source.color,new Color(1,.72f,.24f),.55f);
+                        if(glow.HasProperty("_EmissionColor"))
+                        {
+                            glow.EnableKeyword("_EMISSION");
+                            glow.SetColor("_EmissionColor",new Color(.38f,.16f,.025f));
+                        }
+                        pickupMaterials.Add(source,glow);
+                    }
+                    slots[i]=glow;
+                }
+                r.sharedMaterials=slots;
+            }
+        }
+
+        void AddPickupRing(Transform item)
+        {
+            var ring=Line("Pickup halo",new Vector3[0],"#FFC354",.038f);
+            ring.transform.SetParent(item,false);
+            ring.gameObject.layer=MemoryLayer;
+            ring.sharedMaterial.shader=Shader.Find("Unlit/Color");
+            ring.loop=true;
+            ring.positionCount=40;
+            for(int i=0;i<ring.positionCount;i++)
+            {
+                float a=2*Mathf.PI*i/ring.positionCount;
+                ring.SetPosition(i,new Vector3(.30f*Mathf.Cos(a),.025f-item.localPosition.y,.30f*Mathf.Sin(a)));
+            }
         }
 
         void UpdateWritingVisuals(float dt, bool restoring = false)
@@ -162,25 +186,5 @@ namespace MemoryWhitebox
             }
         }
 
-        void AddDiscardedPaper()
-        {
-            RestoreDiscardedPaper();
-        }
-
-        void RestoreDiscardedPaper()
-        {
-            // Draft already exists in the checkpoint. Reconstruct cosmetic history without new save fields.
-            foreach (var old in discardedVisuals) ReleaseObject(old);
-            discardedVisuals.Clear();
-            int count = Mathf.Min(12, Mathf.Max(0, State.Draft - 1));
-            for (int n = 0; n < count; n++)
-            {
-            int index = n % visualAssets.paperBalls.Length;
-            var root = Group("DiscardedDraft_" + n, binAt + new Vector3((n % 3 - 1) * .09f, .43f + n / 3 * .04f, (n % 2) * .07f));
-            discardedVisuals.Add(root.gameObject);
-            var ball = CreateVisual(visualAssets.paperBalls[index], root);
-            FitVisual(ball, Vector3.one * .15f, Vector3.zero, new Vector3(0, index * 73, 0));
-            }
-        }
     }
 }

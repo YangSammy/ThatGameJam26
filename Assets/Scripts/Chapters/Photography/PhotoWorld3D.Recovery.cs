@@ -55,6 +55,7 @@ namespace MemoryWhitebox
         public string ProgressHint {
             get {
                 if(saveNotice!="")return saveNotice+(DirectDarkroom?" / Progress kept in memory; saving will retry.":" / Esc: retry save and exit");
+                if(parkLoading)return LoadingHelp;
                 if(Time.unscaledTime<darkroomNoticeUntil)return darkroomNotice+"\n"+DarkroomTask;
                 string task=DarkroomTask;if(!string.IsNullOrEmpty(task))return task;
                 if(Printing)return PrintHint;

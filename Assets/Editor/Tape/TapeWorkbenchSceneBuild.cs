@@ -84,6 +84,7 @@ namespace MemoryWhitebox.Editor
             foreach(var f in set.dispenser.GetComponentsInChildren<MeshFilter>())if(f.name.Contains("Base")||f.name.Contains("Cheek")){var c=f.gameObject.AddComponent<MeshCollider>();c.sharedMesh=f.sharedMesh;}
             HideOld(d.adhesiveStrip,oldR,oldC);set.strip=Instance("A06_AdhesiveParts_ROOT",d.adhesiveStrip);
             set.loosePiece=Find(set.strip.transform,"A06_TornSmallPiece").GetComponent<SkinnedMeshRenderer>();
+            FaceLoosePieceUp(set.loosePiece);
             foreach(var t in set.strip.GetComponentsInChildren<Transform>(true))if(t.name=="A06_StretchableSegment"||t.name.StartsWith("A06_Patch_"))dormant.Add(t);
             var stripHit=d.adhesiveStrip.GetComponent<BoxCollider>();oldC.Remove(stripHit);stripHit.enabled=true;stripHit.size=new Vector3(.009f/d.adhesiveStrip.lossyScale.x,.002f/d.adhesiveStrip.lossyScale.y,.012f/d.adhesiveStrip.lossyScale.z);
             Tooltip(stripHit,"Drag patch onto one upper-edge hole");
@@ -99,6 +100,21 @@ namespace MemoryWhitebox.Editor
             set.legacyRenderers=oldR.Distinct().ToArray();set.legacyColliders=oldC.Where(c=>c!=stripHit).Distinct().ToArray();set.dormantRoots=dormant.ToArray();set.Tick(0);
             EditorUtility.SetDirty(d);EditorUtility.SetDirty(set);EditorSceneManager.MarkSceneDirty(d.gameObject.scene);EditorSceneManager.SaveScene(d.gameObject.scene);
             return "Installed on existing tape identities; third candidate retained at its desk location";
+        }
+        // A06 is a single-sided sheet. Its imported face points below the table;
+        // flip only the visual about its centre, preserving the rest/grab anchors.
+        public static void FaceLoosePieceUp(SkinnedMeshRenderer piece)
+        {
+            if(piece==null || piece.sharedMesh==null)return;
+            var mesh=new Mesh();piece.BakeMesh(mesh);
+            var normals=mesh.normals;
+            if(normals.Length>0)
+            {
+                var normal=piece.transform.TransformDirection(normals[0]);
+                if(Vector3.Dot(normal,Vector3.up)<0)
+                    piece.transform.RotateAround(piece.bounds.center,Vector3.right,180);
+            }
+            Object.DestroyImmediate(mesh);
         }
         public static string RefreshInspection()
         {

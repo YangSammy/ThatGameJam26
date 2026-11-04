@@ -10,6 +10,32 @@ namespace MemoryWhitebox
         public ItemSceneBinding FindItem(string id)=>id!=null && itemBindings.TryGetValue(id,out var binding)?binding:null;
         public ChapterSceneBinding FindChapterBinding(string id)=>chapterBindings.TryGetValue(id,out var binding)?binding:null;
         public Chapter FindChapter(string id)=>chapters[ChapterIds.Index(id)];
+        public void BindSummerDarkroom(SummerPhotoRoom room)
+        {
+            var chapter=FindChapterBinding(ChapterIds.At(1));
+            var entries=new List<ItemSceneBinding>(chapter.items);
+            foreach(var item in room.darkroomStation.GetComponentsInChildren<ItemSceneBinding>(true))
+            {
+                if(string.IsNullOrEmpty(item.instanceId) || string.IsNullOrEmpty(item.DefinitionId) || itemBindings.ContainsKey(item.instanceId))
+                    throw new InvalidOperationException("Invalid darkroom item binding: "+item.instanceId);
+                itemBindings.Add(item.instanceId,item);entries.Add(item);
+            }
+            chapter.items=entries.ToArray();
+            DarkroomWorld.AttachDarkroom(room.darkroomStation);
+            room.darkroomArea.RestoreMembers(story.AreaPlacements);
+            if(DarkroomWorld.DirectDarkroomAvailable)DarkroomWorld.PresentDirectDarkroom();
+        }
+
+        public void UnbindSummerDarkroom(SummerPhotoRoom room)
+        {
+            DarkroomWorld.DetachDarkroom();
+            var chapter=FindChapterBinding(ChapterIds.At(1));
+            var entries=new List<ItemSceneBinding>(chapter.items);
+            foreach(var item in room.darkroomStation.GetComponentsInChildren<ItemSceneBinding>(true))
+            {entries.Remove(item);itemBindings.Remove(item.instanceId);}
+            chapter.items=entries.ToArray();
+        }
+
         void BindChapterData()
         {
             itemBindings.Clear();chapterBindings.Clear();
@@ -30,15 +56,45 @@ namespace MemoryWhitebox
             }
             for(int i=0;i<chapters.Length;i++)
             {var id=ChapterIds.At(i);var binding=FindChapterBinding(id);chapters[i].BindDefinition(id,binding!=null?binding.definition:null);}
-            var ids=new string[radioDeck.tapes.Length];
-            for(int i=0;i<ids.Length;i++)
-            {
-                var binding=radioDeck.tapes[i].root.GetComponent<ItemSceneBinding>();
-                ids[i]=binding!=null?binding.instanceId:"tape.work."+(i+1);
-            }
-            radioDeck.Chapter.BindItemIds(ids);
-            // Configuration references are now available; initial Awake used legacy bindings.
-            radioDeck.SynchronizeCommission();
+        }
+
+        public void AttachSpringTape(SpringTapeRoom room)
+        {
+            var config=room.deck.GetComponent<ChapterSceneBinding>();
+            chapterBindings.Add(config.ChapterId,config);
+            var model=(RadioTapeChapter)chapters[0];
+            model.BindDefinition(config.ChapterId,config.definition);
+            foreach(var item in room.workspace.GetComponentsInChildren<ItemSceneBinding>(true))
+                itemBindings.Add(item.instanceId,item);
+            var ids=System.Array.ConvertAll(room.deck.tapes,t=>t.root.GetComponent<ItemSceneBinding>().instanceId);
+            model.BindItemIds(ids);
+            try{model.RestoreCheckpoint(story.Checkpoint(0));}
+            catch(System.Exception ex){story.BlockRestore(ex);Debug.LogError(story.Error);return;}
+            if(story.IsComplete(0))model.RestoreStoryCompletion();
+            radioDeck=room.deck;
+            room.workspace.SetActive(true);
+            radioDeck.Initialize(this,model);
+            worlds[0]=new RadioTapeWorld(radioDeck);
+            var subjects=new List<SafeInspectionSubject>(safeInspection.subjects);
+            subjects.AddRange(room.inspectionSubjects);safeInspection.subjects=subjects.ToArray();
+            room.workArea.RestoreMembers(story.AreaPlacements);
+            radioDeck.AdvanceInspection(1);radioDeck.SynchronizeCommission();
+            radioDeck.RestoreWorkingTape();radioDeck.RestoreSource();radioDeck.RestoreWorkbench();
+            radioDeck.SetStationActive(true);
+        }
+
+        public void DetachSpringTape(SpringTapeRoom room)
+        {
+            radioDeck.SetStationActive(false);
+            safeInspection.Close();
+            var subjects=new List<SafeInspectionSubject>(safeInspection.subjects);
+            foreach(var item in room.inspectionSubjects)subjects.Remove(item);
+            safeInspection.subjects=subjects.ToArray();
+            foreach(var item in room.workspace.GetComponentsInChildren<ItemSceneBinding>(true))itemBindings.Remove(item.instanceId);
+            chapterBindings.Remove(ChapterIds.Tape);
+            if(CurrentWorld==worlds[0])CurrentWorld=null;
+            worlds[0]=null;radioDeck=null;
+            room.workspace.SetActive(false);
         }
     }
 }

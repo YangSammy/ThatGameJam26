@@ -21,12 +21,32 @@ namespace MemoryWhitebox
         Texture2D bridgeReference;
         float alignedFor,referenceRetry;
         bool bridgeReady;
+        bool HandOffered=>BridgePending && companion.AtPhotoNode && companion.photoOfferHand &&
+            CurrentTaskId=="meadow" && CurrentTask?.aligned==true && !CurrentTask.handJoined;
+        bool HandInReach=>Vector3.Distance(view.transform.position,PhotoHandPosition)<=2f;
+        bool PhotoHandPointerActive=>Aiming && HandOffered && HandInReach && InView(PhotoHandPosition) && Visible(PhotoHandPosition);
+        bool PointerOnHand=>Vector2.Distance(view.WorldToViewportPoint(PhotoHandPosition),virtualPointer)<=.1f;
         string CurrentTaskId=>roll!=null && roll.version>=3?roll.NextTask:"bridge";
         BridgePhotoCheckpoint CurrentTask=>roll!=null?roll.Task(CurrentTaskId):null;
         bool BridgePending=>bridgeNode!=null && roll!=null && roll.state==ParkFilmState.Loaded && (CurrentTask==null || !CurrentTask.captured);
-        public bool HoldingPhotoHand=>BridgePending && CurrentTaskId=="meadow" && CurrentTask!=null && CurrentTask.handJoined && companion.AtPhotoNode && Vector3.Distance(view.transform.position,PhotoHandPosition)<=2f;
+        public bool HoldingPhotoHand=>BridgePending && CurrentTaskId=="meadow" && CurrentTask!=null && CurrentTask.handJoined && companion.AtPhotoNode && HandInReach;
         public Vector3 PhotoHandPosition=>bridgeNode!=null && bridgeNode.handContact!=null?bridgeNode.handContact.position:companion.chest.position+companion.transform.forward*.38f-companion.transform.right*.15f-Vector3.up*.18f;
         bool taskRoutingReady;
+        void ResumeUnfinishedMemory()
+        {
+            if(roll==null || roll.state!=ParkFilmState.Loaded || !taskRoutingReady || bridgeNode==null)return;
+            // First arrival keeps the original walk. Returning memories resume nearby,
+            // without solving composition or consuming another exposure.
+            if(!roll.HasPhotographyProgress)return;
+            var point=bridgeNode.resumePoint;
+            if(point==null){Debug.LogWarning("Photography resume anchor missing: "+bridgeNode.name,this);return;}
+            motor.enabled=false;transform.SetPositionAndRotation(point.position,point.rotation);motor.enabled=true;
+            yaw=point.eulerAngles.y;pitch=PlayerControlSettings.Current.ClampPitch(Mathf.DeltaAngle(0,point.eulerAngles.x));
+            transform.rotation=Quaternion.Euler(0,yaw,0);view.transform.localRotation=Quaternion.Euler(pitch,0,0);
+            verticalSpeed=0;moveVelocity=Vector3.zero;alignedFor=0;bridgeReady=false;
+            companion.ResumeAtPhotoNode(bridgeNode);
+            handoff.Arm();inputGate=true;
+        }
         public string PhotoRouteError {get;private set;}="";
         int FindTaskIndex(ParkPhotoWaypoint.PhotoTask task)
         {
@@ -79,24 +99,42 @@ namespace MemoryWhitebox
             }
             if(bridgeNode==null){Debug.LogWarning("Photography task needs an authored route point: "+CurrentTaskId);companion.photoHoldNode=null;return;}
             taskRoutingReady=true;
-            if(CurrentTask!=null && CurrentTask.hasReference)
+            if(CurrentTask!=null)
             {
                 if(CurrentTask.savedFocus>0)focusDistance=Mathf.Clamp(CurrentTask.savedFocus,minimumFocus,maximumFocus);
                 int aperture=Array.IndexOf(apertures,CurrentTask.savedAperture),speed=Array.IndexOf(speeds,CurrentTask.savedShutter);
                 if(aperture>=0)apertureIndex=aperture;if(speed>=0)speedIndex=speed;
-                try{bridgeReference=new Texture2D(2,2);if(!bridgeReference.LoadImage(ParkFilmStore.ReadTaskReference(roll.id,CurrentTaskId)))throw new InvalidOperationException("Invalid reference image.");}
+                try{if(CurrentTask.hasReference){bridgeReference=new Texture2D(2,2);if(!bridgeReference.LoadImage(ParkFilmStore.ReadTaskReference(roll.id,CurrentTaskId)))throw new InvalidOperationException("Invalid reference image.");}}
                 catch(Exception e){filmError="Reference unavailable";Debug.LogWarning(e.Message);}
             }
             companion.photoHoldNode=BridgePending?bridgeNode:null;
         }
-        void SavePhotoSettings()
+        bool SavePhotoSettings()
         {
-            if(roll==null || roll.state!=ParkFilmState.Loaded || CurrentTask==null || CurrentTask.captured || filmError!="")return;
-            if(CurrentTask.savedFocus==focusDistance && CurrentTask.savedAperture==Aperture && CurrentTask.savedShutter==ShutterSeconds)return;
-            var next=JsonUtility.FromJson<BridgePhotoCheckpoint>(JsonUtility.ToJson(CurrentTask));
+            if(roll==null || filmError!="")return false;
+            if(roll.state!=ParkFilmState.Loaded || (CurrentTask!=null && CurrentTask.captured))return true;
+            if(CurrentTask!=null && CurrentTask.savedFocus==focusDistance && CurrentTask.savedAperture==Aperture && CurrentTask.savedShutter==ShutterSeconds)return true;
+            var next=CurrentTask!=null?JsonUtility.FromJson<BridgePhotoCheckpoint>(JsonUtility.ToJson(CurrentTask)):new BridgePhotoCheckpoint();
             next.savedFocus=focusDistance;next.savedAperture=Aperture;next.savedShutter=ShutterSeconds;
-            try{roll=ParkFilmStore.SaveTask(roll.id,CurrentTaskId,next);}
-            catch(Exception e){Debug.LogWarning("Camera settings not saved: "+e.Message);}
+            try{roll=ParkFilmStore.SaveTask(roll.id,CurrentTaskId,next);return true;}
+            catch(Exception e){Notify("Camera settings not saved. Stay here and retry.",6);Debug.LogWarning("Camera settings not saved: "+e.Message);return false;}
+        }
+        float TaskFocusDepth(BridgePhotoCheckpoint task)
+        {
+            Vector3 subject=CurrentTaskId=="meadow" && task.handJoined?companion.chest.position:task.subjectPoint;
+            return Vector3.Dot(subject-view.transform.position,view.transform.forward);
+        }
+        bool ReferenceFramed(BridgePhotoCheckpoint task)=>Vector3.Distance(view.transform.position,task.position)<=bridgePositionTolerance &&
+            Quaternion.Angle(view.transform.rotation,Quaternion.Euler(task.euler))<=bridgeAngleTolerance;
+        bool InView(Vector3 point)
+        {
+            var p=view.WorldToViewportPoint(point);
+            return p.z>0 && p.x>0 && p.x<1 && p.y>0 && p.y<1;
+        }
+        bool TaskFramed(BridgePhotoCheckpoint task)
+        {
+            if(CurrentTaskId!="meadow" || !task.handJoined)return ReferenceFramed(task);
+            return HoldingPhotoHand && InView(companion.chest.position) && InView(PhotoHandPosition) && Visible(PhotoHandPosition);
         }
         void TickBridge(float dt)
         {
@@ -118,12 +156,9 @@ namespace MemoryWhitebox
             }
             var reference=CurrentTask;
             sceneEv100=reference.ev100;
-            bool position=Vector3.Distance(view.transform.position,reference.position)<=bridgePositionTolerance;
-            bool direction=Quaternion.Angle(view.transform.rotation,Quaternion.Euler(reference.euler))<=bridgeAngleTolerance;
-            float depth=Vector3.Dot(reference.subjectPoint-view.transform.position,view.transform.forward);
-            bool focus=depth>0 && Mathf.Abs(depth-focusDistance)<=Mathf.Max(.2f,depth*.065f);
+            bool focus=ParkCameraResponse.IsSharp(TaskFocusDepth(reference),focusDistance,Aperture);
             bool exposure=Mathf.Abs(ExposureError)<=bridgeExposureTolerance;
-            bool match=Aiming && position && direction && focus && exposure;
+            bool match=Aiming && TaskFramed(reference) && focus && exposure;
             if(!reference.aligned)
             {
                 alignedFor=match?alignedFor+dt:0;
@@ -143,7 +178,8 @@ namespace MemoryWhitebox
         }
         void CaptureBridgeReference()
         {
-            var reference=new BridgePhotoCheckpoint{hasReference=true,ev100=bridgeNode.referenceEv100,subjectPoint=companion.chest.position,fov=PlayerControlSettings.Current.parkAimingFov};
+            var reference=new BridgePhotoCheckpoint{hasReference=true,ev100=bridgeNode.referenceEv100,subjectPoint=companion.chest.position,fov=PlayerControlSettings.Current.parkAimingFov,
+                savedFocus=focusDistance,savedAperture=Aperture,savedShutter=ShutterSeconds};
             if(bridgeNode.referenceView!=null)
             {reference.position=bridgeNode.referenceView.position;reference.euler=bridgeNode.referenceView.eulerAngles;}
             else
@@ -159,8 +195,9 @@ namespace MemoryWhitebox
             {
                 if(bridgeNode.referencePhoto!=null)
                 {
-                    temporary=RenderTexture.GetTemporary(960,600,0);Graphics.Blit(bridgeNode.referencePhoto,temporary);RenderTexture.active=temporary;
-                    texture=new Texture2D(960,600,TextureFormat.RGB24,false);texture.ReadPixels(new Rect(0,0,960,600),0,0);texture.Apply();
+                    int height=Mathf.Max(1,Mathf.RoundToInt(960f*bridgeNode.referencePhoto.height/bridgeNode.referencePhoto.width));
+                    temporary=RenderTexture.GetTemporary(960,height,0);Graphics.Blit(bridgeNode.referencePhoto,temporary);RenderTexture.active=temporary;
+                    texture=new Texture2D(960,height,TextureFormat.RGB24,false);texture.ReadPixels(new Rect(0,0,960,height),0,0);texture.Apply();
                 }
                 else
                 {
@@ -181,13 +218,10 @@ namespace MemoryWhitebox
         }
         bool TryJoinPhotoHand()
         {
-            if(!BridgePending || !companion.AtPhotoNode || CurrentTaskId!="meadow" || CurrentTask==null || !CurrentTask.aligned || CurrentTask.handJoined)return false;
-            Vector3 screen=view.WorldToViewportPoint(PhotoHandPosition);
-            if(screen.z<=0 || Vector2.Distance(new Vector2(screen.x,screen.y),virtualPointer)>.1f || Vector3.Distance(view.transform.position,PhotoHandPosition)>2f)return false;
-            if(!Visible(PhotoHandPosition))return false;
+            if(!PhotoHandPointerActive || !PointerOnHand)return false;
             var next=JsonUtility.FromJson<BridgePhotoCheckpoint>(JsonUtility.ToJson(CurrentTask));next.handJoined=true;
-            try{roll=ParkFilmStore.SaveTask(roll.id,CurrentTaskId,next);shotCooldown=.5f;return true;}
-            catch(Exception e){Debug.LogWarning("Hand response not saved: "+e.Message);return true;}
+            try{roll=ParkFilmStore.SaveTask(roll.id,CurrentTaskId,next);shotCooldown=.5f;Notify("Hands joined. LMB to take the photograph. No frame used.");return true;}
+            catch(Exception e){Notify("Hand response not saved. Click the offered hand to retry. No frame used.");Debug.LogWarning("Hand response not saved: "+e.Message);return true;}
         }
         string PhotographyNextAction()
         {
@@ -195,13 +229,27 @@ namespace MemoryWhitebox
             if(!companion.AtPhotoNode)return "Follow your companion to the next photo spot.";
             var task=CurrentTask;
             if(task==null || !task.hasReference)return "Wait for your companion to settle.";
-            if(Vector3.Distance(view.transform.position,task.position)>bridgePositionTolerance)return "Move to match the reference viewpoint.";
-            if(Quaternion.Angle(view.transform.rotation,Quaternion.Euler(task.euler))>bridgeAngleTolerance)return "Aim to match the reference framing.";
-            float depth=Vector3.Dot(task.subjectPoint-view.transform.position,view.transform.forward);
-            if(depth<=0 || Mathf.Abs(depth-focusDistance)>Mathf.Max(.2f,depth*.065f))return "Scroll to focus on your companion.";
-            if(Mathf.Abs(ExposureError)>bridgeExposureTolerance)return "Adjust aperture or shutter to match the meter.";
+            if(HandOffered)
+            {
+                if(!HandInReach)return "Step closer to the offered hand.";
+                return PhotoHandPointerActive?"Click the offered hand.":"Bring the offered hand into view.";
+            }
+            if(CurrentTaskId=="meadow" && task.handJoined)
+            {
+                if(!HandInReach)return "Step closer to your companion.";
+                if(!TaskFramed(task))return "Frame your companion and your joined hands.";
+            }
+            else
+            {
+                if(Vector3.Distance(view.transform.position,task.position)>bridgePositionTolerance)return "Move to match the reference viewpoint.";
+                if(!ReferenceFramed(task))return "Aim to match the reference framing.";
+            }
+            float depth=TaskFocusDepth(task);
+            if(!ParkCameraResponse.IsSharp(depth,focusDistance,Aperture))return "Scroll to focus on your companion.";
+            if(Mathf.Abs(ExposureError)>bridgeExposureTolerance)return ExposureError>0?
+                "Too dark. Open the aperture or use a slower shutter.":
+                "Too bright. Close the aperture or use a faster shutter.";
             if(!bridgeReady)return "Hold the camera steady. Wait for the response.";
-            if(CurrentTaskId=="meadow" && !HoldingPhotoHand)return "Click the offered hand first. This does not use film.";
             return "LMB: take the photograph.";
         }
 

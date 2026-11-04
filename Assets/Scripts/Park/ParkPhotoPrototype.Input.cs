@@ -13,8 +13,9 @@ namespace MemoryWhitebox
                 photoMode==PhotographyMode.Viewfinder?InputContextId.ParkViewfinder:InputContextId.Exploration;
             var cursor=id==InputContextId.Unfocused?PlayerControlState.Unfocused:changingScene?PlayerControlState.Transition:
                 Paused?PlayerControlState.Paused:photoMode==PhotographyMode.Exploration?PlayerControlState.Exploration:PlayerControlState.Operation;
-            // Instrument modes use the existing virtual pointer while the OS cursor stays locked.
-            InputContext.Select(id,cursor,true);
+            // Mechanical drag targets use the visible pointer, without a second relative cursor.
+            // Exploration/viewfinder retain mouse-look and the existing edge gestures.
+            InputContext.Select(id,cursor,!PreciseInstrumentPointer);
         }
         bool CancelParkGesture()
         {

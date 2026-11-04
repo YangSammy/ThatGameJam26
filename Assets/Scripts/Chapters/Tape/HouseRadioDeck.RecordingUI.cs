@@ -4,6 +4,8 @@ namespace MemoryWhitebox
 {
     public sealed partial class HouseRadioDeck
     {
+        public bool RecordingPanelVisible=>RecordingMode && (radioCloseView==null || radioFocused) &&
+            (house==null || house.safeInspection==null || !house.safeInspection.Active);
         float TransportPanelTop
         {
             get
@@ -19,8 +21,11 @@ namespace MemoryWhitebox
         void OnGUI()
         {
             if(SuccessPopupOpen)return;
+            var pointer=Event.current;
+            if(RecordingMode && pointer.type==EventType.MouseDown && pointer.button==0)
+                RecordingPointerDown(new Vector2(pointer.mousePosition.x,Screen.height-pointer.mousePosition.y));
             DrawWorkbench();
-            if(!RecordingMode || transport==null || house==null || house.safeInspection.Active)return;
+            if(!RecordingPanelVisible || transport==null || house==null)return;
             if(radioFocused && !radioCameraMoving && GUI.Button(RadioBackRect,"Back to desk"))FocusRadio(false);
             if(SubmissionMessage!=lastFeedback)
             {lastFeedback=SubmissionMessage;feedbackUntil=Time.unscaledTime+8;}

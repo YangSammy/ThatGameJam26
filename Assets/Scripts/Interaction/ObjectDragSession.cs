@@ -184,17 +184,23 @@ namespace MemoryWhitebox
 
     public static class DragReceiverProbe
     {
+        public enum Result { Ready, Unavailable, Outside, TooFar, Occluded }
         public static bool BelongsTo(Transform candidate, Transform root) => root != null && (candidate == root || candidate.IsChildOf(root));
         public static bool IsNavigationOnly(Collider col) => col.name.StartsWith("Walk blocker", StringComparison.Ordinal) && col.GetComponent<Renderer>() == null;
 
         // One tolerant visible receiver rule shared by hover, preview and release.
         public static bool Accepts(Ray ray, Transform receiver, Transform dragged, float tolerance,
             float reach = 2.5f, Predicate<Collider> ignore = null, Collider onlyCollider = null)
+            => Evaluate(ray, receiver, dragged, tolerance, reach, ignore, onlyCollider) == Result.Ready;
+
+        public static Result Evaluate(Ray ray, Transform receiver, Transform dragged, float tolerance,
+            float reach = 2.5f, Predicate<Collider> ignore = null, Collider onlyCollider = null)
         {
-            if (receiver == null || !receiver.gameObject.activeInHierarchy) return false;
+            if (receiver == null || !receiver.gameObject.activeInHierarchy) return Result.Unavailable;
             Vector3 closest = receiver.position;
             float best = float.MaxValue;
             bool directHit = false;
+            bool beyondReach = false;
             var colliders = onlyCollider != null ? new[] { onlyCollider } : receiver.GetComponentsInChildren<Collider>();
             foreach (var col in colliders)
             {
@@ -214,20 +220,22 @@ namespace MemoryWhitebox
                 if (directHit) continue;
                 Bounds region = col.bounds; region.Expand(tolerance * 2);
                 float distance;
-                if (!region.IntersectRay(ray, out distance) || distance < 0 || distance > reach || distance >= best) continue;
+                if (!region.IntersectRay(ray, out distance) || distance < 0) continue;
+                if (distance > reach) { beyondReach = true; continue; }
+                if (distance >= best) continue;
                 best = distance; closest = col.ClosestPoint(ray.GetPoint(distance));
             }
-            if (best == float.MaxValue) return false;
+            if (best == float.MaxValue) return beyondReach ? Result.TooFar : Result.Outside;
             Vector3 direction = closest - ray.origin;
-            if (direction.magnitude > reach) return false;
+            if (direction.magnitude > reach) return Result.TooFar;
             foreach (var hit in Physics.RaycastAll(ray.origin, direction.normalized, direction.magnitude - .005f,
                 Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             {
                 if (BelongsTo(hit.transform, receiver) || BelongsTo(hit.transform, dragged) ||
                     IsNavigationOnly(hit.collider) || (ignore != null && ignore(hit.collider))) continue;
-                return false;
+                return Result.Occluded;
             }
-            return true;
+            return Result.Ready;
         }
     }
 }

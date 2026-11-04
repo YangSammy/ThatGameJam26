@@ -65,6 +65,24 @@ namespace MemoryWhitebox
             }
             FitMaterialHit("print-paper");FitMaterialHit("print-negative");
         }
+        public void FitPartHit(BoxCollider hit,string model,string part)
+        {
+            var node=Node(ModelRoot(model),part);
+            var mesh=node!=null?node.GetComponent<MeshFilter>():null;
+            if(hit==null || mesh==null || mesh.sharedMesh==null)return;
+            // Use the animated part's local mesh, not the former whitebox lid.
+            // Keep the existing hotspot identity and scene anchor untouched.
+            var b=mesh.sharedMesh.bounds;var local=new Bounds();
+            for(int i=0;i<8;i++)
+            {
+                var corner=b.center+Vector3.Scale(b.extents,new Vector3((i&1)==0?-1:1,(i&2)==0?-1:1,(i&4)==0?-1:1));
+                var p=hit.transform.InverseTransformPoint(node.TransformPoint(corner));
+                if(i==0)local=new Bounds(p,Vector3.zero);else local.Encapsulate(p);
+            }
+            var scale=hit.transform.lossyScale;
+            hit.center=local.center;
+            hit.size=local.size+new Vector3(.006f/Mathf.Max(.0001f,Mathf.Abs(scale.x)),.006f/Mathf.Max(.0001f,Mathf.Abs(scale.y)),.006f/Mathf.Max(.0001f,Mathf.Abs(scale.z)));
+        }
         void FitMaterialHit(string id)
         {
             var visual=ModelRoot(id);if(visual==null)return;

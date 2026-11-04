@@ -12,8 +12,11 @@ namespace MemoryWhitebox.EditorTools
         public static void Bind()
         {
             if(EditorApplication.isPlaying)throw new InvalidOperationException("Edit mode required.");
-            var binding=UnityEngine.Object.FindObjectOfType<DarkroomPrintSceneBinding>(true);
-            if(binding==null)throw new InvalidOperationException("Open HouseScene first.");
+            var scene=UnityEngine.SceneManagement.SceneManager.GetSceneByPath(SummerPhotoRoom.ScenePath);
+            DarkroomPrintSceneBinding binding=null;
+            if(scene.isLoaded)foreach(var root in scene.GetRootGameObjects())
+                if(root.TryGetComponent<SummerPhotoRoom>(out var room)){binding=room.darkroomStation;break;}
+            if(binding==null)throw new InvalidOperationException("Open Bedroom_Summer with its darkroom worktop first.");
             if(binding.GetComponent<DarkroomAssetVisuals>()!=null)throw new InvalidOperationException("Already bound; retain authored visual adjustments.");
             if(binding.gameObject.scene.isDirty)throw new InvalidOperationException("Unsaved scene changes: save or back up before binding.");
             var adapter=Undo.AddComponent<DarkroomAssetVisuals>(binding.gameObject);

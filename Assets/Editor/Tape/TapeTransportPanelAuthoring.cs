@@ -8,6 +8,24 @@ namespace MemoryWhitebox.Editor
 {
     public static class TapeTransportPanelAuthoring
     {
+        public static string BindHeldKeys()
+        {
+            if(EditorApplication.isPlaying)throw new System.InvalidOperationException("Exit Play first.");
+            var controller=Object.FindObjectOfType<TapeTransportPanel>();
+            if(controller==null || controller.buttons==null || controller.buttons.Length<6)throw new System.InvalidOperationException("Authored transport panel missing.");
+            for(int i=0;i<5;i++)if(controller.buttons[i]==null)throw new System.InvalidOperationException("Authored B key missing.");
+            string[] labels={"HOLD S","HOLD F","HOLD J","HOLD L","STOP","EJECT"};
+            for(int i=0;i<5;i++)
+            {
+                var button=controller.buttons[i];var key=button.GetComponent<TapeTransportKey>();
+                if(key==null)key=Undo.AddComponent<TapeTransportKey>(button.gameObject);
+                Undo.RecordObject(key,"Bind held B transport key");key.panel=controller;key.command=i;EditorUtility.SetDirty(key);
+                var label=button.GetComponentInChildren<Text>(true);if(label!=null){Undo.RecordObject(label,"Describe held B key");label.text=labels[i];EditorUtility.SetDirty(label);}
+            }
+            if(controller.listenAction!=null){Undo.RecordObject(controller.listenAction,"Use independent deck controls");controller.listenAction.SetActive(false);}
+            EditorSceneManager.MarkSceneDirty(controller.gameObject.scene);
+            return "Bound five authored B buttons to held input; A and all scene anchors unchanged. Save the reviewed scene explicitly.";
+        }
         static RectTransform Rect(Transform parent,string name,Vector2 size,Vector2 position)
         {
             var go=new GameObject(name,typeof(RectTransform));var r=go.GetComponent<RectTransform>();r.SetParent(parent,false);r.anchorMin=r.anchorMax=new Vector2(.5f,0);r.pivot=new Vector2(.5f,0);r.sizeDelta=size;r.anchoredPosition=position;go.layer=5;return r;
@@ -41,6 +59,7 @@ namespace MemoryWhitebox.Editor
                 var button=r.gameObject.AddComponent<Button>();button.targetGraphic=image;var navigation=button.navigation;navigation.mode=Navigation.Mode.None;button.navigation=navigation;
                 var colors=button.colors;colors.normalColor=new Color(.87f,.85f,.76f);colors.highlightedColor=new Color(.98f,.97f,.85f);colors.pressedColor=new Color(.6f,.72f,.6f);button.colors=colors;
                 controller.buttons[i]=button;UnityEventTools.AddIntPersistentListener(button.onClick,controller.Command,i);
+                if(i<5){var key=button.gameObject.AddComponent<TapeTransportKey>();key.panel=controller;key.command=i;}
                 var text=Label(r,"Label",labels[i],new Vector2(128,60),Vector2.zero,20);if(i==0)text.color=new Color(.65f,.08f,.06f);
             }
             if(Object.FindObjectOfType<EventSystem>()==null)

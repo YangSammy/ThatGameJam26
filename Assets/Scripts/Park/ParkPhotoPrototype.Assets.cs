@@ -52,10 +52,18 @@ namespace MemoryWhitebox
             Follow("aperture",instrumentCamera.apertureRing);Follow("speed",instrumentCamera.dial);
             instrumentParts["back"].SetPositionAndRotation(instrumentCamera.back.TransformPoint(new Vector3(.064f,0,0)),instrumentCamera.back.rotation);
             instrumentParts["body"].GetComponent<Collider>().enabled=false; // Never mask the small mechanical controls.
+            // The large closed-back proxy used to occlude the rewind/advance controls.
+            // Only the mechanical action for this stable step can receive a hit.
+            instrumentParts["back"].GetComponent<Collider>().enabled=loadingStep==5;
+            instrumentParts["rewind"].GetComponent<Collider>().enabled=loadingStep==0;
+            instrumentParts["advance"].GetComponent<Collider>().enabled=loadingStep==4 || loadingStep==6;
+            instrumentParts["eyepiece"].GetComponent<Collider>().enabled=loadingStep>=7;
+            instrumentParts["aperture"].GetComponent<Collider>().enabled=photoMode==PhotographyMode.Aperture;
+            instrumentParts["speed"].GetComponent<Collider>().enabled=photoMode==PhotographyMode.Shutter;
             instrumentParts["chamber"].gameObject.SetActive(loadingStep==1);instrumentParts["spool"].gameObject.SetActive(loadingStep>=2 && loadingStep<6);
             instrumentParts["leader"].gameObject.SetActive(loadingStep==2);
             foreach(int iso in filmIsos)instrumentParts["film-"+iso].gameObject.SetActive(loadingStep==1);
-            float suggested=64/Mathf.Pow(2,sceneEv100+Mathf.Log(filmIsos[meterIsoIndex]/100f,2));
+            float suggested=ParkCameraResponse.SuggestedShutter(8,filmIsos[meterIsoIndex],sceneEv100);
             meterReadout.text="ISO "+filmIsos[meterIsoIndex]+" / EV "+sceneEv100.ToString("0.0")+" / f/8 / 1/"+Mathf.RoundToInt(1/suggested);
             cameraReadout.text="50 mm / Focus "+focusDistance.ToString("0.00")+" m / f/"+Aperture+" / 1/"+Mathf.RoundToInt(1/ShutterSeconds);
         }

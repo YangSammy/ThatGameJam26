@@ -31,7 +31,6 @@ namespace MemoryWhitebox
             var hit=tooltipHits[0].gameObject.transform;
             for(int i=0;i<buttons.Length && i<targetTooltipCommands.Length;i++)if(hit.IsChildOf(buttons[i].transform))return deck.DeckControlTooltip("B_"+targetTooltipCommands[i]);
             for(int i=0;sourceButtons!=null && i<sourceButtons.Length && i<sourceTooltipCommands.Length;i++)if(hit.IsChildOf(sourceButtons[i].transform))return deck.DeckControlTooltip("A_"+sourceTooltipCommands[i]);
-            if(listenAction!=null && hit.IsChildOf(listenAction.transform))return "Listen to copy · Stops A and plays B from the start";
             if(submitAction!=null && hit.IsChildOf(submitAction.transform))return "Submit copy · Check and save this recording";
             if(prepareAction!=null && hit.IsChildOf(prepareAction.transform))return "Workbench · Check reels and cover protection holes";
             return null;
@@ -43,13 +42,13 @@ namespace MemoryWhitebox
             recordLabel=buttons[0].GetComponentInChildren<Text>(true);
             playLabel=buttons[1].GetComponentInChildren<Text>(true);
             recordLabel.fontSize=12;
-            recordLabel.text="RECORD";
-            playLabel.text="PLAY COPY";
+            recordLabel.text="HOLD S";
+            playLabel.text="HOLD F";
         }
         void Update()
         {
             if(SuccessOpen){successDismiss.interactable=successGate.Ready && deck.house.InputContext.Allows(InputContextId.Modal);return;}
-            bool show=deck!=null && deck.RecordingMode;
+            bool show=deck!=null && deck.RecordingPanelVisible;
             if(panel.activeSelf!=show)panel.SetActive(show);
             if(!show)return;
             bool loaded=deck.Selected>=0 && deck.State==HouseRadioDeck.Phase.Paused;
@@ -58,8 +57,8 @@ namespace MemoryWhitebox
             if(sourceStatus!=null)sourceStatus.text="A  ORIGINAL "+(deck.CurrentCopy+1).ToString("00")+" / 03   ·   "+(deck.Chapter.SourceLoaded?deck.transport.SourceStatus+"   "+deck.transport.SourceSeconds.ToString("0.0")+"s":"EMPTY");
             if(prepareAction!=null)prepareAction.SetActive(!deck.Chapter.Completed);
             bool hasCopy=loaded && deck.transport.RecordedSeconds>0;
-            recordLabel.text=hasCopy && !deck.transport.Writing?"RESUME REC":"RECORD";
-            if(listenAction!=null)listenAction.SetActive(hasCopy);
+            recordLabel.text="HOLD S";
+            if(listenAction!=null)listenAction.SetActive(false);
             if(submitAction!=null)submitAction.SetActive(hasCopy && !deck.Chapter.Completed);
             if(sourceButtons!=null)foreach(var button in sourceButtons)button.interactable=CanOperate && deck.Chapter.SourceLoaded;
             for(int i=0;i<buttons.Length;i++)
@@ -70,7 +69,8 @@ namespace MemoryWhitebox
                 var colors=buttons[i].colors;colors.normalColor=deck.UITransportCommand==i?new Color(.3f,.46f,.36f):new Color(.2f,.23f,.22f);buttons[i].colors=colors;
             }
         }
-        public void Command(int command){if(CanOperate)deck.SetUITransportCommand(command);}
+        public void Hold(int command){if(CanOperate)deck.SetUITransportCommand(command);}
+        public void Command(int command){if(CanOperate && command>=4)deck.SetUITransportCommand(command);}
         public void SourceCommand(int command){if(CanOperate)deck.SourceControl(command);}
         public void Prepare(){if(CanOperate)deck.OpenPreparation();}
         public void Listen(){if(CanOperate)deck.ListenToCopy();}

@@ -14,6 +14,7 @@ namespace MemoryWhitebox
         bool benchLeft,benchRight;
         Vector2 benchLast,benchPress;
         Vector3 pullStart;
+        bool crossedStripCutter;
         Ray benchGrabRay;
         readonly ObjectDragSession benchDrag=new ObjectDragSession();
         bool CanReceive(Collider receiver,Ray ray)=>TapeDropAllowed(receiver,ray,benchDrag.Item);
@@ -107,6 +108,7 @@ namespace MemoryWhitebox
         }
         public void TickWorkbench()
         {
+            TickHeldTargetDuringHandoff();
             house.Room.StopMotion();TickPreparationCamera(Time.unscaledDeltaTime);
             if(dualDeck!=null && transport!=null)TickAudition();
             if(house.InputContext.ExitPressed(InputContextId.TapeWorkbench,CancelWorkbenchGesture,ExitTapeWorkspace))return;
@@ -188,7 +190,7 @@ namespace MemoryWhitebox
                 if(Hit(adhesiveTab,ray))
                 {
                     if(Chapter.LooseStripReady)return;
-                    benchGesture=BenchGesture.PullStrip;pullStart=adhesiveTab.bounds.center;adhesiveStrip.position=pullStart;adhesiveStrip.gameObject.SetActive(true);benchDrag.Begin(adhesiveStrip,ray,view.transform.forward,0,.12f,false,workbenchVisuals!=null?workbenchVisuals.dispenser.transform:null);return;
+                    benchGesture=BenchGesture.PullStrip;crossedStripCutter=false;pullStart=adhesiveTab.bounds.center;adhesiveStrip.position=pullStart;adhesiveStrip.gameObject.SetActive(true);benchDrag.Begin(adhesiveStrip,ray,view.transform.forward,0,.12f,false,workbenchVisuals!=null?workbenchVisuals.dispenser.transform:null);return;
                 }
                 int candidate=TapeAt(ray);
                 if(candidate>=0 && candidate!=Selected && candidate!=BenchIndex){PlaceOnWorkbench(candidate);benchWaiting=false;WorkbenchPointer(type,button,point,delta,wheel);return;}
@@ -216,7 +218,7 @@ namespace MemoryWhitebox
                         if(benchGesture==BenchGesture.PullStrip)
                         {
                             float distance;var plane=new Plane(view.transform.forward,pullStart);
-                            if(plane.Raycast(ray,out distance))benchDrag.MoveTo(pullStart+Vector3.ClampMagnitude(ray.GetPoint(distance)-pullStart,.12f),workbenchVisuals.dispenser.transform);
+                            if(plane.Raycast(ray,out distance))adhesiveStrip.position=pullStart+Vector3.ClampMagnitude(ray.GetPoint(distance)-pullStart,.12f);
                         }
                         else if(receiver!=null)benchDrag.MoveOverSurface(receiver.position,tapes[BenchIndex].root,true);
                         else benchDrag.Move(ray);
@@ -229,7 +231,8 @@ namespace MemoryWhitebox
                         Vector2 fromHead=(Vector2)view.WorldToScreenPoint(pullStart)-cut;
                         bool crossed=workbenchVisuals==null || (Vector2.Dot(benchLast-cut,fromHead)>0 && Vector2.Dot(point-cut,fromHead)<=0);
                         float along=segment.sqrMagnitude>0?Mathf.Clamp01(Vector2.Dot(cut-benchLast,segment)/segment.sqrMagnitude):0;
-                        if(crossed && !benchDrag.Blocked && Vector2.Distance(cut,benchLast+segment*along)<20 && Vector3.Distance(pullStart,adhesiveStrip.position)>.025f)
+                        crossedStripCutter|=crossed && Vector2.Distance(cut,benchLast+segment*along)<20;
+                        if(crossedStripCutter && Vector2.Dot(point-cut,fromHead)<=0 && Vector3.Distance(pullStart,adhesiveStrip.position)>.025f)
                         {workbenchVisuals?.Cut();benchGesture=BenchGesture.MoveStrip;Chapter.LooseStripReady=true;benchDrag.End(false);benchDrag.Begin(adhesiveStrip,ray,view.transform.forward,.008f,1.8f,true,workbenchVisuals!=null?workbenchVisuals.dispenser.transform:null);TapeSound(8,adhesiveCutter.bounds.center);}
                     }
                     adhesiveRibbon.gameObject.SetActive(workbenchVisuals==null && benchGesture==BenchGesture.PullStrip);
@@ -251,8 +254,10 @@ namespace MemoryWhitebox
                         int index=BenchIndex;
                         bool over=CanReceive(slotHit,ray);benchDrag.MoveScreenCarry(ray);
                         bool accepted=!benchDrag.Blocked && over;
-                        bool onMat=!accepted && PreparationDrop(ray);
+                        string rejection=accepted?null:TapeDropHint(slotHit,ray,benchDrag);
+                        bool onMat=!accepted && !benchDrag.Blocked && PreparationDrop(ray);
                         bool placed=!accepted && !onMat && benchDrag.TryPlaceInArea();benchDrag.End(!accepted && !placed && !onMat);
+                        if(!accepted && !onMat && !placed)ShowTapePointerNotice(rejection);
                         if(onMat || placed)TapeSound(5,tapes[BenchIndex].root.position);
                         if(onMat){if(!PlaceTapeOnPreparationMat(false))PoseWorkbenchTape();}
 
@@ -298,7 +303,7 @@ namespace MemoryWhitebox
         string NextTapeTask()
         {
             if(Smoothing)return "Smoothing the patch. Wait a moment.";
-            if(Chapter.Completed)return "All 3 copies saved. PLAY COPY to listen again.";
+            if(Chapter.Completed)return "All 3 copies saved. Esc back to the desk, then Esc to leave for summer.";
             if(!Chapter.SourceLoaded)return "Load Original "+(CurrentCopy+1).ToString("00")+" into A.";
             if(!Chapter.AuditionComplete)return transport.SourcePlaying?"Listen to A: notice the noise and what follows.":"Click A PLAY to hear the original.";
             if(State==Phase.Loading || DeckBusy(0) || DeckBusy(1))return "Wait for the tape and door to settle.";
@@ -307,14 +312,14 @@ namespace MemoryWhitebox
                 if(Selected<0)return "Find a work tape on the desk. Check both reels.";
                 var loaded=Chapter.Tape.Candidates[Selected];
                 if(!loaded.Intact)return "Eject B and check both reels.";
-                if(!loaded.Prepared)return Chapter.ProtectionDiscovered?"EJECT B. Cover both upper-edge holes, then reload.":"Click B RECORD to try recording.";
+                if(!loaded.Prepared)return Chapter.ProtectionDiscovered?"EJECT B. Cover both upper-edge holes, then reload.":"Hold S + F to try recording.";
                 if(dualDeck!=null && !dualDeck.Closed(1))return "Close B's door to use the work tape.";
                 if(dualDeck!=null && !dualDeck.Closed(0))return "Close A's door before recording.";
                 if(transport.Writing)return "Before noise, click B STOP. Let A keep playing.";
                 if(transport.TargetStatus=="PLAYBACK")return "Listen to your copy. Click Submit when satisfied.";
-                if(transport.SourceStatus=="END" && transport.RecordedSeconds>0)return "Original finished. Rewind B, then PLAY COPY.";
-                if(transport.RecordedSeconds>0)return transport.SourcePlaying?"Let noise pass on A, then click B RESUME REC.":"RESUME REC to continue; rewind B + PLAY COPY to listen.";
-                return "Click B RECORD to start both tapes from the beginning.";
+                if(transport.SourceStatus=="END" && transport.RecordedSeconds>0)return "Original finished. Hold J to rewind B, then hold F to listen.";
+                if(transport.RecordedSeconds>0)return transport.SourcePlaying?"Release F before noise; hold F + S again after it.":"Play A to continue recording, or rewind B and hold F to listen.";
+                return "Rewind and play A, then hold F + S to record B.";
             }
             if(Selected>=0)return "Open the recorder controls.";
             if(BenchIndex<0)return "Drag a work tape from the right onto the centre mat.";
@@ -331,7 +336,7 @@ namespace MemoryWhitebox
             if(benchDrag.Blocked)return "Path blocked — move around the obstacle / Esc Cancel";
             if(benchGesture==BenchGesture.MoveTape && PreparationDrop(view.ScreenPointToRay(Input.mousePosition)))return "Release LMB · Place on preparation mat";
             if(movingOriginal || benchGesture==BenchGesture.MoveTape)
-            {var slot=movingOriginal?sourceSlot:slotHit;return CanReceive(slot,view.ScreenPointToRay(Input.mousePosition))?movingOriginal?"Release LMB · Load A":"Release LMB · Load B":"Drag to the outlined slot / Release on desk / Esc Cancel";}
+            {var slot=movingOriginal?sourceSlot:slotHit;return TapeDropHint(slot,view.ScreenPointToRay(Input.mousePosition),benchDrag);}
             if(benchGesture==BenchGesture.PullStrip)return "Drag across the cutter";
             if(benchGesture==BenchGesture.MoveStrip)return "Release over a hole to cover";
             if(benchGesture==BenchGesture.Rotate)return "LMB + RMB  Rotate";

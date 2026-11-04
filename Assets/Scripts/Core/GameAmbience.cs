@@ -7,7 +7,7 @@ namespace MemoryWhitebox
     {
         public GameAmbienceSettings settings;
         AudioSource bed;
-        readonly AudioSource[] seasonal=new AudioSource[2];
+        [SerializeField,HideInInspector] AudioSource[] seasonal=new AudioSource[2];
         int selected=-1,voice;
         bool focused=true,gameScene;
         StoryDay fallbackDay;
@@ -23,7 +23,13 @@ namespace MemoryWhitebox
             if(settings==null){Destroy(gameObject);return;}
             DontDestroyOnLoad(gameObject);bed=Make("Global bed 001");bed.clip=settings.globalLoop;
             seasonal[0]=Make("Season A");seasonal[1]=Make("Season B");
-            SceneManager.sceneLoaded+=Loaded;BindScene();if(bed.clip!=null)bed.Play();
+            BindScene();if(bed.clip!=null)bed.Play();
+        }
+        void OnEnable()
+        {
+            SceneManager.sceneLoaded+=Loaded;BindScene();
+            if(bed!=null)bed.UnPause();
+            foreach(var a in seasonal)if(a!=null)a.UnPause();
         }
         void Loaded(Scene scene,LoadSceneMode mode){BindScene();}
         void BindScene()
@@ -51,7 +57,8 @@ namespace MemoryWhitebox
             }
         }
         void OnApplicationFocus(bool value){focused=value;}
-        void OnDisable(){if(bed!=null)bed.Stop();foreach(var a in seasonal)if(a!=null)a.Stop();}
-        void OnDestroy(){SceneManager.sceneLoaded-=Loaded;}
+        // Domain reload disables and re-enables the behaviour without Awake.
+        // Keep the existing sources, playback positions and scene subscription.
+        void OnDisable(){SceneManager.sceneLoaded-=Loaded;if(bed!=null)bed.Pause();foreach(var a in seasonal)if(a!=null)a.Pause();}
     }
 }

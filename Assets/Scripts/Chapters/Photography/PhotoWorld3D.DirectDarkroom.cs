@@ -4,7 +4,7 @@ namespace MemoryWhitebox
     public sealed partial class PhotoWorld3D
     {
         public bool DirectDarkroom {get;private set;}
-        public bool DirectDarkroomAvailable=>UsesProgress && ParkMode && !parkFilmUnavailable;
+        public bool DirectDarkroomAvailable=>UsesProgress && sceneProcessing && ParkMode && !parkFilmUnavailable;
         public void SetDirectDarkroom(bool value)
         {
             if(DirectDarkroom==value)return;

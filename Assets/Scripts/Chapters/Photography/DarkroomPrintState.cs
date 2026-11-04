@@ -14,10 +14,13 @@ namespace MemoryWhitebox
             if(version!=1 || negative==null || paper==null || negative.instanceId!="darkroom.negative" || paper.instanceId!="darkroom.paper" ||
                negative.definitionId!="photo.negative" || paper.definitionId!="photo.contact-sheet" || negative.ownerChapterId!=ChapterIds.Photography || paper.ownerChapterId!=ChapterIds.Photography ||
                negative.schemaVersion!=1 || paper.schemaVersion!=1)throw new InvalidDataException("Invalid darkroom item identity.");
-            if(Array.IndexOf(new[]{"print-negative-home","print-negative-clip","print-frame"},negative.locationId)<0 ||
-               Array.IndexOf(new[]{"print-paper-home","print-frame","print-developer","print-stop","print-fixer","print-wash","print-photo-clip"},paper.locationId)<0)
+            if((!IsAreaPlacement(negative.locationId) && Array.IndexOf(new[]{"print-negative-home","print-negative-clip","print-frame"},negative.locationId)<0) ||
+               (!IsAreaPlacement(paper.locationId) && Array.IndexOf(new[]{"print-paper-home","print-frame","print-developer","print-stop","print-fixer","print-wash","print-photo-clip"},paper.locationId)<0))
                 throw new InvalidDataException("Invalid darkroom item placement.");
         }
+        // Table poses already live in OperationArea records. A free placement is
+        // a valid idle location, never a substitute for a processing station.
+        static bool IsAreaPlacement(string id)=>id!=null && id.StartsWith("area/",StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(id.Substring(5));
         public static DarkroomPrintState FromLegacy(ParkPrintStage stage,bool processing)
         {
             var state=new DarkroomPrintState();

@@ -5,7 +5,7 @@ namespace MemoryWhitebox
     public sealed partial class PaintingWorld3D
     {
         AlbumWinterVisual winterSheet,winterSwing,winterBridge,winterLoad,winterFlower,winterDoor;
-        Transform winterProps,winterCrate;
+        Transform winterCrate;
         static Transform VisualInstance(GameObject prefab,Transform parent,Vector3 position,float scale=1)
         {
             var t=Object.Instantiate(prefab,parent,false).transform;t.name="Visual_"+prefab.name;
@@ -15,58 +15,94 @@ namespace MemoryWhitebox
         }
         static void HideVisual(Transform t)
         {foreach(var r in t.GetComponentsInChildren<Renderer>(true))r.enabled=false;}
-        AlbumWinterVisual Mechanism(GameObject prefab,Vector3 routePosition)
-        {return VisualInstance(prefab,winterProps,routePosition/10).GetComponent<AlbumWinterVisual>();}
-        void BuildWinterVisuals()
+        WinterAlbumWorkspace layout;
+        void BindWinterVisuals()
         {
+            winterSwing=layout.swing;winterBridge=layout.bridge;winterLoad=layout.counterweight;
+            winterFlower=layout.wheel;winterDoor=layout.door;
             var a=PaintingVisualAssets.Load();
-            if(a==null || !a.sheet || !a.swing || !a.bridge || !a.counterweight || !a.flower || !a.door || !a.suitcase || !a.pendant)
-            {Debug.LogError("PaintingVisualAssets missing: retaining legacy visuals.");return;}
-            // One metre-to-miniature conversion. Original logic transforms/colliders are untouched.
-            winterProps=new GameObject("Visual_AlbumWorldAdapter_SourceScale10").transform;
-            winterProps.SetParent(route,false);winterProps.localScale=Vector3.one*10;Layer(winterProps,RouteLayer);
-            winterSwing=Mechanism(a.swing,new Vector3(4.5f,0,0));
-            winterBridge=Mechanism(a.bridge,new Vector3(10.5f,.7f,0));
-            winterLoad=Mechanism(a.counterweight,new Vector3(4,0,0));
-            winterFlower=Mechanism(a.flower,new Vector3(8,0,0));
-            winterDoor=Mechanism(a.door,new Vector3(14.7f,3.18f,-.44f)); // KeySeat -> unchanged receiver (14.7,4,-.48).
-            foreach(var t in new[]{bridge,swingSeat,swingRope,crate,gate,linkage,flower,hole,key})HideVisual(t);
-            foreach(var t in petals)HideVisual(t);
-            foreach(string id in new[]{"swing-pivot","pressure-plate","gate-walkway","key-door"})HideVisual(Nodes[id].transform);
-            winterCrate=VisualInstance(a.suitcase,winterProps,Vector3.zero,.14f);
-            // The original draggable key keeps its identity and all hit regions.
+            HideVisual(hole);HideVisual(key);
+            winterCrate=VisualInstance(a.suitcase,route,Vector3.zero,1.4f);
             var keyVisual=VisualInstance(a.pendant,key,Vector3.zero,10);
             keyVisual.localRotation=Quaternion.Euler(0,180,0);
-            HideVisual(Nodes["album-backing"].transform);HideVisual(Nodes["album-page"].transform);
-            var sheet=VisualInstance(a.sheet,paper,new Vector3(0,0,-.012f),3);
-            sheet.localRotation=Quaternion.Euler(90,180,0);Layer(sheet,PaperLayer);
-            winterSheet=sheet.GetComponent<AlbumWinterVisual>();winterSheet.SetPageTexture(albumTexture);
-            // The delivered content submesh is .4 x .225 m: uniform 3x matches the original 1.2 x .675 picking quad.
-            // Observation clues retain their original hotspots. Replace only associated renderers.
-            var old=observation.GetComponentsInChildren<Renderer>(true);
-            foreach(var r in old)
+            hole.position=layout.keySocket.position;
+            State.BindLayout(layout);
+            observedArt=layout.observationCarrier.GetComponentsInChildren<Renderer>(true);
+            TintObservedArt(0);
+            BindClue("shape-swing",layout.swingFocus);
+            BindClue("shape-bridge",layout.bridgeFocus);
+            BindClue("shape-luggage",layout.luggageFocus);
+            BindClue("shape-flower",layout.flowerFocus);
+            BindClue("shape-pendant",layout.pendantFocus);
+        }
+        void BindClue(string id,Collider hit)
+        {
+            var target=hit.GetComponent<WorldHotspot>() ?? hit.gameObject.AddComponent<WorldHotspot>();
+            target.Owner=this;target.Id=id;Nodes[id]=hit.gameObject;
+        }
+
+        static readonly Color RoomSky=new Color(.80f,.84f,.79f);
+        const float ActFadeDuration=.8f;
+        float actTransition;
+        int observationAct;
+        public float ActWhite=>actTransition>0?1-Mathf.Abs(2*actTransition/ActFadeDuration-1):0;
+
+        void SetObservationAct(int act)
+        {
+            observationAct=act;layout.parkObservation.gameObject.SetActive(act==0);
+            layout.roomObservation.gameObject.SetActive(act==1);
+            var anchor=act==0?layout.parkView:layout.roomView;
+            fixedEye=Eye=anchor.position;fixedRotation=anchor.rotation;Look=Eye+anchor.forward;
+            View.transform.SetPositionAndRotation(Eye,fixedRotation);
+            yaw=pitch=0;GazeTarget="";edgeArmed=false;pointer=new Vector2(.5f,.5f);
+            View.backgroundColor=act==0?new Color(.68f,.77f,.80f):RoomSky;
+            Physics.SyncTransforms();
+        }
+
+        void AdvanceActTransition(float dt)
+        {
+            float half=ActFadeDuration*.5f;
+            actTransition=Mathf.Max(0,actTransition-dt);
+            if(observationAct==0 && actTransition<=half)
             {
-                var hit=r.GetComponent<WorldHotspot>();
-                if(hit!=null && (hit.Id=="shape-swing" || hit.Id=="shape-bridge" || hit.Id=="shape-luggage" || hit.Id=="shape-pendant"))r.enabled=false;
-                if(hit!=null && string.IsNullOrEmpty(hit.Id) && Mathf.Abs(r.transform.localPosition.x+1.5f)<.7f && r.transform.localPosition.y==1.5f)r.enabled=false;
+                // Present one fully white frame even at a low frame rate.
+                actTransition=half;SetObservationAct(1);RefreshAlbum();Defocus.SetFocusHeld(false,1);
             }
-            VisualInstance(a.swing,observation,new Vector3(-1.5f,.8f,0),6.666667f);
-            VisualInstance(a.bridge,observation,new Vector3(1.6f,.69f,.4f),6);
-            VisualInstance(a.suitcase,observation,new Vector3(-1.3f,.05f,-.45f),1.6f);
-            var observedKey=VisualInstance(a.pendant,observation,new Vector3(-.75f,.38f,-.7f),3.5f);
-            observedKey.localRotation=Quaternion.Euler(0,180,0);
+            if(actTransition==0){Host?.InputContext.Handoff();Host?.SyncInputContext();}
+        }
+        Renderer[] observedArt;
+        readonly MaterialPropertyBlock clueTint=new MaterialPropertyBlock();
+        void TintObservedArt(float white)
+        {
+            foreach(var renderer in observedArt)
+            {
+                var material=renderer.sharedMaterial;
+                if(material==null)continue;
+                if(material.HasProperty("_PaperWhite"))
+                {
+                    renderer.GetPropertyBlock(clueTint);
+                    clueTint.SetFloat("_PaperWhite",white);
+                    renderer.SetPropertyBlock(clueTint);
+                    continue;
+                }
+                if(!material.HasProperty("_Color"))continue;
+                renderer.GetPropertyBlock(clueTint);
+                clueTint.SetColor("_Color",Color.Lerp(material.color,Color.white,white));
+                renderer.SetPropertyBlock(clueTint);
+            }
         }
         void RefreshWinterVisuals()
         {
-            if(winterProps==null)return;
-            winterProps.gameObject.SetActive(State.Phase<2);
+            if(layout==null)return;
+            layout.routeOrigin.gameObject.SetActive(State.Phase<2);
+            layout.observationCarrier.gameObject.SetActive(State.Phase<3);
             winterSwing.gameObject.SetActive(State.Phase==0 && State.Painted[0]);winterSwing.SetSwingAngleRadians(State.SwingAngle);
             winterBridge.gameObject.SetActive(State.Phase==0 && State.Painted[1]);winterBridge.SetBridgeProgress(State.BridgeGrowth);
             winterLoad.gameObject.SetActive(State.Phase==1);winterLoad.SetLoadProgress(State.PlatePressed?1:0);
             winterFlower.gameObject.SetActive(State.Phase==1 && State.Painted[3]);winterFlower.SetFlowerAngleRadians(State.FlowerAngle);
             winterDoor.gameObject.SetActive(State.Phase==1);
             winterDoor.SetDoorState(State.KeyInserted?1:0,State.KeyInserted?1:0,State.KeyInserted?1:0,State.KeyInserted);
-            winterCrate.gameObject.SetActive(State.Phase==1 && State.Painted[2]);winterCrate.localPosition=new Vector3(State.CrateX/10,0,0);
+            winterCrate.gameObject.SetActive(State.Phase==1 && State.Painted[2]);winterCrate.localPosition=new Vector3(State.CrateX,0,0);
         }
     }
 }

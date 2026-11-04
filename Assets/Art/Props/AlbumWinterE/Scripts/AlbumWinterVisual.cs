@@ -46,6 +46,8 @@ namespace MemoryWhitebox.Art
         void Sample(string suffix,float u){var c=clips.FirstOrDefault(x=>x!=null&&x.name.EndsWith("_"+suffix,StringComparison.Ordinal));if(c!=null)c.SamplePropAnimation(gameObject,Unit(u)*c.length);}
         void Apply()
         {
+            // Setters retain the requested pose; OnEnable samples it once the prop is visible.
+            if(Application.isPlaying && !gameObject.activeInHierarchy)return;
             if(rest!=null)rest.SamplePropAnimation(gameObject,0);
             if(asset=="E01_Album"){Sample("BookClose",1-state.open);Sample("PageTurn",state.turn*state.open);Sample("PageSettle",state.settle*state.open);}
             if(asset=="E02_AlbumActor"){Sample(state.actorPose??"Idle",state.actorProgress);if(actorFacing!=null)actorFacing.localRotation=Quaternion.Euler(0,state.facing,0);}

@@ -64,14 +64,10 @@ namespace MemoryWhitebox
                 OperationArea.Restore(story.AreaPlacements);
                 for(int i=0;i<chapters.Length;i++)
                 {
-                    chapters[i].RestoreCheckpoint(story.Checkpoint(i));
+                    if(i!=0)chapters[i].RestoreCheckpoint(story.Checkpoint(i));
                     if(story.IsComplete(i))chapters[i].RestoreStoryCompletion();
                     Done[i]=story.IsComplete(i);
                 }
-                radioDeck.AdvanceInspection(1);
-                radioDeck.SynchronizeCommission();
-                radioDeck.RestoreWorkingTape();
-                radioDeck.RestoreWorkbench();
             }
             catch(System.Exception e){story.BlockRestore(e);}
         }
@@ -79,23 +75,23 @@ namespace MemoryWhitebox
         public bool SaveStableProgress()
         {
             if(!houseReady || story==null || !story.Available){LastSaveError=story!=null?story.Error:"Story not ready.";return false;}
-            if(!radioDeck.SaveRecordingProgress()){LastSaveError="Recording could not be saved.";return false;}
+            if(radioDeck!=null && !radioDeck.SaveRecordingProgress()){LastSaveError="Recording could not be saved.";return false;}
             var photography=worlds[1] as PhotoWorld3D;
             if(photography!=null && !photography.SaveProgress()){LastSaveError="Photography progress could not be saved.";return false;}
             for(int i=0;i<chapters.Length;i++)
             {
-                if(!story.CanEnter(i) || story.IsComplete(i))continue;
+                if((i==0 && radioDeck==null) || !story.CanEnter(i) || story.IsComplete(i))continue;
                 bool saved=chapters[i].Completed?CommitStoryCompletion(i):story.SaveCheckpoint(i,chapters[i].CaptureCheckpoint());
                 if(!saved){LastSaveError=story.Error;return false;}
             }
-            if(!story.SaveAreaPlacements(OperationArea.Capture())){LastSaveError=story.Error;return false;}
+            if(!story.SaveAreaPlacements(OperationArea.Capture(story.AreaPlacements))){LastSaveError=story.Error;return false;}
             LastSaveError="";return true;
         }
         bool CommitStoryCompletion(int index)
         {
             if(story==null)return false;
             if(story.IsComplete(index))return true;
-            if(index==0 && !radioDeck.SaveRecordingProgress())return false;
+            if(index==0 && (radioDeck==null || !radioDeck.SaveRecordingProgress()))return false;
             if(index==1 && worlds[index] is PhotoWorld3D && !((PhotoWorld3D)worlds[index]).SaveProgress())return false;
             if(!story.Complete(index,chapters[index].CaptureCheckpoint()))return false;
             PublishCommittedCompletion(index);return true;
@@ -105,8 +101,10 @@ namespace MemoryWhitebox
             Done[index]=true;
             DayChanged?.Invoke(story.Day);
             if(index==3){CutBackFromWinter();return;}
-            leaveCompletedChapter=index!=1 && index!=4 && InStation && ChapterIndex==index;
-            if(index==0)radioDeck.SuspendInput();
+            // Tape completion keeps the recorder available for listening after the
+            // success popup; an automatic exit would compete for its input/camera.
+            leaveCompletedChapter=index!=0 && index!=1 && index!=4 && InStation && ChapterIndex==index;
+            if(index==0)radioDeck?.SuspendInput();
         }
         public SaveResult CommitPreparedChapter(string id,string payload,bool completed,ArtifactReference artifact)
         {

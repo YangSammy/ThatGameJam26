@@ -16,7 +16,7 @@ namespace MemoryWhitebox
         {
             visual.SetHeldProgress(held);visual.SetIsoIndex(iso==200?1:iso==400?2:iso==800?3:0);
             if(!available || float.IsNaN(ev100) || float.IsInfinity(ev100)){visual.ClearReading();return;}
-            float seconds=64/Mathf.Pow(2,ev100+Mathf.Log(iso/100f,2));
+            float seconds=ParkCameraResponse.SuggestedShutter(8,iso,ev100);
             string text="ISO"+iso+"\nF8 1/"+Mathf.RoundToInt(1/seconds)+"\nEV"+ev100.ToString("0.0",System.Globalization.CultureInfo.InvariantCulture);
             if(text!=lastText){Draw(text);lastText=text;}
             visual.SetReadingNormalized(Mathf.InverseLerp(0,20,ev100),true,content);

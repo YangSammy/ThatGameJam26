@@ -504,6 +504,13 @@ MonoBehaviour:
   hairBones:
   - {fileID: 8774686903506585181}
   - {fileID: 763562753309474279}
+  useNaturalPrivacyPose: 1
+  neckBone: {fileID: 0}
+  privacyLookDown: 36
+  privacyLookAway: 50
+  privacyPoseSeconds: 0.6
+  palmContact: {fileID: 6545333573021159003}
+  offerContactSeconds: 2.1
   shoulderFollow: 0.24
   shoulderDelay: 0.26
   hairDelay: 0.19
@@ -1858,7 +1865,7 @@ Animator:
   m_GameObject: {fileID: 6336074103850223241}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: bfcd527fdebdb5a49a0b729c3255b948, type: 2}
+  m_Controller: {fileID: 9100000, guid: c1a5595385fd48e458448cee470f4c4f, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -2444,6 +2451,7 @@ Transform:
   - {fileID: 5018607809769575637}
   - {fileID: 2323902314240160423}
   - {fileID: 7225637583089443786}
+  - {fileID: 6545333573021159003}
   m_Father: {fileID: 4469400758441931978}
   m_LocalEulerAnglesHint: {x: 0.4232422, y: -2.9841433, z: 7.934829}
 --- !u!1 &8445046794941700686
@@ -2541,6 +2549,37 @@ Transform:
   - {fileID: 132211349728109364}
   m_Father: {fileID: 725738566798641044}
   m_LocalEulerAnglesHint: {x: 10.112365, y: 16.907093, z: -14.393687}
+--- !u!1 &8731967908428707997
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6545333573021159003}
+  m_Layer: 0
+  m_Name: PalmContact
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6545333573021159003
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8731967908428707997}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.0006584004, y: 0.035187405, z: 0.0012831212}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4206243187539397825}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8848310798165618016
 GameObject:
   m_ObjectHideFlags: 0

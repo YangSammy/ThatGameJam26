@@ -1,5 +1,9 @@
 # Unity project context — asset authoring inspection
 
+> 2026-11-03: The user approved aligning the full game to the v3 PDF. The historical snapshot below is not the current design contract. Read [V3 alignment plan and ledger](../superpowers/plans/2026-11-03-v3-alignment.md) for accepted differences, implementation order and verification status. Existing assets and persistent artifacts remain authoritative; do not rebuild them from this snapshot.
+
+> 2026-11-03 photography/darkroom update: Park now owns the only mechanical loading sequence; House enters the memory first and preserves loading state read-only. Three resume anchors and physical chemical/tray cues are authored. Read [execution and verification report](../validation/V3PhotographyDarkroom-2026-11-03.md) before using historical camera entry/testing instructions. Full native gesture and character-visual acceptance remain open.
+
 <!-- unity-onboarding:generated:start -->
 - Inspected 2026-10-31, commit `00bf2c64648733bc7d226844e7a52d35bd5fd41f` with existing uncommitted changes.
 - Root: `D:/GameJams/ThatGamejam2026`; Unity 2022.3.62f3 (96770f904ca7), Built-in (`GraphicsSettings.m_CustomRenderPipeline=0`), legacy input (`activeInputHandler=0`). Confirmed from project settings.

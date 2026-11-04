@@ -18,7 +18,7 @@ namespace MemoryWhitebox
         public FirstPersonHands playerHands;
         public GameObject houseShell;
         public SafeInspection safeInspection;
-        public HouseRadioDeck radioDeck;
+        public HouseRadioDeck radioDeck {get;private set;}
         public SceneViewAnchor playerSpawn;
         [System.NonSerialized] bool houseReady;
         [HideInInspector,Range(.5f,3)] public float houseWalkSpeed=1.8f;
@@ -56,12 +56,11 @@ namespace MemoryWhitebox
             Instance=this;IsQA=false;Application.targetFrameRate=60;
             UIFont=Font.CreateDynamicFontFromOSFont(new[]{"Microsoft YaHei","Arial"},18);
             audioSource=gameObject.AddComponent<AudioSource>();audioSource.playOnAwake=false;audioSource.volume=.12f;
-            if(playerCamera==null || playerHands==null || radioDeck==null || radioDeck.Chapter==null)
-            {Debug.LogError("House requires its authored player camera, hands and initialized radio.",this);enabled=false;return;}
+            if(playerCamera==null || playerHands==null)
+            {Debug.LogError("House requires its authored player camera and hands.",this);enabled=false;return;}
             Room=new RoomWorld();Room.CreateShared(playerCamera,houseShell);
             if(safeInspection!=null){safeInspection.InputContext=InputContext;safeInspection.RestoreInputContext=()=>{SuspendHouseInput();SyncInputContext();};}
-            chapters[0]=radioDeck.Chapter;
-            worlds[0]=new RadioTapeWorld(radioDeck);
+            chapters[0]=new RadioTapeChapter();
             for(int i=1;i<5;i++)
             {
                 CreateHouseChapter(i);
@@ -70,7 +69,6 @@ namespace MemoryWhitebox
             ((PhotoWorld3D)worlds[1]).BindOperationAreas();
             BindChapterData();
             LoadStoryProgress();
-            ((PaintingWorld3D)worlds[3]).RestoreFinalPaper();
             ((PaintingWorld3D)worlds[3]).BindSharedScarf((EndingWorld3D)worlds[4]);
             var hands=playerHands;hands.BindHouse(this);hands.Register(0,worlds[0]);
             for(int i=1;i<5;i++)hands.Register(i,worlds[i]);
@@ -78,12 +76,14 @@ namespace MemoryWhitebox
             // Writing's memory is rendered only by its dedicated camera.
             Room.Camera.cullingMask &= ~(1<<26);
             if(playerSpawn!=null)playerSpawn.Apply(Room.Camera);
+            bool returnedView=story.HasHouseReturn;
             story.RestoreReturn(Room.Camera);
             ParkFilmRoute.RestoreHouseView(Room.Camera);
             story.ClearReturn();
-            Room.EnableLook(true);houseReady=true;radioDeck.SetStationActive(true);SuspendHouseInput();
+            Room.EnableLook(true);houseReady=true;SuspendHouseInput();
             if(ParkFilmRoute.EnterDarkroomOnLoad){ParkFilmRoute.EnterDarkroomOnLoad=false;if(Curtain!=null && !Curtain.IsOpen){Curtain.Toggle();Curtain.Advance(1);}}
             PrepareContinuousDarkroom();
+            StartSeasonBedroom(returnedView);
         }
         void CreateHouseChapter(int index)
         {
@@ -94,6 +94,7 @@ namespace MemoryWhitebox
                 case 3:chapters[index]=new PaintingChapter();worlds[index]=new PaintingWorld3D(this,(PaintingChapter)chapters[index]);break;
                 case 4:chapters[index]=new EndingChapter();worlds[index]=new EndingWorld3D(this,(EndingChapter)chapters[index]);break;
             }
+            if(worlds[index].Root.scene!=gameObject.scene)UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(worlds[index].Root,gameObject.scene);
             worlds[index].Root.name="House station - "+HouseLayout.Names[index];
         }
         public bool TryEnterHouseStation(int index)
@@ -103,6 +104,8 @@ namespace MemoryWhitebox
             if(!houseReady || InStation || transition>0 || index<0 || index>=5)return false;
             if(!CanEnterDay(index))
             {
+                cameraRouteNotice=ChapterEntryBlockReason(index);
+                cameraRouteNoticeUntil=Time.unscaledTime+4;
 #if UNITY_EDITOR
                 Debug.LogWarning("Chapter entry blocked: "+ChapterEntryBlockReason(index),this);
 #endif
@@ -128,28 +131,34 @@ namespace MemoryWhitebox
         }
         void EnterHouseStation(int index)
         {
-            if(!houseReady || InStation || DirectTapeHandling || transition>0 || index<0 || index>=5)return;
+            if(!houseReady || InStation || DirectTapeHandling || transition>0 || index<0 || index>=5 || worlds[index]==null)return;
             if(!CanEnterDay(index))return;
+            if(index==2 && (narrativeBedroom==null || narrativeBedroom.writingDesk==null))return;
             if(index==4){springPreview=true;return;}
             if(index==3 && chapters[3].Completed)return;
             if(index==1 && DarkroomWorld!=null && DarkroomWorld.DirectDarkroomAvailable){PrepareContinuousDarkroom();return;}
+            if(index==1 && deskStudy){TryStartParkPhotography();return;}
             SaveStableProgress();
-            radioDeck.SetStationActive(false);
+            radioDeck?.SetStationActive(false);
             roomEye=Room.Camera.transform.position;roomRotation=Room.Camera.transform.rotation;roomFov=Room.Camera.fieldOfView;
             ChapterIndex=index;Current=chapters[index];CurrentWorld=worlds[index];
             if(index==0 && CurrentWorld is RadioTapeWorld)((RadioTapeWorld)CurrentWorld).ReadViewAnchor();
             var configuredView=FindChapterBinding(ChapterIds.At(index))?.operationView;
             if(configuredView!=null){CurrentWorld.Eye=configuredView.transform.position;CurrentWorld.Look=CurrentWorld.Eye+configuredView.transform.forward;CurrentWorld.Fov=configuredView.fieldOfView;}
+            if(index==2 && narrativeBedroom!=null && narrativeBedroom.chapterEntry.chapter==2)
+                ((WritingWorld3D)CurrentWorld).FitTeaTable(narrativeBedroom.writingDesk);
             InStation=true;ShowHelp=false;awaitRelease=true;houseHandoff.Arm();houseReturnGate=false;returningToRoom=false;
             Room.EnableLook(false);InputState.Keys.Clear();InputState.Down=false;
             studyRevealed=false;
             if(index==0 && radioDeck!=null)BeginHouseTransition(CurrentWorld.Eye,radioDeck.operationView!=null?radioDeck.operationView.transform.rotation:Quaternion.LookRotation(CurrentWorld.Look-CurrentWorld.Eye),CurrentWorld.Fov);
-            else BeginHouseTransition(CurrentWorld.Eye,Quaternion.LookRotation(CurrentWorld.Look-CurrentWorld.Eye),CurrentWorld.Fov);
+            else BeginHouseTransition(CurrentWorld.Eye,CurrentWorld.ViewRotation,CurrentWorld.Fov);
         }
-        // Called by the loading UI only after the mechanical steps have been saved.
+        // Enter the memory first; its mechanical loading controller owns the roll.
         public bool TryStartParkPhotography()
         {
-            if(!HouseInputReady || !deskStudy || ChapterIndex!=1 || !CanEnterDay(1))return false;
+            if(!houseReady || !houseFocused || !deskStudy || !CanEnterDay(1) || transition>0 ||
+                DirectTapeHandling || ShowHelp || (safeInspection!=null && safeInspection.BlocksInput) ||
+                (InStation && (ChapterIndex!=1 || !HouseInputReady)))return false;
             try
             {
                 var film=ParkFilmStore.LoadOrCreate();
@@ -159,9 +168,12 @@ namespace MemoryWhitebox
                     throw new System.InvalidOperationException("ParkScene is not in Build Settings.");
                 if(!SaveStableProgress())
                 {cameraRouteNotice="Progress not saved. Stay here and retry. "+LastSaveError;cameraRouteNoticeUntil=Time.unscaledTime+6;return false;}
-                if(!story.RememberReturn(roomEye,roomRotation,roomFov))return false;
+                var returnEye=InStation?roomEye:Room.Camera.transform.position;
+                var returnRotation=InStation?roomRotation:Room.Camera.transform.rotation;
+                float returnFov=InStation?roomFov:Room.Camera.fieldOfView;
+                if(!story.RememberReturn(returnEye,returnRotation,returnFov))return false;
                 SuspendHouseInput();
-                ParkFilmRoute.RememberHouseView(roomEye,roomRotation,roomFov);
+                ParkFilmRoute.RememberHouseView(returnEye,returnRotation,returnFov);
                 UnityEngine.SceneManagement.SceneManager.LoadScene(ParkFilmRoute.ParkScenePath);
                 return true;
             }
@@ -178,8 +190,13 @@ namespace MemoryWhitebox
         {
             if(!deskStudy)return;
             for(int i=1;i<5;i++)worlds[i].Root.SetActive(i==index || (i==4 && SpringActive));
-            if(StudyEntries!=null){if(index>0 && radioDeck!=null)radioDeck.PrepareForHide();StudyEntries.gameObject.SetActive(index<0 || (index==0 && radioDeck!=null));}
-            if(index<0)PrepareContinuousDarkroom();
+            if(StudyEntries!=null){if(index>0 && radioDeck!=null)radioDeck.PrepareForHide();StudyEntries.gameObject.SetActive(springTapeRoom==null && index<0);}
+            if(narrativeBedroom!=null)
+            {
+                if(index<0)((WritingWorld3D)worlds[2]).ReleaseTeaTable();
+                narrativeBedroom.PresentStation(this,index>=0);
+            }
+            else if(index<0)PrepareContinuousDarkroom();
         }
         public bool TryToggleStudyCurtain(Ray ray)
         {
@@ -276,26 +293,28 @@ namespace MemoryWhitebox
             Room.Camera.rect=new Rect(0,0,1,1);Room.Camera.cullingMask &= ~(1<<26);
             Room.Camera.ResetAspect();
             InStation=false;ShowHelp=false;awaitRelease=false;
-            radioDeck.SetStationActive(true);
+            radioDeck?.SetStationActive(true);
             audioSource.Stop();
             story.ClearReturn();
         }
         void UpdateHouse()
         {
-            if(!houseReady || Room==null || !houseFocused)return;
+            if(!houseReady || Room==null || !houseFocused || loadingSpringRoom)return;
+            FinishSpringBedroomIfReady();
+            if(loadingSpringRoom)return;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if(PollDebugChapterKeys())return;
 #endif
             TickStoryProgress();
             RestoreHouseCursor();
-            if(radioDeck.SuccessPopupOpen){Room.StopMotion();return;}
+            if(radioDeck!=null && radioDeck.SuccessPopupOpen){Room.StopMotion();return;}
             if(safeInspection!=null && safeInspection.BlocksInput){Room.StopMotion();return;}
             if(transition>0){AdvanceHouseTransition(Mathf.Min(Time.unscaledDeltaTime,.1f));return;}
             if(houseReturnGate){Room.StopMotion();ReleaseHouseReturnInput(houseHandoff.Ready);return;}
             if(awaitRelease){if(houseHandoff.Ready)ReleaseHouseEntryInput();return;}
             if(!InputContext.Ready){Room.StopMotion();return;}
-            if(radioDeck.RecordingMode){radioDeck.TickRecording();return;}
-            if(radioDeck.WorkbenchMode){radioDeck.TickWorkbench();return;}
+            if(radioDeck!=null && radioDeck.RecordingMode){radioDeck.TickRecording();return;}
+            if(radioDeck!=null && radioDeck.WorkbenchMode){radioDeck.TickWorkbench();return;}
             if(ExitHouseContext())return;
             if(ShowHelp)
             {
@@ -307,8 +326,10 @@ namespace MemoryWhitebox
             if(transition>0){AdvanceHouseTransition(dt);return;}
             if(!InStation)
             {
+                if(TickNarrativeBedroom(dt) || TickSummerPhotography(dt))return;
                 if(TickSpring(dt))return;
                 if(TickContinuousDarkroom(dt))return;
+                if(radioDeck==null){Room.WalkTick(dt);return;}
                 if(!radioDeck.StationActive && CanEnterDay(0))radioDeck.SetStationActive(true);
                 if(!CanEnterDay(0) && radioDeck.StationActive)radioDeck.SetStationActive(false);
                 SyncTapePointer();
@@ -391,7 +412,7 @@ namespace MemoryWhitebox
         }
         void SyncTapePointer()
         {
-            bool free=DirectTapeHandling || radioDeck.WorkbenchMode;
+            bool free=DirectTapeHandling || (radioDeck!=null && radioDeck.WorkbenchMode);
             if(free!=tapePointerWasFree){Room.EnableLook(!free);tapePointerWasFree=free;PlayerInputPolicy.SuppressLook();}
             SyncInputContext();
         }
@@ -399,11 +420,17 @@ namespace MemoryWhitebox
         {
             if(!houseReady || Room==null)return;
             if(StoryFinished){var old=GUI.color;GUI.color=new Color(1,.98f,.91f,1);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=old;return;}
+            if(DepartureRoom!=null && !ShowHelp)return;
+            if(InStation && CurrentWorld is PaintingWorld3D album && album.ActWhite>0)
+            {
+                var old=GUI.color;GUI.color=new Color(1,1,1,album.ActWhite);
+                GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=old;return;
+            }
             if(radioDeck!=null && radioDeck.SuccessPopupOpen)return;
             if(safeInspection!=null && safeInspection.BlocksInput)return;
             if(transition>0)
             {
-                if(houseFade){var previous=GUI.color;float progress=1-transition/houseTransitionDuration;GUI.color=new Color(0,0,0,Mathf.SmoothStep(0,1,1-Mathf.Abs(progress*2-1)));GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=previous;}
+                if(houseFade){var previous=GUI.color;float progress=1-transition/houseTransitionDuration;float tone=narrativeBedroom!=null && ChapterIndex==3 && !returningToRoom?1:0;GUI.color=new Color(tone,tone,tone,Mathf.SmoothStep(0,1,1-Mathf.Abs(progress*2-1)));GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=previous;}
                 return;
             }
             var style=new GUIStyle(GUI.skin.label){font=UIFont,fontSize=18,wordWrap=true};
@@ -417,7 +444,7 @@ namespace MemoryWhitebox
                 InteractionUI.Label(new Rect(28,60,Screen.width-56,60),cameraRouteNotice,style);
             if(!InStation && transition<=0)
             {
-                if(DirectTapeHandling || radioDeck.RecordingMode || radioDeck.WorkbenchMode)return;
+                if(DirectTapeHandling || (radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode)))return;
                 InteractionUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"·",style);
                 string hint=Room.AimedStation>=0?"LMB  "+InteractionUI.ChapterName(Room.AimedStation)+(safeInspection!=null && Room.AimedStation!=5?"  /  E  Inspect":""):"WASD  Move   /   Mouse  Look   /   LMB  Interact   /   E  Inspect";
                 if(radioDeck!=null)hint=radioDeck.GetHint(Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f)))??hint;
@@ -428,6 +455,13 @@ namespace MemoryWhitebox
                 }
                 if(deskStudy && Room.AimedStation==1)
                     hint=((PhotoWorld3D)worlds[1]).HouseCameraEntryHint+(safeInspection!=null?"  /  E  Inspect":"");
+                if(Room.AimedStation>=0 && Room.AimedStation<5 && !CanEnterDay(Room.AimedStation))
+                    hint=ChapterEntryBlockReason(Room.AimedStation)+(safeInspection!=null?"  /  E  Inspect":"");
+                if(summerPhotoRoom!=null)hint=summerPhotoRoom.HoverHint(this,Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f)))??hint;
+                if(narrativeBedroom!=null)
+                    hint=narrativeBedroom.IsEntry(StudyEntry.Pick(Room.Camera))
+                        ?(narrativeBedroom.chapterEntry.chapter==2?"LMB  Sit and write":"LMB  Enter the drawing")+(narrativeInspection!=null?"  /  E  Inspect":"")
+                        :"WASD  Move  /  Mouse  Look";
                 if(Time.unscaledTime<cameraRouteNoticeUntil)hint=cameraRouteNotice;
                 if(SpringActive)hint=((EndingChapter)chapters[4]).DoorOpen?"Walk through the doorway":"LMB  Open the entrance door";
                 InteractionUI.Label(new Rect(28,Screen.height-50,580,34),hint,style);

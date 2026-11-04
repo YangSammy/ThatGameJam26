@@ -36,20 +36,30 @@ namespace MemoryWhitebox
         }
         public bool StepHouse(float dt,Ray ray,bool click)
         {
-            BuildSpring();if(!built)return false;Root.SetActive(true);
+            var bedroom=Host.DepartureRoom;
+            if(bedroom==null){BuildSpring();if(!built)return false;Root.SetActive(true);}
             Ending.Tick(dt,idle);
             bool handled=false;
-            if(click && !Ending.DoorOpen && HitDoor(ray))
+            if(click && !Ending.DoorOpen && (bedroom!=null?bedroom.HitHandle(ray):HitDoor(ray)))
             {Ending.OpenDoor();Host.SaveStableProgress();handled=true;}
             opening=Mathf.MoveTowards(opening,Ending.DoorOpen?1:0,dt*1.5f);
-            hinge.localRotation=hingeBaseRotation*Quaternion.Euler(0,binding.openAngle*opening,0);
-            snow.localScale=new Vector3(1,Mathf.Max(.01f,1-Ending.SpringProgress),1);flower.localScale=Vector3.one*Mathf.Lerp(.3f,1,Ending.SpringProgress);
-            glow.intensity=Mathf.Lerp(1.4f,2.3f,opening);
-            Host.Room.ExitThreshold=binding.threshold;Host.Room.ExitHalfWidth=binding.doorwayHalfWidth;Host.Room.ExitOpen=opening>.9f;
-            Vector3 at=binding.threshold.InverseTransformPoint(Host.Room.Camera.transform.position);
-            if(hadPosition && Host.Room.ExitOpen && previousSide>=0 && at.z<0 && Mathf.Abs(at.x)<binding.doorwayHalfWidth)Ending.CrossThreshold();
+            if(bedroom!=null)
+            {
+                bedroom.ApplyDoor(opening);bedroom.ApplyThaw(Ending.SpringProgress);
+            }
+            else
+            {
+                hinge.localRotation=hingeBaseRotation*Quaternion.Euler(0,binding.openAngle*opening,0);
+                snow.localScale=new Vector3(1,Mathf.Max(.01f,1-Ending.SpringProgress),1);flower.localScale=Vector3.one*Mathf.Lerp(.3f,1,Ending.SpringProgress);
+                glow.intensity=Mathf.Lerp(1.4f,2.3f,opening);
+            }
+            var threshold=bedroom!=null?bedroom.threshold:binding.threshold;
+            Host.Room.ExitThreshold=threshold;if(bedroom==null)Host.Room.ExitHalfWidth=binding.doorwayHalfWidth;Host.Room.ExitOpen=opening>.9f;
+            Vector3 at=threshold.InverseTransformPoint(Host.Room.Camera.transform.position);
+            if(hadPosition && Host.Room.ExitOpen && previousSide>=0 && at.z<0 && Mathf.Abs(at.x)<Host.Room.ExitHalfWidth)Ending.CrossThreshold();
             previousSide=at.z;hadPosition=true;return handled || Ending.Completed;
         }
+        public void RestoreDoorPose(){opening=Ending.DoorOpen?1:0;hadPosition=false;}
         bool HitDoor(Ray ray)
         {
             foreach(var target in new[]{binding.entranceDoor,binding.doorHandle})

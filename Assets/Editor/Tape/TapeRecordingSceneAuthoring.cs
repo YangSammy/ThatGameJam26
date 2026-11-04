@@ -9,9 +9,9 @@ namespace MemoryWhitebox.Editor
 {
     public static class TapeRecordingSceneAuthoring
     {
-        const string ScenePath="Assets/Scenes/HouseScene.unity";
+        const string ScenePath=SpringTapeRoom.ScenePath;
         const string MaterialFolder="Assets/Art/Props/Radio/Materials";
-        [MenuItem("Tools/Memory Whitebox/Tape/Author Recording Parts In HouseScene")]
+        [MenuItem("Tools/Memory Whitebox/Tape/Author Recording Parts In Spring Bedroom")]
         public static void Build()
         {
             if(EditorApplication.isPlaying)throw new System.InvalidOperationException("Exit Play before authoring scene parts.");
@@ -95,7 +95,7 @@ namespace MemoryWhitebox.Editor
             }
             EditorUtility.SetDirty(deck);
             EditorSceneManager.MarkSceneDirty(scene);AssetDatabase.SaveAssets();
-            if(!EditorSceneManager.SaveScene(scene))throw new System.IO.IOException("HouseScene was not saved.");
+            if(!EditorSceneManager.SaveScene(scene))throw new System.IO.IOException("Spring bedroom was not saved.");
             Selection.activeGameObject=deck.recordingPanel.gameObject;
         }
         static Transform Group(Transform parent,string name)

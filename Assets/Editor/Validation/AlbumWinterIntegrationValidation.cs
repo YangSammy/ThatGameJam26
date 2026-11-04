@@ -11,8 +11,17 @@ namespace MemoryWhitebox.EditorTools
         static PaintingWorld3D W => WBMain.Instance.CurrentWorld as PaintingWorld3D;
         const string Report="output/E_AlbumWinter_Integration_v1/runtime-checks.txt";
         static void Check(bool ok,string text){System.IO.File.AppendAllText(Report,(ok?"PASS ":"FAIL ")+text+"\n");if(!ok)throw new Exception(text);}
-        static Transform Find(string name)=>W.Root.GetComponentsInChildren<Transform>(true).Last(x=>x.name==name);
-        static AlbumWinterVisual Visual(string part)=>W.Root.GetComponentsInChildren<AlbumWinterVisual>(true).Last(x=>x.name=="Visual_PF_"+part);
+        static WinterAlbumWorkspace Workspace=>UnityEngine.Object.FindObjectOfType<WinterAlbumWorkspace>(true);
+        static Transform Find(string name)=>Workspace.routeOrigin.GetComponentsInChildren<Transform>(true)
+            .Concat(W.Root.GetComponentsInChildren<Transform>(true)).First(x=>x.name==name);
+        static AlbumWinterVisual Visual(string part)
+        {
+            if(part=="AlbumSheet_E01")return Workspace.sheet;
+            if(part=="Bridge_E04")return Workspace.bridge;
+            if(part=="CounterweightGate_E05")return Workspace.counterweight;
+            if(part=="PendantDoor_E07")return Workspace.door;
+            throw new ArgumentOutOfRangeException(nameof(part),part,"Unbound winter prop");
+        }
         static void Step(WBInput input=null,float dt=.02f){W.Tick(dt,input??new WBInput());}
         static WBInput Right(bool jump=false){var i=new WBInput();i.Keys.Add(KeyCode.D);if(jump)i.Keys.Add(KeyCode.Space);return i;}
         static void Edge(bool open){W.Move(W.View.ViewportPointToRay(new Vector3(.5f,.5f)));Step(null,0);W.Move(W.View.ViewportPointToRay(new Vector3(.5f,open?.01f:.99f)));Step(null,0);W.Move(W.View.ViewportPointToRay(new Vector3(.5f,.5f)));}
@@ -30,7 +39,7 @@ namespace MemoryWhitebox.EditorTools
             {
                 // Find a visible sample within existing colliders; suitcase occludes the central seat.
                 Ray chosen=new Ray();bool found=false;
-                foreach(var hot in W.Root.GetComponentsInChildren<WorldHotspot>(true).Where(x=>x.Id==id))
+                foreach(var hot in Workspace.observationCarrier.GetComponentsInChildren<WorldHotspot>(true).Where(x=>x.Id==id))
                 {
                     var c=hot.GetComponent<Collider>();if(c==null)continue;
                     for(int y=0;y<9&&!found;y++)for(int x=0;x<9&&!found;x++)
@@ -47,7 +56,7 @@ namespace MemoryWhitebox.EditorTools
             Check(Mathf.Abs(pivot.InverseTransformPoint(Find("ConnectLeft").position).x-9)<.002f,"Bridge left endpoint stays x9");
             Check(Mathf.Abs(pivot.InverseTransformPoint(Find("ConnectRight").position).x-12)<.002f,"Bridge right endpoint stays x12");
             Check(Visual("Bridge_E04").Capture().bridge==W.State.BridgeGrowth,"Bridge reveal reads chapter progress");
-            Check(Find("Visual_AlbumWorldAdapter_SourceScale10").GetComponentsInChildren<Collider>(true).All(c=>!c.enabled),"New prop colliders remain disabled");
+            Check(Workspace.routeOrigin.GetComponentsInChildren<Collider>(true).All(c=>!c.enabled),"New prop colliders remain disabled");
             Check(!W.Root.GetComponentsInChildren<Transform>(true).Any(t=>t.name.Contains("E02")),"No E02 character imported into gameplay");
             bool rode=false;
             for(int i=0;i<1500&&W.State.Phase==0;i++)
@@ -84,7 +93,7 @@ namespace MemoryWhitebox.EditorTools
             var expected=new PaintingChapter();expected.RestoreCheckpoint(SessionState.GetString("AlbumWinter.Expected",""));
             Check(W.State.CaptureCheckpoint()==expected.CaptureCheckpoint(),"Exit/re-enter restores identical stable checkpoint");
             Check(Visual("PendantDoor_E07").Capture().keyVisible==W.State.KeyInserted,"Door appearance restores from authoritative saved key state");
-            Check(W.Root.GetComponentsInChildren<AlbumWinterVisual>(true).Length==8,"Re-entry does not duplicate prop instances");
+            Check(Workspace.routeOrigin.GetComponentsInChildren<AlbumWinterVisual>(true).Length==5 && W.Root.GetComponentsInChildren<AlbumWinterVisual>(true).Length==0,"Re-entry uses the five scene-owned mechanisms");
             Check(Visual("AlbumSheet_E01").Capture().pageTexture is RenderTexture,"Re-entry retains real game RenderTexture");return "Restoration passed";
         }
     }

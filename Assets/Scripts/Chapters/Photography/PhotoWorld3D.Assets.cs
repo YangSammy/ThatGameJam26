@@ -86,13 +86,16 @@ namespace MemoryWhitebox
             ((BoxCollider)advanceLever.GetComponent<Collider>()).size=new Vector3(1.25f,2f,1.5f);
             // Loading does not use exposure controls: do not let them steal the lever hit.
             foreach(var id in new[]{"shutter-dial","shutter","focal-ring","aperture-ring"})
-                Nodes[id].GetComponent<Collider>().enabled=!parkLoading;
+                Nodes[id].GetComponent<Collider>().enabled=!parkLoading && !ParkMode;
+            Nodes["advance"].GetComponent<Collider>().enabled=!ParkMode;
+            Nodes["finder"].GetComponent<Collider>().enabled=!ParkMode;
             focalRing.SetPositionAndRotation(cameraVisual.focusRing.position,cameraBody.rotation);apertureRing.SetPositionAndRotation(cameraVisual.apertureRing.position,cameraBody.rotation);
             leader.transform.position=cameraVisual.LeaderTip.position;
             Nodes["camera-body"].GetComponent<Collider>().enabled=false;
             Nodes["chamber"].GetComponent<Collider>().enabled=Photo.Phase==PhotoChapter.FilmPhase.Empty;
             Nodes["spool"].GetComponent<Collider>().enabled=Photo.Phase==PhotoChapter.FilmPhase.LoadedOpen && !Photo.FilmThreaded;
-            Nodes["back"].GetComponent<Collider>().enabled=open || Photo.Phase==PhotoChapter.FilmPhase.Exposed || Photo.Phase==PhotoChapter.FilmPhase.Rewound;
+            Nodes["back"].GetComponent<Collider>().enabled=ParkMode?!RewoundBackOpen && (Photo.Phase==PhotoChapter.FilmPhase.Exposed || Photo.Phase==PhotoChapter.FilmPhase.Rewound):
+                open || Photo.Phase==PhotoChapter.FilmPhase.Exposed || Photo.Phase==PhotoChapter.FilmPhase.Rewound;
             if(looseFilm.activeSelf && dragged!="exposed-film" && !OperationArea.RestorePose(looseFilm.transform))looseFilm.transform.position=cameraVisual.insert.position;
             for(int i=0;i<4;i++)extractedVisuals[i].SetActive(i==(Photo.Settings.ISO==200?1:Photo.Settings.ISO==400?2:Photo.Settings.ISO==800?3:0));
             focalNumber.text=Photo.Settings.Focus.ToString("0.00")+" m (50 mm)";

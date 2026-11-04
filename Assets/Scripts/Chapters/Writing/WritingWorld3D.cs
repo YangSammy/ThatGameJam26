@@ -15,19 +15,19 @@ namespace MemoryWhitebox
         public string LastHit { get; private set; }
         public int InkStrokeCount { get { return ink.Count; } }
         public bool PaperGrabbed { get { return draggingPaper; } }
-        public Vector3 PaperCenter { get { return World(new Vector3(-.07f, 1.015f, .12f)); } }
-        public Vector3 BinCenter { get { return World(binAt + Vector3.up * .74f); } }
-        public readonly Renderer Desktop;
+        public Vector3 PaperCenter { get { return desk.paper.bounds.center + desk.paper.transform.up*.004f; } }
+        public Vector3 BinCenter { get { return desk.basketMouth.position; } }
+        AutumnWritingDesk desk;
 
         const int MemoryLayer = 26;
-        readonly Transform memory, player, npc, npcBox, scarf, door, penHand, paperBall, doorHand;
-        readonly GameObject sheet;
-        readonly Renderer memoryWindow, handle, binLip;
+        readonly Transform memory, player, npc, npcBox, scarf, door, doorHand;
+        Transform penHand,paperBall;
+        GameObject sheet;
+        readonly Renderer memoryWindow, handle;
         readonly List<LineRenderer> ink = new List<LineRenderer>();
         readonly List<Vector3> activeStroke = new List<Vector3>();
         readonly List<int> strokeRows = new List<int>();
         readonly Vector3 memoryOffset = new Vector3(12, 0, 0);
-        readonly Vector3 binAt = new Vector3(.92f, 0, -.97f);
         int originalMask, previousDraft, previousRow = -1;
         float time, lineExtent, penLift, crumple;
         bool writingHeld, draggingPaper;
@@ -39,7 +39,7 @@ namespace MemoryWhitebox
             // Cancel is never a successful drop in the bin. Keep already written ink.
             State.CancelInput();
             writingHeld=draggingPaper=false;currentStroke=null;activeStroke.Clear();
-            sheet.SetActive(true);paperBall.gameObject.SetActive(false);
+            if(desk!=null){sheet.SetActive(true);paperBall.gameObject.SetActive(false);}
             foreach(var stroke in ink)stroke.gameObject.SetActive(true);
         }
         Vector3 penPoint, lastMemoryPlayer;
@@ -48,46 +48,70 @@ namespace MemoryWhitebox
         LineRenderer currentStroke;
         Light memoryLight;
 
+        public override Vector3 World(Vector3 local)=>Root.transform.TransformPoint(local);
+        bool fitted;
+        Vector3 originalEye,originalLook;
+
+        public void FitTeaTable(AutumnWritingDesk layout)
+        {
+            if(fitted)return;
+            fitted=true;originalEye=Eye;originalLook=Look;
+            // The left-hand memory and its own camera remain at their authored world poses.
+            memory.SetParent(null,true);MemoryCamera.transform.SetParent(null,true);
+            var root=Root.transform;
+            root.SetPositionAndRotation(layout.transform.position,layout.transform.rotation);
+            root.localScale=layout.transform.lossyScale;
+            AttachDesk(layout);
+            binFraming=State.Phase=="crumple"?1:0;
+            FrameLetter();
+            memory.SetParent(root,true);MemoryCamera.transform.SetParent(root,true);
+        }
+
+        const float LetterWidthFraction=.8f;
+        float binFraming;
+
+        void FrameLetter()
+        {
+            Transform t=desk.paper.transform;
+            Vector3 page=t.TransformPoint(desk.paper.center);
+            Vector3 offset=Vector3.ProjectOnPlane(BinCenter-page,t.up);
+            Look=page+offset*(.32f*binFraming);
+            Fov=48;
+            float aspect=Mathf.Max(.15f,.5f*Screen.width/Mathf.Max(1,Screen.height));
+            float paperWidth=t.TransformVector(Vector3.right*desk.paper.size.x).magnitude;
+            float paperHeight=t.TransformVector(Vector3.forward*desk.paper.size.z).magnitude;
+            // Width determines the writing shot; keep both ends of the sheet
+            // visible even on an unusually wide monitor.
+            float closeHalfHeight=Mathf.Max(paperWidth/(2*LetterWidthFraction*aspect),paperHeight*.55f);
+            float wideHalfWidth=Mathf.Max(Mathf.Abs(Vector3.Dot(offset*.68f,t.right))+.12f,
+                Mathf.Abs(Vector3.Dot(offset*.32f,t.right))+paperWidth*.55f);
+            float wideHalfHeight=Mathf.Max(Mathf.Abs(Vector3.Dot(offset*.68f,t.forward))+.12f,
+                Mathf.Abs(Vector3.Dot(offset*.32f,t.forward))+paperHeight*.55f);
+            float halfHeight=Mathf.Lerp(closeHalfHeight,Mathf.Max(wideHalfWidth/aspect,wideHalfHeight),binFraming);
+            Eye=Look+t.up*(halfHeight/Mathf.Tan(Fov*Mathf.Deg2Rad*.5f));
+        }
+
+        public override Quaternion ViewRotation=>desk!=null
+            ? Quaternion.LookRotation(-desk.paper.transform.up,desk.paper.transform.forward)
+            : base.ViewRotation;
+
+        public void ReleaseTeaTable()
+        {
+            if(!fitted)return;
+            fitted=false;desk.Present(false);
+            memory.SetParent(null,true);MemoryCamera.transform.SetParent(null,true);
+            Root.transform.SetPositionAndRotation(Origin,Quaternion.identity);Root.transform.localScale=Vector3.one;
+            memory.SetParent(Root.transform,true);MemoryCamera.transform.SetParent(Root.transform,true);
+            Eye=originalEye;Look=originalLook;
+        }
         public override string Help=>State.Help;
 
         public WritingWorld3D(WBMain host, WritingChapter model) : base(host, model, 2)
         {
             State = model; previousDraft = State.Draft; previousPhase = State.Phase;
-            if(SharedRoom)binAt+=Vector3.down*.13f;
             Room(5, 6);
             Eye = World(new Vector3(.30f, 2.40f, -1.90f));
             Look = World(new Vector3(.30f, .85f, -.05f)); Fov = 64;
-            Desktop = Part(null, new Vector3(0, .93f, .15f), new Vector3(2.65f, .12f, 1.65f), "#87715a").GetComponent<Renderer>();
-            if(SharedRoom)Desktop.gameObject.SetActive(false);
-            if(!SharedRoom)for (int x = -1; x <= 1; x += 2)
-                Part(null, new Vector3(x * 1.08f, .45f, .52f), new Vector3(.10f, .9f, .1f), "#685b4e");
-            sheet = Part("paper", new Vector3(-.075f, 1.001f, .12f), new Vector3(.95f, .012f, .72f), "#eee6cf");
-            Part(null, new Vector3(-.075f, .994f, .12f), new Vector3(.97f, .012f, .74f), "#bdb29b");
-            Part(null, new Vector3(-.82f, 1.07f, .66f), new Vector3(.13f, .15f, .13f), "#293431");
-            Part(null, new Vector3(-.82f, 1.156f, .66f), new Vector3(.085f, .025f, .085f), "#151e20", PrimitiveType.Cylinder);
-            Part(null, new Vector3(.75f, 1.035f, .7f), new Vector3(.36f, .045f, .34f), "#c7baa1");
-            // A genuinely open box: the bottom and rim are pickable, not an image.
-            // The basket is in front of the desk, beyond its opaque front edge.
-            // Keeping it beneath the writing surface makes a valid ray target invisible.
-            Part("bin", binAt + new Vector3(0, .35f, 0), new Vector3(.51f, .06f, .47f), "#4d5855");
-            for (int sign = -1; sign <= 1; sign += 2)
-            {
-                Part("bin-side-" + sign, binAt + new Vector3(sign * .255f, .54f, 0), new Vector3(.026f, .38f, .49f), "#6e7770");
-                Part("bin-edge-" + sign, binAt + new Vector3(0, .54f, sign * .235f), new Vector3(.51f, .38f, .026f), "#6e7770");
-            }
-            binLip = Part("bin-rim", binAt + new Vector3(0, .75f, .24f), new Vector3(.56f, .04f, .035f), "#a4aa96").GetComponent<Renderer>();
-            paperBall = Group("Crumpled paper held by the right hand", new Vector3(0, 1.15f, 0));
-            Child(paperBall, null, Vector3.zero, new Vector3(.17f, .13f, .16f), "#e6ddc6", PrimitiveType.Sphere);
-            for (int i = 0; i < 5; i++)
-                Child(paperBall, null, new Vector3(Mathf.Sin(i * 2.5f) * .045f, .02f, Mathf.Cos(i * 2.5f) * .045f), new Vector3(.09f, .07f, .08f), i % 2 == 0 ? "#c4b79d" : "#eee6cf", PrimitiveType.Cube, new Vector3(i * 23, i * 41, i * 17));
-            paperBall.gameObject.SetActive(false);
-            penHand = Group("Right hand and pen", Vector3.zero);
-            Child(penHand, null, new Vector3(.07f, .05f, -.10f), new Vector3(.18f, .08f, .13f), "#c9a587", PrimitiveType.Sphere, new Vector3(0, 25, 0));
-            Child(penHand, null, new Vector3(.16f, .055f, -.23f), new Vector3(.13f, .095f, .29f), "#889394", PrimitiveType.Capsule, new Vector3(72, 0, -28));
-            Child(penHand, null, new Vector3(.025f, .059f, -.02f), new Vector3(.018f, .018f, .28f), "#303a3c", PrimitiveType.Cylinder, new Vector3(62, -22, 0));
-            Child(penHand, null, new Vector3(.025f, .006f, .032f), new Vector3(.018f, .023f, .018f), "#1f2624", PrimitiveType.Sphere);
-            penPoint = new Vector3(-.44f, 1.02f, .38f); penHand.localPosition = penPoint;
-
             memory = Group("A room held in memory - full geometry", memoryOffset);
             BuildMemoryRoom();
             player = Person("memory-player", "#72a9ad", true);
@@ -112,7 +136,7 @@ namespace MemoryWhitebox
             MemoryCamera.transform.LookAt(World(memoryOffset + new Vector3(3.05f, .45f, 2.5f)));
             MemoryCamera.fieldOfView = 49; MemoryCamera.nearClipPlane = .05f; MemoryCamera.farClipPlane = 25;
             MemoryCamera.clearFlags = CameraClearFlags.SolidColor; MemoryCamera.backgroundColor = new Color(.12f, .17f, .18f); MemoryCamera.cullingMask = 1 << MemoryLayer;
-            MemoryCamera.depth = View != null ? View.depth + 1 : 1; MemoryCamera.rect = new Rect(.5f, 0, .5f, 1); MemoryCamera.enabled = false;
+            MemoryCamera.depth = View != null ? View.depth + 1 : 1; MemoryCamera.rect = new Rect(0, 0, .5f, 1); MemoryCamera.enabled = false;
             BuildAutumnProps();BuildWritingVisuals();UpdateActors(.02f);
         }
 
@@ -155,28 +179,31 @@ namespace MemoryWhitebox
         static Vector3 MemoryPosition(Vector2 p) { return new Vector3((p.x - 80) * .012f, 0, (610 - p.y) * .012f); }
         Vector2 PaperCoordinates(Ray ray)
         {
-            Vector3 p = Point(ray, 1.016f) - Origin;
-            return new Vector2(685 + (p.x + .55f) / .95f * 535, 165 + (.48f - p.z) / .72f * 445);
+            var hit=desk.paper;
+            var plane=new Plane(hit.transform.up,PaperCenter);
+            if(!plane.Raycast(ray,out float distance))return new Vector2(-1,-1);
+            Vector3 p=hit.transform.InverseTransformPoint(ray.GetPoint(distance))-hit.center;
+            return new Vector2(685+(p.x/hit.size.x+.5f)*535,165+(.5f-p.z/hit.size.z)*445);
         }
         public override void Activate()
         {
             base.Activate();
             RestoreInk();
-            UpdateActors(0);UpdateWritingVisuals(0, true);RestoreDiscardedPaper();
+            UpdateActors(0);UpdateWritingVisuals(0, true);desk.ShowDrafts(State.Draft);
             if(State.WritingProgress==0)
             {
                 foreach(var stroke in ink)ReleaseObject(stroke.gameObject);
                 ink.Clear();strokeRows.Clear();activeStroke.Clear();currentStroke=null;
                 lineExtent=0;previousRow=-1;previousDraft=State.Draft;previousPhase=State.Phase;
                 writingHeld=draggingPaper=false;sheet.SetActive(true);paperBall.gameObject.SetActive(false);
-                penPoint=new Vector3(-.44f,1.02f,.38f);
+                penPoint=StrokePoint(0,0);
                 if(!State.Carried)
                 {
                     scarf.SetParent(memory,false);scarf.localPosition=new Vector3(1.3f,.61f,1.50f);
                     scarf.localRotation=Quaternion.identity;
                 }
             }
-            if (View != null) { originalRect = View.rect; originalMask = View.cullingMask; View.rect = new Rect(0, 0, .5f, 1); View.cullingMask = originalMask & ~(1 << MemoryLayer); }
+            if (View != null) { originalRect = View.rect; originalMask = View.cullingMask; View.rect = new Rect(.5f, 0, .5f, 1); View.cullingMask = originalMask & ~(1 << MemoryLayer); }
             MemoryCamera.enabled = true;
         }
         public override void Deactivate()
@@ -190,7 +217,7 @@ namespace MemoryWhitebox
         }
         public override Ray PointerRay(Vector2 nativeScreenBottomLeft)
         {
-            return nativeScreenBottomLeft.x < Screen.width * .5f ? View.ScreenPointToRay(nativeScreenBottomLeft) : MemoryCamera.ScreenPointToRay(nativeScreenBottomLeft);
+            return nativeScreenBottomLeft.x < View.pixelRect.xMin ? MemoryCamera.ScreenPointToRay(nativeScreenBottomLeft) : View.ScreenPointToRay(nativeScreenBottomLeft);
         }
         public override void Press(string id, Ray ray, int button)
         {
@@ -201,7 +228,7 @@ namespace MemoryWhitebox
                 draggingPaper = true; crumple = 0;crumpleVisual.SetCrumpleProgress(0);
                 State.PointerDown(new Vector2(1195, 590), 0);
                 sheet.SetActive(false); foreach (LineRenderer stroke in ink) stroke.gameObject.SetActive(false);
-                paperBall.gameObject.SetActive(true); paperBall.position = Point(ray, 1.07f);
+                paperBall.gameObject.SetActive(true); MoveFoldedPaper(ray);
                 return;
             }
             if (id != "paper") return;
@@ -211,11 +238,16 @@ namespace MemoryWhitebox
             AcceptNewRow(oldRow, wasAwaitingReturn);
             Move(ray);
         }
+        void MoveFoldedPaper(Ray ray)
+        {
+            var plane=new Plane(sheet.transform.up,PaperCenter+sheet.transform.up*.025f);
+            if(plane.Raycast(ray,out float distance))paperBall.position=ray.GetPoint(distance);
+        }
         public override void Move(Ray ray)
         {
             if (draggingPaper)
             {
-                paperBall.position = Point(ray, 1.07f);
+                MoveFoldedPaper(ray);
                 State.PointerMove(new Vector2(1195, 590)); return;
             }
             if (!writingHeld || State.Phase == "crumple") return;
@@ -240,7 +272,7 @@ namespace MemoryWhitebox
                     {
                         strokeRows[i]--;
                         if (strokeRows[i] < 0) { ReleaseObject(ink[i].gameObject); ink.RemoveAt(i); strokeRows.RemoveAt(i); }
-                        else ink[i].transform.localPosition += Vector3.forward * .0615f;
+                        else ink[i].transform.localPosition += Vector3.forward * (.0615f*desk.paper.size.z/.72f);
                     }
                 }
                 lineExtent = 0; currentStroke = null; activeStroke.Clear();
@@ -252,19 +284,26 @@ namespace MemoryWhitebox
             {
                 currentStroke = Line("Ink physically laid on paper - draft " + State.Draft + " row " + State.Row,
                     new Vector3[0], "#3e3e35", .0025f);
+                currentStroke.transform.SetParent(sheet.transform,false);
                 ink.Add(currentStroke); strokeRows.Add(State.Row);
             }
             float end = Mathf.Min(425, lineExtent + amount);
             for (float a = lineExtent; a < end; a += 2.5f)
             {
                 float wave = Mathf.Sin(a * .26f) * (3 + Mathf.Sin(a * .063f) * 2) + Mathf.Sin(a * .67f) * 2;
-                activeStroke.Add(new Vector3(-.467f + a / 535f * .95f, 1.009f, .399f - State.Row * .0615f + wave * .0016f));
+                activeStroke.Add(StrokePoint(a,wave));
             }
             lineExtent = end;
             currentStroke.positionCount = activeStroke.Count; currentStroke.SetPositions(activeStroke.ToArray());
             float v = Mathf.Sin(end * .26f) * (3 + Mathf.Sin(end * .063f) * 2) + Mathf.Sin(end * .67f) * 2;
-            penPoint = new Vector3(-.467f + end / 535f * .95f, 1.022f, .399f - State.Row * .0615f + v * .0016f);
+            penPoint = StrokePoint(end,v);
             penLift = 0;
+        }
+        Vector3 StrokePoint(float amount,float wave)
+        {
+            var hit=desk.paper;
+            return hit.center+new Vector3((-.392f/.95f+amount/535f)*hit.size.x,
+                hit.size.y*.5f+.002f,(.279f-State.Row*.0615f+wave*.0016f)*hit.size.z/.72f);
         }
         void RestoreInk()
         {
@@ -299,18 +338,31 @@ namespace MemoryWhitebox
             {
                 foreach (var stroke in ink) ReleaseObject(stroke.gameObject);
                 ink.Clear(); strokeRows.Clear(); activeStroke.Clear(); currentStroke = null; lineExtent = 0; previousRow = -1;
-                previousDraft = State.Draft; penPoint = new Vector3(-.44f, 1.02f, .38f);
-                AddDiscardedPaper();
+                previousDraft = State.Draft; penPoint=StrokePoint(0,0);
+                desk.ShowDrafts(State.Draft);
             }
             if (State.Phase != previousPhase && State.Phase == "crumple") writingHeld = false;
             previousPhase = State.Phase;
             penLift = Mathf.MoveTowards(penLift, State.Phase == "crumple" || !writingHeld ? .065f : 0, dt * .3f);
-            penHand.localPosition = Vector3.Lerp(penHand.localPosition, penPoint + Vector3.up * penLift, Mathf.Clamp01(dt * 24));
+            if(writingHeld)
+            {
+                var target=sheet.transform.TransformPoint(penPoint+Vector3.up*penLift);
+                penHand.position+=(target-penTip.position)*Mathf.Clamp01(dt*24);
+            }
+            else penHand.localPosition=Vector3.Lerp(penHand.localPosition,Vector3.zero,Mathf.Clamp01(dt*24));
             if (State.Phase == "crumple") penHand.localEulerAngles = new Vector3(0, Mathf.Sin(time * 5) * 5, 0);
             else penHand.localEulerAngles = Vector3.zero;
             if (draggingPaper) { crumple = Mathf.Min(1, crumple + dt * 4); crumpleVisual.SetCrumpleProgress(crumple); }
-            binLip.sharedMaterial.color = Color.Lerp(new Color(.55f, .59f, .52f), new Color(.95f, .75f, .40f), State.Phase == "crumple" ? .5f + Mathf.Sin(time * 3) * .25f : 0);
-            UpdateActors(dt);UpdateWritingVisuals(dt);
+            binFraming=Mathf.MoveTowards(binFraming,State.Phase=="crumple"?1:0,dt*4);
+            FrameLetter();UpdateActors(dt);UpdateWritingVisuals(dt);
+        }
+        public override void Dispose()
+        {
+            foreach(var stroke in ink)if(stroke!=null)ReleaseObject(stroke.gameObject);
+            ink.Clear();
+            foreach(var m in pickupMaterials.Values)ReleaseObject(m);
+            pickupMaterials.Clear();
+            base.Dispose();
         }
         void UpdateActors(float dt){UpdateAutumnActors(dt);}
     }

@@ -30,11 +30,11 @@ namespace MemoryWhitebox
                 if(dualDeck!=null && !dualDeck.Closed(0))return "B · Close A before recording";
                 if(transport.SourceStatus=="END" && transport.RecordedSeconds>0)return "B · Original ended · Listen to your copy";
                 if(transport.Writing)return "B · Recording · STOP B before noise";
-                return transport.RecordedSeconds>0?"B · Resume recording at the copy's end":"B · Start recording · A starts from the beginning";
+                return "B · Hold S + F to record · Start A separately";
             }
-            if(key=="Play")return "B · Play copy from here · Does not record";
-            if(key=="Rewind")return "B · Rewind copy · STOP at the desired position";
-            if(key=="Forward")return "B · Fast-forward copy · Does not record";
+            if(key=="Play")return "B · Hold F to play · Hold S too to record";
+            if(key=="Rewind")return "B · Hold J to rewind · Release to stop";
+            if(key=="Forward")return "B · Hold L to advance · Release to stop";
             return null;
         }
         public bool DeckBusy(int deck)=>dualDeck!=null&&dualDeck.Busy(deck);
@@ -51,11 +51,11 @@ namespace MemoryWhitebox
         void MoveRadioTape(ObjectDragSession drag,Ray ray,Transform receiver)
         {
             drag.MoveScreenCarry(ray);
-            ShowTapeDropPreview(receiver);
+            ShowTapeDropPreview(drag.Blocked?null:receiver);
         }
         void VisibleCassette(Transform item,bool visible)
         {if(item==null)return;foreach(var r in item.GetComponentsInChildren<Renderer>(true))r.enabled=visible;foreach(var c in item.GetComponentsInChildren<Collider>(true))c.enabled=visible;}
-        void StopTargetOnly(){UITransportCommand=-1;wasWriting=false;transport?.TargetCommand(false,false,0,house!=null&&house.Muted);transport?.Save();}
+        void StopTargetOnly(){UITransportCommand=-1;wasWriting=false;stopLatch=true;transport?.TargetCommand(false,false,0,house!=null&&house.Muted);transport?.Save();}
         void HandoffToWorkbench()
         {internalDeckHandoff=true;try{OpenWorkbench();}finally{internalDeckHandoff=false;}}
         void FinishWorkbenchTransfer(){internalDeckHandoff=dualDeck!=null;try{CloseWorkbench();}finally{internalDeckHandoff=false;}}

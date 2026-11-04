@@ -7,6 +7,8 @@ namespace MemoryWhitebox
         [Header("Shared skeletal hands")]
         public FirstPersonArmRig skeletalRig;
         bool skeletalPrepared,handFocused=true,handPaused;
+        Vector3 photoPalmLocal;
+        public Vector3 PhotoPalmPosition=>skeletalRig!=null&&skeletalRig.Valid?skeletalRig.wrists[0].TransformPoint(photoPalmLocal):transform.position;
         void Awake(){if(skeletalRig!=null)PrepareSkeletalRig();}
         void PrepareSkeletalRig()
         {
@@ -17,6 +19,14 @@ namespace MemoryWhitebox
             foreach(var hand in authoredHands)if(hand!=null && !hand.IsChildOf(skeletalRig.transform))Hide(hand);
             foreach(var arm in parkArms)if(arm!=null)Hide(arm);
             if(!skeletalRig.Valid)Debug.LogError("First-person skeletal rig has missing references.",this);
+            else
+            {
+                int count=0;
+                foreach(var bone in skeletalRig.wrists[0].GetComponentsInChildren<Transform>())
+                    if(bone.name=="f_index.01.L"||bone.name=="f_middle.01.L"||bone.name=="f_ring.01.L"||bone.name=="f_pinky.01.L")
+                    {photoPalmLocal+=skeletalRig.wrists[0].InverseTransformPoint(bone.position);count++;}
+                if(count>0)photoPalmLocal*=.65f/count;
+            }
         }
         void AdvanceSkeletal(float dt,bool immediate=false)
         {
@@ -38,13 +48,28 @@ namespace MemoryWhitebox
                 if(instrument!=null)right=FirstPersonArmRig.Pose.At(instrument.position,instrument.rotation,1);
                 right.push=park.ShutterPulse;right.grip*=1-right.push;
                 right.position+=transform.up*(-park.ShutterPulse*.008f);
-                if(park.HoldingPhotoHand)left=FirstPersonArmRig.Pose.At(park.PhotoHandPosition,Quaternion.LookRotation(park.companion.transform.forward,Vector3.up),1);
+                if(park.HoldingPhotoHand)
+                {
+                    var girl=park.companion.visualPresentation;
+                    if(girl!=null && girl.palmContact!=null)
+                    {
+                        var normal=girl.PalmNormal;
+                        var fingers=Vector3.ProjectOnPlane(-park.companion.transform.forward,normal).normalized;
+                        if(fingers.sqrMagnitude<.01f)fingers=Vector3.ProjectOnPlane(park.companion.transform.right,normal).normalized;
+                        var rotation=Quaternion.LookRotation(Vector3.Cross(normal,fingers),fingers);
+                        var palm=girl.PalmPosition+normal*.024f;
+                        var wrist=palm-rotation*Vector3.Scale(photoPalmLocal,skeletalRig.wrists[0].lossyScale);
+                        left=FirstPersonArmRig.Pose.AtWrist(wrist,rotation,.85f);
+                        left.bodyReachLimit=.6f;
+                    }
+                    else left=FirstPersonArmRig.Pose.At(park.PhotoHandPosition,Quaternion.LookRotation(park.companion.transform.forward,Vector3.up),1);
+                }
             }
             else if(house!=null)
             {
                 int index=house.HouseInputReady?house.ChapterIndex:0;VisibleSet=index;
                 Set set;
-                if(sets.TryGetValue(index,out set) && house.HouseInputReady && set.world.PlayerHandsEngaged)
+                if(sets.TryGetValue(index,out set) && house.HouseInputReady && set.world!=null && set.world.PlayerHandsEngaged)
                 {left=TargetPose(set.targets,0,1);right=TargetPose(set.targets,1,1);}
                 if(index==0 && house.DirectRadioReady && house.radioDeck!=null)
                 {

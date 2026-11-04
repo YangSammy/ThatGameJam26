@@ -48,7 +48,11 @@ namespace MemoryWhitebox
         void RestoreRadioCamera()
         {
             if(!radioFocused && !radioCameraMoving)return;
-            view.transform.SetPositionAndRotation(radioReturnPosition,radioReturnRotation);view.fieldOfView=radioReturnFov;
+            if(view!=null)
+            {
+                view.transform.SetPositionAndRotation(radioReturnPosition,radioReturnRotation);
+                view.fieldOfView=radioReturnFov;
+            }
             radioFocused=radioCameraMoving=false;
         }
         public SceneViewAnchor preparationView;
@@ -100,7 +104,11 @@ namespace MemoryWhitebox
         void RestorePreparationCamera()
         {
             if(!preparationFocused && !preparationCameraMoving)return;
-            view.transform.SetPositionAndRotation(preparationReturnPosition,preparationReturnRotation);view.fieldOfView=preparationReturnFov;
+            if(view!=null)
+            {
+                view.transform.SetPositionAndRotation(preparationReturnPosition,preparationReturnRotation);
+                view.fieldOfView=preparationReturnFov;
+            }
             preparationFocused=preparationCameraMoving=preparationCarryReturn=false;
         }
         bool PreparationIdle=>!preparationCameraMoving && WorkbenchMode && BenchIndex>=0 && Selected!=BenchIndex && !benchWaiting && !Smoothing && !movingOriginal && benchGesture==BenchGesture.None;

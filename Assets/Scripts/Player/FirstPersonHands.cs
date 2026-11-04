@@ -32,11 +32,16 @@ namespace MemoryWhitebox
         public void BindHouse(WBMain host){house=host;}
         public void Register(int index,WorldChapter3D world)
         {
-            if(sets.ContainsKey(index))return;
+            if(sets.TryGetValue(index,out var existing))
+            {
+                existing.world=world;
+                existing.targets=world?.PlayerHandTargets??System.Array.Empty<Transform>();
+                return;
+            }
             if(skeletalRig!=null)
             {
                 PrepareSkeletalRig();
-                var skeletalSet=new Set{world=world,targets=world.PlayerHandTargets};
+                var skeletalSet=new Set{world=world,targets=world?.PlayerHandTargets??System.Array.Empty<Transform>()};
                 for(int side=0;side<skeletalSet.targets.Length;side++)
                 {
                     var target=skeletalSet.targets[side];
@@ -45,11 +50,11 @@ namespace MemoryWhitebox
                     {for(int child=0;child<Mathf.Min(2,target.childCount);child++)Hide(target.GetChild(child));}
                     else Hide(target);
                 }
-                foreach(var target in world.PlayerArmTargets)Hide(target);
+                foreach(var target in world?.PlayerArmTargets??System.Array.Empty<Transform>())Hide(target);
                 sets.Add(index,skeletalSet);return;
             }
             if(rig==null){rig=authoredRoot;if(rig==null){rig=new GameObject("Player first-person hands").transform;rig.SetParent(transform,false);}}
-            var set=new Set{world=world,targets=world.PlayerHandTargets};
+            var set=new Set{world=world,targets=world?.PlayerHandTargets??System.Array.Empty<Transform>()};
             bool authored=index==0 && authoredHands.Length==2 && authoredHands[0]!=null && authoredHands[1]!=null;
             set.root=authored?authoredHands[0].parent:new GameObject("Hands - "+HouseLayout.Names[index]).transform;set.root.SetParent(rig,false);
             for(int i=0;i<2 && (authored || i<set.targets.Length);i++)
@@ -72,7 +77,7 @@ namespace MemoryWhitebox
                 set.visuals[i]=visual;set.arms[i]=arm.transform;
                 Hide(source);
             }
-            foreach(var source in world.PlayerArmTargets)Hide(source);
+            foreach(var source in world?.PlayerArmTargets??System.Array.Empty<Transform>())Hide(source);
             sets.Add(index,set);set.root.gameObject.SetActive(false);
             GetComponent<Camera>().cullingMask|=1<<HandLayer;
         }

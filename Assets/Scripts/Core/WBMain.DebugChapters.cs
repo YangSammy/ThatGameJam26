@@ -15,9 +15,9 @@ namespace MemoryWhitebox
         // tape/audio and darkroom material progress are deliberately retained.
         public bool DebugEnterChapter(int key)
         {
-            if(!houseReady || key<1 || key>6)return false;
-            safeInspection?.Close();radioDeck.DismissRecordingSuccess();
-            radioDeck.CloseWorkbench();radioDeck.CloseRecording();if(DirectTapeHandling)radioDeck.PutBack();
+            if(!houseReady || loadingSpringRoom || key<1 || key>6)return false;
+            safeInspection?.Close();radioDeck?.DismissRecordingSuccess();
+            radioDeck?.CloseWorkbench();radioDeck?.CloseRecording();if(DirectTapeHandling)radioDeck.PutBack();
             DarkroomWorld?.CancelInteraction();DarkroomWorld?.SetDirectDarkroom(false);
             CurrentWorld?.CancelPointerGesture();
             if(!SaveStableProgress()){cameraRouteNotice="DEV: save failed. Stay here and retry.";cameraRouteNoticeUntil=Time.unscaledTime+6;return false;}
@@ -26,6 +26,23 @@ namespace MemoryWhitebox
                 CompleteHouseExit();Room.Camera.transform.SetPositionAndRotation(roomEye,roomRotation);Room.Camera.fieldOfView=roomFov;
             }
             transition=0;returningToRoom=awaitRelease=leaveCompletedChapter=false;ShowHelp=false;springPreview=false;
+            if(key!=1)LeaveSpringTapeRoom();
+            if(key!=2)LeaveSummerPhotoRoom();
+            int narrativeIndex=key==3?2:key==4 || key==5?3:-1;
+            if(narrativeBedroom!=null && narrativeBedroom.chapterEntry.chapter!=narrativeIndex)LeaveNarrativeBedroom();
+            if(key!=6 && DepartureRoom!=null){DepartureRoom.Leave(this);DepartureRoom=null;}
+            if(key==6 && DepartureRoom==null)
+            {StartCoroutine(OpenDepartureBedroom(false,Vector3.zero,Quaternion.identity,key));return true;}
+            if(narrativeIndex>=0 && narrativeBedroom==null)
+            {
+                StartCoroutine(OpenNarrativeBedroom((StoryDay)narrativeIndex,key));return true;
+            }
+            if(key==1 && springTapeRoom==null)
+            {StartCoroutine(OpenSeasonBedroom(false,false,1));return true;}
+            if(key==2 && summerPhotoRoom==null && !loadingSpringRoom)
+            {
+                StartCoroutine(OpenSeasonBedroom(true,false,2));return true;
+            }
             Room.StopMotion();Room.EnableLook(true);
             if(!FiveDayProgress.DevelopmentSession){FiveDayProgress.DevelopmentSession=true;story=FiveDayProgress.LoadForSession();}
             int index=key<=4?key-1:key==5?3:4;
@@ -36,7 +53,7 @@ namespace MemoryWhitebox
             }
             if(!story.PrepareDevelopmentEntry(index,chapters[index].CaptureCheckpoint(),index>=2))return false;
             for(int i=0;i<Done.Length;i++)Done[i]=story.IsComplete(i);
-            SetStudyPresentation(-1);radioDeck.SetStationActive(true);
+            SetStudyPresentation(-1);radioDeck?.SetStationActive(true);
             Current=chapters[index];CurrentWorld=worlds[index];ChapterIndex=index;
             if(key==1)
             {
@@ -47,14 +64,19 @@ namespace MemoryWhitebox
             {
                 DebugEnterDarkroom();
                 if(!DarkroomWorld.DirectDarkroomAvailable)return false;
-                Room.Camera.transform.SetPositionAndRotation(DarkroomWorld.Eye,Quaternion.LookRotation(DarkroomWorld.Look-DarkroomWorld.Eye));
+                if(summerPhotoRoom!=null)Room.Camera.transform.SetPositionAndRotation(summerPhotoRoom.darkroomView.position,summerPhotoRoom.darkroomView.rotation);
+                else Room.Camera.transform.SetPositionAndRotation(DarkroomWorld.Eye,Quaternion.LookRotation(DarkroomWorld.Look-DarkroomWorld.Eye));
+                // Adopt the checkpoint heading before free-pointer movement resumes.
+                // Otherwise StepFreePointer restores the heading from before the warp.
+                Room.EnableLook(true);
                 darkroomReachTarget=DarkroomWorld.Nodes["bag"].transform;
                 DarkroomWorld.SetDirectDarkroom(true);Room.EnableLook(false);
             }
             else if(key==6)
             {
                 springPreview=true;var binding=GetComponent<NarrativeSceneBinding>();
-                if(binding!=null && binding.threshold!=null){var t=binding.threshold;Room.Camera.transform.SetPositionAndRotation(t.position+t.forward*1.3f+Vector3.up*PlayerControlSettings.Current.eyeHeight,Quaternion.LookRotation(-t.forward));}
+                var t=DepartureRoom!=null?DepartureRoom.threshold:binding?.threshold;
+                if(t!=null){Room.Camera.transform.SetPositionAndRotation(t.position+t.forward*1.3f+Vector3.up*PlayerControlSettings.Current.eyeHeight,Quaternion.LookRotation(-t.forward));}
                 Room.EnableLook(true);
             }
             else EnterHouseStation(index);

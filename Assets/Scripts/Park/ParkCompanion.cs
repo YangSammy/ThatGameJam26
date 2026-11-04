@@ -60,6 +60,8 @@ namespace MemoryWhitebox
         public string Line {get;private set;}
         int index;float stopRemaining,respondRemaining,callCooldown,phase,lineTime,stepTime;
         bool atNode,hasSpeed;
+        bool started;
+        ParkPhotoWaypoint pendingResume;
         Vector3 visualHome;
         void Start()
         {
@@ -70,7 +72,26 @@ namespace MemoryWhitebox
             if(rightArm!=null)rightArmScale=rightArm.localScale;
             if(visual!=null)visualHome=visual.localPosition;
             if(animator!=null)foreach(var p in animator.parameters)if(p.name=="Speed" && p.type==AnimatorControllerParameterType.Float)hasSpeed=true;
+            started=true;
+            var resume=pendingResume;pendingResume=null;
             RestartWalk();
+            if(resume!=null)ResumeAtPhotoNode(resume);
+        }
+        public bool ResumeAtPhotoNode(ParkPhotoWaypoint node)
+        {
+            int target=route!=null?System.Array.IndexOf(route,node):-1;
+            if(node==null || target<0)return false;
+            if(!started){pendingResume=node;return true;}
+            if(motor==null)motor=GetComponent<CharacterController>();
+            bool wasEnabled=motor!=null && motor.enabled;
+            if(wasEnabled)motor.enabled=false;
+            transform.position=node.transform.position;
+            if(node.lookAt!=null)
+            {var forward=node.lookAt.position-transform.position;forward.y=0;if(forward.sqrMagnitude>.001f)transform.rotation=Quaternion.LookRotation(forward);}
+            if(wasEnabled)motor.enabled=true;
+            index=target;atNode=true;stopRemaining=node.pauseSeconds;verticalSpeed=0;
+            respondRemaining=callCooldown=0;Waiting=false;CurrentMoment=Moment.None;Line="";
+            return true;
         }
         public void RestartWalk()
         {

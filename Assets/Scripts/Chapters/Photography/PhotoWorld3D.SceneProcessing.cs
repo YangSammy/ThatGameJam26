@@ -13,7 +13,7 @@ namespace MemoryWhitebox
         Transform SceneProcessingProp(string id)
         {
             var prop=printObjects!=null?printObjects.Get(id):null;
-            if(prop==null || prop.target==null)throw new InvalidOperationException("HouseScene darkroom reference missing: "+id);
+            if(prop==null || prop.target==null)throw new InvalidOperationException("Summer darkroom reference missing: "+id);
             Nodes[id]=prop.target.gameObject;
             return prop.target;
         }

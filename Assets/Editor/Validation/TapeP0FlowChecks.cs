@@ -35,10 +35,21 @@ namespace MemoryWhitebox.Editor
             results=new List<string>();d.SetStationActive(true);d.view.transform.SetPositionAndRotation(d.operationView.transform.position,d.operationView.transform.rotation);d.view.fieldOfView=d.operationView.fieldOfView;
             d.transport.GetComponent<AudioSource>().Stop();
             d.OpenWorkbench();d.LoadOriginal();d.CloseWorkbench();d.CloseRecording();Call("FocusLoadedRadio");Check(!d.RecordingMode,"Cancelled A load focus cannot reopen workspace");Settle();
-            d.EjectDualDeck(0);Settle();d.OpenWorkbench();Ready();
+            d.EjectDualDeck(0);Settle();d.OpenRecording();Ready();
             Vector2 source=Point(d.originalHit.bounds.center),slot=Point(d.sourceSlot.bounds.center);
-            Pointer(EventType.MouseDown,source);Pointer(EventType.MouseDrag,slot);Pointer(EventType.MouseUp,slot);Call("FocusLoadedRadio");
+            Call("RecordingPointerDown",source);
+            Check(Get<bool>("movingOriginal") && d.WorkbenchMode,"Recording native press hands off the original press ray to source drag");
+            Pointer(EventType.MouseDrag,slot);Pointer(EventType.MouseUp,slot);Call("FocusLoadedRadio");
             Check(d.Chapter.SourceLoaded && d.DeckBusy(0) && Get<bool>("radioFocused"),"A drag starts close view during loading");Settle();
+            Check(d.RecordingPanelVisible,"Close recorder view shows transport controls");
+            d.transport.SourceCommand(1);d.FocusRadio(false);Settle();
+            Check(!d.RecordingPanelVisible && d.transport.SourcePlaying,"Desk hides blocking controls without stopping A");
+            float heard=d.Chapter.AuditionSeconds;Pump(d.transport.Rate);Call("TickAudition");
+            Check(d.Chapter.AuditionSeconds>=heard+.99f,"Audition counts audio across a one-second render stall");
+            Call("UpdateTransportDisplay");
+            Check(d.sourceCounter.text.EndsWith(d.transport.SourceSeconds.ToString("000.0")),"Dual-deck tooltip counter follows actual source cursor");
+            d.sourceCounter.text=d.targetCounter.text="stale authored counter";d.InitializeRecording();
+            Check(d.sourceCounter.text.EndsWith(d.transport.SourceSeconds.ToString("000.0")) && d.targetCounter.text.EndsWith(d.transport.TargetSeconds.ToString("000.0")),"Restored recording initializes counters before entering a work view");
             d.transport.SourceCommand(1);for(int i=0;i<110;i++){Pump(d.transport.Rate/10);Call("TickAudition");}
             Check(d.Chapter.AuditionComplete,"Audible playback unlocks preparation");d.transport.SourceCommand(0);
             d.OpenWorkbench();Ready();Call("TickWorkbenchAssets",.01f);
@@ -75,7 +86,29 @@ namespace MemoryWhitebox.Editor
                 d.transport.StopAll();int[] map=d.transport.SnapshotMapping();Check(audio.Reject(map)=="","Real recorded sample mapping passes commission "+commission);
                 Check(d.transport.Save(),"PCM save "+commission);d.transport.Initialize(audio.Samples,audio.Rate,commission);d.transport.GetComponent<AudioSource>().Stop();Check(map.SequenceEqual(d.transport.SnapshotMapping())&&!d.transport.Writing&&!d.transport.SourcePlaying,"PCM reload preserves result and stops transports "+commission);
                 d.transport.RewindTarget();d.transport.TargetCommand(true,false,0,false);Pump(map.Length+100);Check(d.transport.TargetStatus!="PLAYBACK" && d.transport.RecordedSeconds>0,"Actual result playback reaches end "+commission);
-                d.SubmitCurrentRecording();Check(d.SubmissionSucceeded && d.Chapter.CommissionIndex==commission+1,"Commit advances only current commission "+commission);d.transportPanel.GetType().GetMethod("CloseSuccess",F).Invoke(d.transportPanel,null);
+                d.FocusRadio(true);Settle();var deskPosition=Get<Vector3>("radioReturnPosition");
+                if(commission==2)
+                {
+                    h.GetType().GetProperty("InStation").GetSetMethod(true).Invoke(h,new object[]{true});
+                    h.GetType().GetField("houseTransitionDuration",F).SetValue(h,.5f);
+                    foreach(var field in new[]{"houseFrom","houseTo"})h.GetType().GetField(field,F).SetValue(h,d.view.transform.position);
+                    foreach(var field in new[]{"houseFromRotation","houseToRotation"})h.GetType().GetField(field,F).SetValue(h,d.view.transform.rotation);
+                    foreach(var field in new[]{"houseFromFov","houseToFov"})h.GetType().GetField(field,F).SetValue(h,d.view.fieldOfView);
+                    h.GetType().GetField("transition",F).SetValue(h,.5f);
+                }
+                d.SubmitCurrentRecording();Check(d.SubmissionSucceeded && d.Chapter.CommissionIndex==commission+1,"Commit advances only current commission "+commission);
+                Check(h.InputContext.Current==InputContextId.Modal,"Success modal owns input even with a pending chapter transition "+commission);
+                if(commission==2)Check(!(bool)h.GetType().GetField("leaveCompletedChapter",F).GetValue(h),"Final tape completion retains recorder for replay");
+                d.transportPanel.GetType().GetMethod("CloseSuccess",F).Invoke(d.transportPanel,null);
+                // The synthetic transition has no authored camera interpolation data.
+                // Remove it before the live player Update resumes after this fixture.
+                if(commission==2)
+                {
+                    h.GetType().GetField("transition",F).SetValue(h,0f);
+                    h.GetType().GetProperty("InStation").GetSetMethod(true).Invoke(h,new object[]{false});
+                    h.SyncInputContext();
+                }
+                if(commission<2)Check(!Get<bool>("radioFocused") && d.WorkbenchMode && Vector3.Distance(d.view.transform.position,deskPosition)<.001f,"Closing success returns to source selection on desk "+commission);
             }
             Check(d.Chapter.Completed,"All three commissions complete");return "TAPE_P0_PASS "+results.Count;
         }

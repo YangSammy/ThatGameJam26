@@ -10,8 +10,8 @@ namespace MemoryWhitebox
         {
             var id=!houseFocused?InputContextId.Unfocused:
                 safeInspection!=null && safeInspection.Active?InputContextId.Inspection:
-                transition>0?InputContextId.Transition:
                 radioDeck!=null && radioDeck.SuccessPopupOpen?InputContextId.Modal:
+                transition>0?InputContextId.Transition:
                 ShowHelp?InputContextId.Paused:
                 DirectDarkroomActive?(DarkroomWorld.ParkGalleryOpen?InputContextId.Gallery:InputContextId.Darkroom):
                 radioDeck!=null && radioDeck.WorkbenchMode?InputContextId.TapeWorkbench:

@@ -10,6 +10,8 @@ namespace MemoryWhitebox
         readonly Dictionary<Renderer, int> guideProperties=new Dictionary<Renderer, int>();
         readonly Dictionary<string, Renderer[]> guideRenderers=new Dictionary<string, Renderer[]>();
         readonly MaterialPropertyBlock guideBlock=new MaterialPropertyBlock();
+        struct GuideMaterialColor { public Renderer renderer; public int index,property; public Color color; }
+        readonly List<GuideMaterialColor> guideMaterialColors=new List<GuideMaterialColor>();
         public bool DarkroomGuidanceActive=>(Active || DirectDarkroom) && ParkMode && !parkFilmUnavailable && !parkGallery;
 
         void Guide(string source,string target,string action,string task)
@@ -77,10 +79,12 @@ namespace MemoryWhitebox
         string DarkroomTask {get{ResolveDarkroomGuide();string target=CurrentDropTarget();return CarryingExposedFilm?"Hold LMB + WASD to carry. RMB to look. Release over the dark bag.":target!=null?"Move to "+DarkroomName(target)+"; release LMB.":guideTask;}}
         static string DarkroomName(string id)
         {
+            if(id=="film-100" || id=="film-200" || id=="film-400" || id=="film-800")return "ISO "+id.Substring(5)+" film";
             switch(id)
             {
                 case "rewind":return "Rewind knob";
                 case "back":return "Camera back";
+                case "chamber":return "Film chamber";
                 case "exposed-film":return "Exposed film";
                 case "bag":return "Dark bag";
                 case "tank":return "Developing tank";
@@ -109,21 +113,31 @@ namespace MemoryWhitebox
         {
             if(!DarkroomGuidanceActive)return "";
             ResolveDarkroomGuide();string id=Pick(ray),name=DarkroomName(id);
+            string drop=CurrentDropTarget();
+            if(drop!=null)return DarkroomName(dragged??printDrag)+" → "+DarkroomName(drop)+"\n"+DropInstruction(ray,drop)+" / Esc Cancel";
             if(objectDrag.AtEdge)return "Keep on this work area\nRelease LMB to place";
             if(objectDrag.Blocked)return "Path blocked\nMove around the obstacle / Esc Cancel";
-            string drop=CurrentDropTarget();
-            if(drop!=null && CanCommitDarkroom(ray,drop))return DarkroomName(drop)+"\nRelease LMB here";
             if(name==null)return "";
             if(id=="tank-lid" && tankSealed && (guideSource=="tank" || guideTarget=="tank")){id="tank";name=DarkroomName(id);}
             bool carrying=printDrag!=null || dragged!=null;
             if(id==guideTarget || (id=="print-frame-lid" && guideTarget=="print-frame"))
                 return name+"\n"+(carrying?"Move closer; keep target clear":"Place "+DarkroomName(guideSource)+" here");
             if(id==guideSource || (id=="tank" && guideSource=="tank-lid"))return name+"\n"+guideAction;
+            if(id!=null && id.StartsWith("chemical-") && guideSource!=null && guideSource.StartsWith("chemical-"))
+                return name+"\nUse "+DarkroomName(guideSource)+" first";
             if(printProcessing || Photo.Phase==PhotoChapter.FilmPhase.Processing)return name+"\nProcessing — please wait";
             return name+"\n"+(ParkPrintsReady?"Processing complete":"Not needed for this step");
         }
         public void ClearDarkroomHighlight()
         {
+            foreach(var saved in guideMaterialColors)
+            {
+                if(saved.renderer==null)continue;
+                saved.renderer.GetPropertyBlock(guideBlock,saved.index);
+                guideBlock.SetColor(saved.property,saved.color);
+                saved.renderer.SetPropertyBlock(guideBlock,saved.index);
+            }
+            guideMaterialColors.Clear();
             foreach(var pair in guideColors)
             {
                 if(pair.Key==null)continue;
@@ -140,19 +154,53 @@ namespace MemoryWhitebox
             ResolveDarkroomGuide();
             string id=(printDrag!=null || dragged!=null)?CurrentDropTarget():guideSource;
             if(string.IsNullOrEmpty(id) || !Nodes.ContainsKey(id))return;
+            bool ready=(printDrag!=null || dragged!=null) && CanCommitDarkroom(lastRay,id);
             Renderer[] renderers;
-            if(!guideRenderers.TryGetValue(id,out renderers)){renderers=Nodes[id].GetComponentsInChildren<Renderer>(true);guideRenderers[id]=renderers;}
+            if(!guideRenderers.TryGetValue(id,out renderers))
+            {
+                var targets=new List<Renderer>(Nodes[id].GetComponentsInChildren<Renderer>(true));
+                // Logical hit roots survive model replacement, but their old
+                // renderers are hidden. Highlight the delivered moving part.
+                if(darkroomVisuals!=null)
+                {
+                    string model=null;string[] parts=null;
+                    if(id=="print-tap"){model="print-wash";parts=new[]{"WashTap","WashValve"};}
+                    else if(id=="water"){model="film-drain-basin";parts=new[]{"TapBody","ValveHandle"};}
+                    else if(id=="tank-lid"){model="tank";parts=new[]{"MainLid"};}
+                    else if(id=="print-frame-lid"){model="print-frame";parts=new[]{"PressurePlate","Latch"};}
+                    if(model!=null)foreach(var part in parts)
+                    {
+                        var node=DarkroomAssetVisuals.Node(darkroomVisuals.ModelRoot(model),part);
+                        if(node!=null)foreach(var r in node.GetComponentsInChildren<Renderer>(true))if(!targets.Contains(r))targets.Add(r);
+                    }
+                }
+                renderers=targets.ToArray();guideRenderers[id]=renderers;
+            }
             foreach(var renderer in renderers)
             {
-                if(renderer==null || !renderer.gameObject.activeInHierarchy || renderer.sharedMaterial==null)continue;
+                if(renderer==null || !renderer.enabled || !renderer.gameObject.activeInHierarchy || renderer.sharedMaterial==null)continue;
                 var material=renderer.sharedMaterial;
                 int property=Shader.PropertyToID(material.HasProperty("_GuideTint")?"_GuideTint":material.HasProperty("_BaseColor")?"_BaseColor":"_Color");
                 if(!material.HasProperty(property))continue;
                 renderer.GetPropertyBlock(guideBlock);
                 Color original=guideBlock.HasColor(property)?guideBlock.GetColor(property):material.GetColor(property);
                 guideColors[renderer]=original;guideProperties[renderer]=property;
-                Color warm=Color.Lerp(original,new Color(1,.91f,.68f,original.a),.22f);
+                Color warm=Color.Lerp(original,ready?new Color(.55f,1,.76f,original.a):new Color(1,.91f,.68f,original.a),ready?.32f:.22f);
                 guideBlock.SetColor(property,warm);renderer.SetPropertyBlock(guideBlock);
+                // Photo surfaces have indexed blocks for their own image/wetness.
+                // Unity gives those precedence over the renderer-wide highlight.
+                var materials=renderer.sharedMaterials;
+                for(int i=0;i<materials.Length;i++)
+                {
+                    var slot=materials[i];if(slot==null)continue;
+                    renderer.GetPropertyBlock(guideBlock,i);if(guideBlock.isEmpty)continue;
+                    int tint=Shader.PropertyToID(slot.HasProperty("_GuideTint")?"_GuideTint":slot.HasProperty("_BaseColor")?"_BaseColor":"_Color");
+                    if(!slot.HasProperty(tint))continue;
+                    Color baseColor=guideBlock.HasColor(tint)?guideBlock.GetColor(tint):slot.GetColor(tint);
+                    guideMaterialColors.Add(new GuideMaterialColor{renderer=renderer,index=i,property=tint,color=baseColor});
+                    guideBlock.SetColor(tint,Color.Lerp(baseColor,ready?new Color(.55f,1,.76f,baseColor.a):new Color(1,.91f,.68f,baseColor.a),ready?.32f:.22f));
+                    renderer.SetPropertyBlock(guideBlock,i);
+                }
             }
         }
     }

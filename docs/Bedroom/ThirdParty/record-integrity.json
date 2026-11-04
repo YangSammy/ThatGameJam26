@@ -1,0 +1,59 @@
+{
+  "copied_texts": [
+    {
+      "retained_file": "PolyHaven-Interior-CC0-1.0.txt",
+      "production_source_relative_path": "ThirdParty/PolyHaven_Interior_v4/CC0-1.0-legalcode.txt",
+      "bytes": 7048,
+      "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+      "byte_identical_to_production_source": true
+    },
+    {
+      "retained_file": "PolyHaven-Plants-CC0-1.0.txt",
+      "production_source_relative_path": "ThirdParty/PolyHaven_Plants_v4/CC0-1.0.txt",
+      "bytes": 7048,
+      "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+      "byte_identical_to_production_source": true
+    },
+    {
+      "retained_file": "Mantissa-LICENSE-CC0.txt",
+      "production_source_relative_path": "ThirdParty/Mantissa_Japanese_Maple/LICENSE-CC0.txt",
+      "bytes": 7970,
+      "sha256": "e7290422342813ed39947b0e3b21efb8500e8f99061b0fc265131a692b863e51",
+      "byte_identical_to_production_source": true
+    },
+    {
+      "retained_file": "Mantissa-ID-List.txt",
+      "production_source_relative_path": "ThirdParty/Mantissa_Japanese_Maple/ID List.txt",
+      "bytes": 530,
+      "sha256": "557972136131e61d5ce32bb2ab276c907237c489558cb8cbf14015f1ff88f285",
+      "byte_identical_to_production_source": true
+    }
+  ],
+  "original_provenance_evidence": [
+    {
+      "production_source_relative_path": "ThirdParty/PolyHaven_Interior_v4/source-manifest.json",
+      "bytes": 14710,
+      "sha256": "fbd7f1f1b6a6e6c0138c090a0e253719816cfb0e95a557e17de77ff65b8f0560"
+    },
+    {
+      "production_source_relative_path": "ThirdParty/PolyHaven_Interior_v4/README.txt",
+      "bytes": 695,
+      "sha256": "54f6b9340c867982b8a375fd5f096ef37d47eedb329fb9446fea493edd5206b1"
+    },
+    {
+      "production_source_relative_path": "ThirdParty/PolyHaven_Plants_v4/provenance.json",
+      "bytes": 11935,
+      "sha256": "32fd202da44584995b5a2f88cd24348ba144a3b79dcc061144adfcbd457ed7b0"
+    },
+    {
+      "production_source_relative_path": "ThirdParty/PolyHaven_Plants_v4/README.md",
+      "bytes": 716,
+      "sha256": "532024a65194c0fa0e9e557ac78b8ad16b2c22badfd4379a1ba51c9ab527108b"
+    },
+    {
+      "production_source_relative_path": "ThirdParty/Mantissa_Japanese_Maple/provenance.json",
+      "bytes": 1295,
+      "sha256": "55201e976f2c984cd35f7f33bb9e5d113f037b76f14e9713de1cfae7d8b9d2a5"
+    }
+  ]
+}

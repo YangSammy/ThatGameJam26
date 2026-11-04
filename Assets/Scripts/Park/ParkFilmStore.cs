@@ -14,6 +14,17 @@ namespace MemoryWhitebox
         public bool threaded;
         public int mechanicalStep;
         public int iso=100;
+        // Resolve legacy saves without rewriting their serialized fields.
+        public int StableStep=>phase==PhotoChapter.FilmPhase.Ready?7:mechanicalStep>0?mechanicalStep:
+            phase==PhotoChapter.FilmPhase.Closed?6:threaded?4:phase==PhotoChapter.FilmPhase.LoadedOpen?2:0;
+        public static ParkCameraLoading AtStep(int step,int iso)
+        {
+            if(step<0 || step>7 || step==3)throw new ArgumentOutOfRangeException(nameof(step));
+            return new ParkCameraLoading{mechanicalStep=step,iso=iso,threaded=step>=4,
+                phase=step>=7?PhotoChapter.FilmPhase.Ready:step>=6?PhotoChapter.FilmPhase.Closed:
+                    step>=2?PhotoChapter.FilmPhase.LoadedOpen:PhotoChapter.FilmPhase.Empty};
+        }
+        public static bool CanAdvance(int from,int to)=>to==(from==2 || from==3?4:from+1) && from<7;
     }
 
     [Serializable] public sealed class ParkDarkroomProgress
@@ -47,7 +58,19 @@ namespace MemoryWhitebox
         public BridgePhotoCheckpoint Task(string id)=>id=="entrance"?entrance:id=="meadow"?meadow:bridge;
         public string NextTask=>frames.Count==0?"entrance":frames.Count==1?"bridge":"meadow";
         public List<ParkPhotoRecord> frames=new List<ParkPhotoRecord>();
+        public int FilmIso
+        {
+            get
+            {
+                if(cameraLoading!=null)return cameraLoading.iso;
+                // Earlier rolls can have a frame record but no loading checkpoint.
+                int iso=frames.Count>0?frames[0].iso:0;
+                return iso==200 || iso==400 || iso==800?iso:100;
+            }
+        }
         public int Remaining=>Mathf.Max(0,Capacity-frames.Count);
+        public bool HasPhotographyProgress=>frames.Count>0 || (cameraLoading!=null && cameraLoading.StableStep>0) ||
+            (Task(NextTask)!=null && (Task(NextTask).hasReference || Task(NextTask).savedFocus>0));
         public bool ReadyForPark=>state==ParkFilmState.Loaded &&
             (frames.Count>0 || (cameraLoading!=null && cameraLoading.phase==PhotoChapter.FilmPhase.Ready));
     }
