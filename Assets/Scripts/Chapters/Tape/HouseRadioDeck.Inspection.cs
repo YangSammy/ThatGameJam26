@@ -201,7 +201,6 @@ namespace MemoryWhitebox
             if(Notice!="")status+="\n"+Notice;
             float textWidth=Mathf.Min(716,Screen.width-274);statusHeight=Mathf.Clamp(style.CalcHeight(new GUIContent(status),textWidth)+16,46,108);
             InteractionUI.Label(new Rect(24,20,textWidth,statusHeight-16),status,style);
-            InteractionUI.Label(new Rect(24,Screen.height-50,Screen.width-48,34),"Release outside slot  Return   /   Esc or RMB  Cancel",style);
             if(waitingForRelease || house.ShowHelp)return;
             if(State==Phase.Playing || State==Phase.Paused)
             {

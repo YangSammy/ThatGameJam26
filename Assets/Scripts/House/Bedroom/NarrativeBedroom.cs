@@ -20,6 +20,7 @@ namespace MemoryWhitebox
         readonly List<GameObject> houseObjects=new List<GameObject>();
         readonly List<GameObject> artwork=new List<GameObject>();
         BedroomColorResponse grade;
+        BedroomPaperCue discovery;
 
         public void Enter(WBMain host)
         {
@@ -34,12 +35,21 @@ namespace MemoryWhitebox
             grade=host.Room.Camera.gameObject.AddComponent<BedroomColorResponse>();
             grade.Profile=cameraProfile;
             PresentStation(host,false);
+            if(chapterEntry.chapter==2 && writingDesk!=null)
+            {
+                var hit=writingDesk.paper;var t=hit.transform;
+                var corner=t.TransformPoint(hit.center+new Vector3(hit.size.x*.47f,hit.size.y*.5f,hit.size.z*.47f));
+                discovery=BedroomPaperCue.Create(transform,corner+t.up*.003f,t.right,t.forward,.043f);
+            }
             host.Room.Camera.transform.SetPositionAndRotation(entrance.position,entrance.rotation);
             host.Room.EnableLook(true);host.SuspendHouseInput();
         }
 
+        public void TickDiscovery(float dt,bool muted){if(discovery)discovery.Step(dt,muted);}
+
         public void PresentStation(WBMain host,bool station)
         {
+            if(station && discovery){Destroy(discovery.gameObject);discovery=null;}
             bool writing=station && chapterEntry.chapter==2;
             bool showHouse=station && !writing;
             SceneManager.SetActiveScene(showHouse?host.gameObject.scene:gameObject.scene);

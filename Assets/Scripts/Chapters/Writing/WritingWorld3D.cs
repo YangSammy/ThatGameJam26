@@ -68,6 +68,8 @@ namespace MemoryWhitebox
         }
 
         const float LetterWidthFraction=.8f;
+        const float FirstInkRow=.175f;
+        const float InkRowSpacing=.055f;
         float binFraming;
 
         void FrameLetter()
@@ -196,7 +198,7 @@ namespace MemoryWhitebox
                 ink.Clear();strokeRows.Clear();activeStroke.Clear();currentStroke=null;
                 lineExtent=0;previousRow=-1;previousDraft=State.Draft;previousPhase=State.Phase;
                 writingHeld=draggingPaper=false;sheet.SetActive(true);paperBall.gameObject.SetActive(false);
-                penPoint=StrokePoint(0,0);
+                penPoint=desk.InkPoint(BodyRowOrigin,0);
                 if(!State.Carried)
                 {
                     scarf.SetParent(memory,false);scarf.localPosition=new Vector3(1.3f,.61f,1.50f);
@@ -253,10 +255,13 @@ namespace MemoryWhitebox
             if (!writingHeld || State.Phase == "crumple") return;
             Vector2 p = PaperCoordinates(ray);
             int oldRow = State.Row; bool wasAwaitingReturn = State.AwaitingReturn; float before = State.WritingProgress;
+            bool wasStarted=State.Started;
             State.PointerMove(p);
             AcceptNewRow(oldRow, wasAwaitingReturn);
             float amount = State.WritingProgress - before;
             if (amount <= 0) return;
+            if(!wasStarted && State.Started)PlayWritingCue(timerStart);
+            else if(time>=nextPencil){PlayWritingCue(pencilStroke);nextPencil=time+.36f;}
             if (previousRow != State.Row) { lineExtent = 0; previousRow = State.Row; currentStroke = null; activeStroke.Clear(); }
             AppendInk(amount);
         }
@@ -272,7 +277,7 @@ namespace MemoryWhitebox
                     {
                         strokeRows[i]--;
                         if (strokeRows[i] < 0) { ReleaseObject(ink[i].gameObject); ink.RemoveAt(i); strokeRows.RemoveAt(i); }
-                        else ink[i].transform.localPosition += Vector3.forward * (.0615f*desk.paper.size.z/.72f);
+                        else ink[i].transform.localPosition += Vector3.forward * (InkRowSpacing*desk.paper.size.z);
                     }
                 }
                 lineExtent = 0; currentStroke = null; activeStroke.Clear();
@@ -282,29 +287,16 @@ namespace MemoryWhitebox
         {
             if (currentStroke == null)
             {
-                currentStroke = Line("Ink physically laid on paper - draft " + State.Draft + " row " + State.Row,
-                    new Vector3[0], "#3e3e35", .0025f);
-                currentStroke.transform.SetParent(sheet.transform,false);
+                currentStroke = desk.CreateInkStroke("Ink physically laid on paper - draft " + State.Draft + " row " + State.Row, sheet.transform);
                 ink.Add(currentStroke); strokeRows.Add(State.Row);
             }
             float end = Mathf.Min(425, lineExtent + amount);
-            for (float a = lineExtent; a < end; a += 2.5f)
-            {
-                float wave = Mathf.Sin(a * .26f) * (3 + Mathf.Sin(a * .063f) * 2) + Mathf.Sin(a * .67f) * 2;
-                activeStroke.Add(StrokePoint(a,wave));
-            }
-            lineExtent = end;
-            currentStroke.positionCount = activeStroke.Count; currentStroke.SetPositions(activeStroke.ToArray());
-            float v = Mathf.Sin(end * .26f) * (3 + Mathf.Sin(end * .063f) * 2) + Mathf.Sin(end * .67f) * 2;
-            penPoint = StrokePoint(end,v);
-            penLift = 0;
+            desk.ExtendInk(currentStroke,activeStroke,BodyRowOrigin,lineExtent,end);
+            lineExtent=end;
+            penPoint=desk.InkPoint(BodyRowOrigin,end);
+            penLift=0;
         }
-        Vector3 StrokePoint(float amount,float wave)
-        {
-            var hit=desk.paper;
-            return hit.center+new Vector3((-.392f/.95f+amount/535f)*hit.size.x,
-                hit.size.y*.5f+.002f,(.279f-State.Row*.0615f+wave*.0016f)*hit.size.z/.72f);
-        }
+        Vector2 BodyRowOrigin=>new Vector2(AutumnWritingDesk.LeftMargin,FirstInkRow-State.Row*InkRowSpacing);
         void RestoreInk()
         {
             foreach(var stroke in ink)ReleaseObject(stroke.gameObject);
@@ -334,11 +326,15 @@ namespace MemoryWhitebox
         {
             float elapsed=Mathf.Max(0,dt);dt = Mathf.Min(.1f, dt); time += dt;
             State.Tick(elapsed, input);
+            bool reachBlocked=input.Keys.Contains(KeyCode.E) && State.NearPickup && !State.InkFresh
+                && (State.Phase=="tutorial" || State.Phase=="collect");
+            if(reachBlocked && !attemptHeld)PlayWritingCue(pencilStroke);
+            attemptHeld=reachBlocked;
             if (State.Draft != previousDraft)
             {
                 foreach (var stroke in ink) ReleaseObject(stroke.gameObject);
                 ink.Clear(); strokeRows.Clear(); activeStroke.Clear(); currentStroke = null; lineExtent = 0; previousRow = -1;
-                previousDraft = State.Draft; penPoint=StrokePoint(0,0);
+                previousDraft = State.Draft; penPoint=desk.InkPoint(BodyRowOrigin,0);
                 desk.ShowDrafts(State.Draft);
             }
             if (State.Phase != previousPhase && State.Phase == "crumple") writingHeld = false;
@@ -351,7 +347,7 @@ namespace MemoryWhitebox
             }
             else penHand.localPosition=Vector3.Lerp(penHand.localPosition,Vector3.zero,Mathf.Clamp01(dt*24));
             if (State.Phase == "crumple") penHand.localEulerAngles = new Vector3(0, Mathf.Sin(time * 5) * 5, 0);
-            else penHand.localEulerAngles = Vector3.zero;
+            else penHand.localEulerAngles = reachBlocked?new Vector3(0,0,3*Mathf.Sin(time*12)):Vector3.zero;
             if (draggingPaper) { crumple = Mathf.Min(1, crumple + dt * 4); crumpleVisual.SetCrumpleProgress(crumple); }
             binFraming=Mathf.MoveTowards(binFraming,State.Phase=="crumple"?1:0,dt*4);
             FrameLetter();UpdateActors(dt);UpdateWritingVisuals(dt);
@@ -364,6 +360,7 @@ namespace MemoryWhitebox
             pickupMaterials.Clear();
             base.Dispose();
         }
+        bool attemptHeld;
         void UpdateActors(float dt){UpdateAutumnActors(dt);}
     }
 }

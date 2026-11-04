@@ -66,6 +66,8 @@ namespace MemoryWhitebox
 
         void BuildWritingVisuals()
         {
+            writingFoley=Root.AddComponent<AudioSource>();writingFoley.playOnAwake=false;
+            pencilStroke=Resources.Load<AudioClip>("ChapterFoley/Pencil");timerStart=Resources.Load<AudioClip>("ChapterFoley/Clock");
             visualAssets = WritingVisualAssets.Load();
             if (visualAssets == null) throw new InvalidOperationException("WritingVisualAssets configuration missing.");
             writingHandContact=Group("WritingHandContact",Vector3.zero);
@@ -113,7 +115,7 @@ namespace MemoryWhitebox
                     var v = CreateVisual(visualAssets.collectedItems[i], root);
                     bool carried = root == inventoryProps[i];
                     FitVisual(v, sizes[i] * (carried ? .45f : 1), Vector3.zero, Vector3.zero);
-                    if (!carried) { HighlightPickup(v); AddPickupRing(root); }
+                    if (!carried) { HighlightPickup(v); AddPickupRing(root,i); }
                     if (carried)
                     {
                         var driver = v.GetComponent<WritingPropVisual>();
@@ -152,12 +154,23 @@ namespace MemoryWhitebox
             }
         }
 
-        void AddPickupRing(Transform item)
+        readonly LineRenderer[] pickupRings=new LineRenderer[4];
+        AudioSource writingFoley;
+        AudioClip pencilStroke,timerStart;
+        float nextPencil;
+
+        void PlayWritingCue(AudioClip clip)
+        {
+            if(clip!=null && (Host==null || !Host.Muted))writingFoley.PlayOneShot(clip,.42f);
+        }
+
+        void AddPickupRing(Transform item,int index)
         {
             var ring=Line("Pickup halo",new Vector3[0],"#FFC354",.038f);
             ring.transform.SetParent(item,false);
             ring.gameObject.layer=MemoryLayer;
             ring.sharedMaterial.shader=Shader.Find("Unlit/Color");
+            pickupRings[index]=ring;
             ring.loop=true;
             ring.positionCount=40;
             for(int i=0;i<ring.positionCount;i++)
@@ -176,6 +189,12 @@ namespace MemoryWhitebox
             timerVisual.SetTimerProgress(1 - Mathf.Clamp01(State.Remaining / Mathf.Max(.01f, duration)));
             for (int i = 0; i < 4; i++)
             {
+                bool near=State.InPickupRange(i);
+                var ring=pickupRings[i];
+                float radius=near?.58f:1;
+                ring.transform.localScale=Vector3.Lerp(ring.transform.localScale,new Vector3(radius,1,radius),restoring?1:Mathf.Clamp01(dt*14));
+                ring.startWidth=ring.endWidth=near?.055f:.038f;
+                ring.sharedMaterial.color=State.InkFresh && (near || State.Phase=="tutorial")?new Color(1,.97f,.64f):new Color(1,.7f,.24f);
                 bool collected = State.HasItem(i);
                 if (restoring) pickupProgress[i] = collected ? 1 : 0;
                 else if (collected && !presentedCollected[i]) pickupProgress[i] = 0;

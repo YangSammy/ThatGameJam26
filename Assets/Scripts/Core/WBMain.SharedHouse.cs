@@ -446,7 +446,7 @@ namespace MemoryWhitebox
             {
                 if(DirectTapeHandling || (radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode)))return;
                 InteractionUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"·",style);
-                string hint=Room.AimedStation>=0?"LMB  "+InteractionUI.ChapterName(Room.AimedStation)+(safeInspection!=null && Room.AimedStation!=5?"  /  E  Inspect":""):"WASD  Move   /   Mouse  Look   /   LMB  Interact   /   E  Inspect";
+                string hint=Room.AimedStation>=0?"LMB  "+InteractionUI.ChapterName(Room.AimedStation)+(safeInspection!=null && Room.AimedStation!=5?"  /  E  Inspect":""):null;
                 if(radioDeck!=null)hint=radioDeck.GetHint(Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f)))??hint;
                 if(safeInspection!=null && Room.AimedStation<0)
                 {
@@ -461,10 +461,10 @@ namespace MemoryWhitebox
                 if(narrativeBedroom!=null)
                     hint=narrativeBedroom.IsEntry(StudyEntry.Pick(Room.Camera))
                         ?(narrativeBedroom.chapterEntry.chapter==2?"LMB  Sit and write":"LMB  Enter the drawing")+(narrativeInspection!=null?"  /  E  Inspect":"")
-                        :"WASD  Move  /  Mouse  Look";
+                        :null;
                 if(Time.unscaledTime<cameraRouteNoticeUntil)hint=cameraRouteNotice;
                 if(SpringActive)hint=((EndingChapter)chapters[4]).DoorOpen?"Walk through the doorway":"LMB  Open the entrance door";
-                InteractionUI.Label(new Rect(28,Screen.height-50,580,34),hint,style);
+                if(!string.IsNullOrEmpty(hint))InteractionUI.Label(new Rect(28,24,Screen.width-56,48),hint,style);
             }
             else if(InStation)
             {
@@ -476,7 +476,7 @@ namespace MemoryWhitebox
                 {
                     InteractionUI.Label(new Rect(20,12,600,35),InteractionUI.ChapterName(ChapterIndex)+"  /  H  Help",style);
                     if(ShowHelp){InteractionUI.Label(new Rect(32,72,Mathf.Min(870,Screen.width-64),210),CurrentWorld.Help,style);}
-                    else if(ChapterIndex>=2)InteractionUI.Label(new Rect(28,Screen.height-72,Screen.width-56,52),OperationHint(),style);
+                    else if(ChapterIndex>=2)InteractionUI.Label(new Rect(20,48,Screen.width-56,52),OperationHint(),style);
                     if(CurrentWorld.WantsMouseLook)InteractionUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"·",style);
                     if(deskStudy && ChapterIndex==1 && transition<=0 && !awaitRelease && !ShowHelp)
                     {bool enabled=GUI.enabled;GUI.enabled=enabled && InputContext.Ready;((PhotoWorld3D)CurrentWorld).DrawProgress(style);GUI.enabled=enabled;}
@@ -487,7 +487,7 @@ namespace MemoryWhitebox
         {
             if(Current.Completed)return "Complete  /  Esc  Back";
             var writing=Current as WritingChapter;if(writing!=null)return writing.TaskHint;
-            var painting=Current as PaintingChapter;if(painting!=null)return painting.TaskHint;
+            var album=CurrentWorld as PaintingWorld3D;if(album!=null)return album.Guidance;
             if(Current is EndingChapter)return "LMB  Open door / Walk through";
             return "LMB  Interact  /  Esc  Back";
         }

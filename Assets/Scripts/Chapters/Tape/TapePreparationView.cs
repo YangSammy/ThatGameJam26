@@ -69,7 +69,7 @@ namespace MemoryWhitebox
                 GUI.color=tint;
                 GUI.Label(new Rect(x-140,y-43,280,24),label,style);
             }
-            if(hiddenHoles>0)GUI.Label(new Rect(24,Screen.height-106,Screen.width-48,24),"Tilt tape with LMB + RMB to see the upper edge",style);
+            if(hiddenHoles>0)GUI.Label(new Rect(24,80,Screen.width-48,24),"Tilt tape with LMB + RMB to see the upper edge",style);
         }
         public TapePreparationView(SafeInspectionSubject subject,TapeInspectionState.Candidate candidate)
         {

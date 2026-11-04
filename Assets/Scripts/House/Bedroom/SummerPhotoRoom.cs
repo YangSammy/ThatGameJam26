@@ -24,6 +24,7 @@ namespace MemoryWhitebox
         float opening;
         string displayedRoll;
         float retryImagesAt;
+        BedroomPaperCue discovery;
 
         void Hide(GameObject obj)
         {
@@ -62,11 +63,24 @@ namespace MemoryWhitebox
             grade=host.Room.Camera.gameObject.AddComponent<BedroomColorResponse>();grade.Profile=cameraProfile;
             SceneManager.SetActiveScene(gameObject.scene);
             host.SuspendHouseInput();
+            if(!keepView && frames.Length>0 && !host.DarkroomWorld.DirectDarkroomAvailable && host.DarkroomWorld.DevelopedRollId==null)
+            {
+                var frame=frames[0].transform;
+                var mesh=frame.GetComponent<MeshFilter>().sharedMesh.bounds;
+                float side=Mathf.Sign(Vector3.Dot(entrance.position-frame.position,frame.forward));
+                var corner=frame.TransformPoint(mesh.center+new Vector3(mesh.extents.x*.82f,mesh.extents.y*.83f,side*mesh.extents.z));
+                discovery=BedroomPaperCue.Create(transform,corner+frame.forward*side*.004f,frame.right,frame.up,.055f);
+            }
         }
 
         public void Refresh(WBMain host)
         {
             string id=host.DarkroomWorld.DevelopedRollId;
+            if(discovery)
+            {
+                if(id!=null || host.DarkroomWorld.DirectDarkroomAvailable || host.InStation)DismissDiscovery();
+                else if(!host.ShowHelp)discovery.Step(Time.deltaTime,host.Muted);
+            }
             if(id==null || displayedRoll==id || Time.unscaledTime<retryImagesAt)return;
             retryImagesAt=Time.unscaledTime+5;
             for(int i=images.Count;i<frames.Length;i++)
@@ -101,7 +115,7 @@ namespace MemoryWhitebox
             {
                 if(hit.transform!=frames[i].transform)continue;
                 if(host.DarkroomWorld.DevelopedRollId!=null)host.ViewSummerPrint(frames[i].transform,i+1);
-                else if(!host.DarkroomWorld.DirectDarkroomAvailable)host.TryStartParkPhotography();
+                else if(!host.DarkroomWorld.DirectDarkroomAvailable && host.TryStartParkPhotography())DismissDiscovery();
                 else host.DarkroomWorld.DarkroomNotice(FilmHint(host));
                 return true;
             }
@@ -147,6 +161,8 @@ namespace MemoryWhitebox
                 default:return "Finish developing the roll behind the curtain.";
             }
         }
+
+        void DismissDiscovery(){if(discovery){Destroy(discovery.gameObject);discovery=null;}}
 
         public void Leave(WBMain host)
         {

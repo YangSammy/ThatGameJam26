@@ -25,7 +25,10 @@ namespace MemoryWhitebox
         Vector2 pointer;
         public override string Help=>"LMB drag  Write / WASD  Move / Hold E while writing  Pick up\nCrumple the stalled draft into the bin. The formal draft clock keeps running when you stop writing.";
         public IReadOnlyList<float> InkRows=>rows;
-        public string TaskHint=>Phase=="crumple"?"Drag paper to the bin":Phase=="tutorial"?"Write on the right / Move beside a gold ring on the left and hold E":Phase=="arrival"?"Keep writing + hold E to say goodbye":Phase=="farewell"?"": "Write + hold E to collect / Return to the entrance";
+        public bool InPickupRange(int i)=>!HasItem(i) && Vector2.Distance(Player,ItemPositions[i])<46;
+        public bool NearPickup=>InPickupRange(0)||InPickupRange(1)||InPickupRange(2)||InPickupRange(3);
+        string TutorialHint=>NearPickup?"Keep writing + hold E":WritingProgress<=0?"Drag right across the letter":"WASD  Approach a gold ring";
+        public string TaskHint=>Phase=="crumple"?"Drag paper to the bin":Phase=="tutorial"?TutorialHint:Phase=="arrival"?"Keep writing + hold E to say goodbye":Phase=="farewell"?"": "Write + hold E to collect / Return to the entrance";
         public override string DebugState=>CaptureCheckpoint();
         [Serializable] sealed class Checkpoint
         {
@@ -99,7 +102,7 @@ namespace MemoryWhitebox
             if(!(Player.x>332 && Player.x<368 && !passage))Player.y=next.y;
             if(InkFresh && input.Keys.Contains(KeyCode.E))for(int i=0;i<4;i++)
             {
-                if(!HasItem(i) && Vector2.Distance(Player,ItemPositions[i])<46)
+                if(InPickupRange(i))
                 {Collected|=1<<i;if(Phase=="tutorial"){Phase="crumple";CancelInput();return;}}
             }
             if(Phase!="collect" || !Started)return;

@@ -17,7 +17,7 @@ namespace MemoryWhitebox
         public override bool HasPointerGesture=>focusHeld||keyDragging||looking;
         const int RouteLayer=27,ObservationLayer=28,PaperLayer=29;
         Transform observation,route,actor,key,hole,ward,paper;
-        Camera albumCamera;RenderTexture albumTexture;Collider pageCollider;
+        Camera albumCamera,pageCamera;RenderTexture albumTexture;Collider pageCollider;
         Vector3 fixedEye;Quaternion fixedRotation;float yaw,pitch;int originalMask;Rect originalRect;Color originalBackground;CameraClearFlags originalClearFlags;
         bool built,focusHeld,looking,keyDragging,edgeArmed=true;
         Plane keyPlane;Vector3 keyHome,keyOffset;Vector2 lastLook,pointer;
@@ -90,19 +90,32 @@ namespace MemoryWhitebox
             base.Activate();originalMask=View.cullingMask;originalRect=View.rect;originalBackground=View.backgroundColor;originalClearFlags=View.clearFlags;View.clearFlags=CameraClearFlags.SolidColor;
             View.backgroundColor=new Color(.22f,.25f,.24f);
             BuildAlbum();actTransition=0;SetObservationAct(State.Phase==0?0:1);
-            View.cullingMask=(1<<ObservationLayer)|(1<<PaperLayer);View.rect=new Rect(0,0,1,1);
+            View.cullingMask=1<<ObservationLayer;View.rect=new Rect(0,0,1,1);
+            // Render the physical paper after the landscape has been defocused.
+            // Both cameras have the same eye; picking still uses the original view.
+            if(pageCamera==null)
+            {
+                var overlay=new GameObject("Album foreground camera");
+                overlay.transform.SetParent(View.transform,false);
+                pageCamera=overlay.AddComponent<Camera>();
+            }
+            pageCamera.CopyFrom(View);pageCamera.fieldOfView=Fov;
+            pageCamera.clearFlags=CameraClearFlags.Depth;pageCamera.cullingMask=1<<PaperLayer;
+            pageCamera.depth=View.depth+1;pageCamera.enabled=true;
             Defocus=View.GetComponent<PaintingDefocus>();if(Defocus==null)Defocus=View.gameObject.AddComponent<PaintingDefocus>();Defocus.Begin();
-            albumCamera.enabled=true;edgeArmed=false;RefreshAlbum();
+            albumCamera.enabled=true;edgeArmed=false;BeginFirstGap();RefreshAlbum();
             if(State.Phase>=2)RefreshWard();
         }
         public override void CancelPointerGesture(){winterPressPending=false;focusHeld=looking=false;if(keyDragging){keyDragging=false;key.localPosition=keyHome;}State.CancelInput();}
         public override void Deactivate()
         {
-            CancelPointerGesture();if(albumCamera!=null)albumCamera.enabled=false;if(Defocus!=null)Defocus.End();
+            CancelPointerGesture();if(observedSeat!=null)observedSeat.SetSwingAngleRadians(0);
+            if(pencilVoice!=null)pencilVoice.Stop();if(albumCamera!=null)albumCamera.enabled=false;
+            if(pageCamera!=null)pageCamera.enabled=false;if(Defocus!=null)Defocus.End();
             if(View!=null){View.cullingMask=originalMask;View.rect=originalRect;View.backgroundColor=originalBackground;View.clearFlags=originalClearFlags;}
             base.Deactivate();
         }
-        public override void Dispose(){if(Defocus!=null)Defocus.End();if(albumTexture!=null){albumTexture.Release();UnityEngine.Object.Destroy(albumTexture);}if(winterSheet!=null)winterSheet.SetPageTexture(null);base.Dispose();}
+        public override void Dispose(){if(pageCamera!=null)ReleaseObject(pageCamera.gameObject);if(Defocus!=null)Defocus.End();if(albumTexture!=null){albumTexture.Release();UnityEngine.Object.Destroy(albumTexture);}if(winterSheet!=null)winterSheet.SetPageTexture(null);base.Dispose();}
         bool PageRay(Ray ray,out Ray bookRay)
         {
             bookRay=ray;RaycastHit hit;
@@ -111,7 +124,7 @@ namespace MemoryWhitebox
         }
         public override string Pick(Ray ray)
         {
-            Ray bookRay;if(State.BookOpen && PageRay(ray,out bookRay))ray=bookRay;
+            Ray bookRay;if(PageRay(ray,out bookRay)){if(!State.BookOpen)return "";ray=bookRay;}
             RaycastHit hit;if(!Physics.Raycast(ray,out hit,50,State.BookOpen?1<<RouteLayer:1<<ObservationLayer))return "";
             var hotspot=hit.collider.GetComponent<WorldHotspot>();return hotspot!=null?hotspot.Id:"";
         }
@@ -135,6 +148,7 @@ namespace MemoryWhitebox
         }
         public override void Release(string id,Ray ray)
         {
+            if(focusHeld && GazeTarget=="shape-swing" && State.Focus>0 && !State.Painted[0])shortPresses++;
             looking=focusHeld=false;
             if(!keyDragging)return;
             Ray bookRay;bool matched=false;
@@ -149,9 +163,10 @@ namespace MemoryWhitebox
             View.transform.position=fixedEye;View.transform.rotation=fixedRotation*Quaternion.Euler(pitch,yaw,0);
             if(pointer.y>.16f && pointer.y<.84f)edgeArmed=true;
             if(State.Phase<2 && edgeArmed && !HasPointerGesture && (State.BookOpen?pointer.y>.94f:pointer.y<.06f))
-            {State.SetBook(!State.BookOpen);edgeArmed=false;Host?.InputContext.Handoff();Host?.SyncInputContext();}
+            {TurnPageForInput();edgeArmed=false;Host?.InputContext.Handoff();Host?.SyncInputContext();}
             string[] ids={"shape-swing","shape-bridge","shape-luggage","shape-flower","shape-pendant"};
-            int id=Array.IndexOf(ids,GazeTarget);if(State.Observe(id,focusHeld,dt))Host?.SaveStableProgress();
+            int id=Array.IndexOf(ids,GazeTarget);if(State.Observe(id,focusHeld,dt)){ShapeRecorded();Host?.SaveStableProgress();}
+            TickFirstGap(dt);
             Eye=fixedEye;Look=Eye+View.transform.forward;
             State.NoseHeight=layout.revealCutoff.position.y-layout.revealStart.position.y;
             int phase=State.Phase;
@@ -167,13 +182,16 @@ namespace MemoryWhitebox
         void RefreshAlbum()
         {
             bool second=State.Phase==1;
+            if(emptyHanger!=null)emptyHanger.gameObject.SetActive(State.Phase==0 && !State.Painted[0]);
             foreach(string id in new[]{"ground-a","ground-mid","ground-end"})Nodes[id].SetActive(State.Phase==0);
             if(second){Nodes["ground-a"].SetActive(true);Nodes["ground-a"].transform.localPosition=new Vector3(3,-.15f,0);Nodes["ground-a"].transform.localScale=new Vector3(6,.3f,1);}
             Nodes["high-platform"].SetActive(second);
             hole.gameObject.SetActive(second && !State.KeyInserted);
             key.gameObject.SetActive(second && State.Painted[4] && !State.KeyInserted);if(!keyDragging)key.localPosition=keyHome;
             actor.localPosition=new Vector3(State.Actor.x,State.Actor.y+.3f,-.05f);actor.localRotation=Quaternion.identity;
-            paper.gameObject.SetActive(State.BookOpen || State.Phase>=2);paper.SetPositionAndRotation(fixedEye+View.transform.rotation*new Vector3(0,-.14f,.85f),View.transform.rotation);
+            paper.gameObject.SetActive(State.Phase==0 || State.BookOpen || State.Phase>=2);
+            float y=State.Phase==0?sheetY:-.14f;
+            paper.SetPositionAndRotation(fixedEye+View.transform.rotation*new Vector3(0,y,.85f),View.transform.rotation);
             observation.gameObject.SetActive(State.Phase<3);
             RefreshWinterVisuals();
         }

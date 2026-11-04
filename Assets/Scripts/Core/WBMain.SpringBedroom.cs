@@ -65,6 +65,7 @@ namespace MemoryWhitebox
         bool TickNarrativeBedroom(float dt)
         {
             if(narrativeBedroom==null)return false;
+            narrativeBedroom.TickDiscovery(dt,Muted);
             Room.WalkTick(dt);
             if(!narrativeBedroom.IsEntry(StudyEntry.Pick(Room.Camera)))return true;
             if(Input.GetKeyDown(KeyCode.E) && narrativeInspection!=null)

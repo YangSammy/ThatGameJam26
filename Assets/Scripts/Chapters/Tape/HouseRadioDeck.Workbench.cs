@@ -362,7 +362,7 @@ namespace MemoryWhitebox
                 if(e.type==EventType.MouseDown || e.type==EventType.MouseUp || e.type==EventType.MouseDrag || e.type==EventType.ScrollWheel)
                     WorkbenchPointer(e.type,e.button,new Vector2(e.mousePosition.x,Screen.height-e.mousePosition.y),new Vector2(e.delta.x,-e.delta.y),-e.delta.y/3);
                 var hint=WorkbenchHint();
-                if(hint!="")GUI.Label(new Rect(24,Screen.height-44,Screen.width-48,30),hint,style);
+                if(hint!="")GUI.Label(new Rect(24,76,Screen.width-48,30),hint,style);
             }
             if(WorkbenchMode || RecordingMode)
             {

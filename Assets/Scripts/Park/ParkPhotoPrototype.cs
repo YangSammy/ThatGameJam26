@@ -326,12 +326,6 @@ namespace MemoryWhitebox
                 PhotographyNextAction();
             InteractionUI.Label(new Rect(24,Screen.height*.24f+32,Screen.width-48,48),step,small);
             InteractionUI.Label(new Rect(Screen.width-190,20,170,28),"Film "+ExposedFrames+" / "+RollCapacity,small);
-            if(photoMode==PhotographyMode.Exploration)
-                InteractionUI.Label(new Rect(24,Screen.height-48,Screen.width-48,32),"Bottom-left: meter   /   Bottom-right: camera   /   Esc: pause",small);
-            else if(photoMode==PhotographyMode.Viewfinder)
-                InteractionUI.Label(new Rect(24,Screen.height-32,Screen.width-48,28),"Scroll: focus   /   Left edge: aperture   /   Right edge: shutter   /   Esc: lower",small);
-            else if(photoMode==PhotographyMode.Aperture || photoMode==PhotographyMode.Shutter)
-                InteractionUI.Label(new Rect(24,Screen.height-48,Screen.width-48,32),"Scroll: adjust   /   Move to centre: viewfinder",small);
             if(Time.unscaledTime<noticeUntil)
                 InteractionUI.Label(new Rect(24,Screen.height-104,Screen.width-48,40),notice,small);
             if(flash>0){var color=GUI.color;GUI.color=new Color(1,1,1,flash*.55f);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=color;}
