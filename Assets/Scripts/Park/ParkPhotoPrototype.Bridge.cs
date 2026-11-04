@@ -167,6 +167,7 @@ namespace MemoryWhitebox
                     var next=JsonUtility.FromJson<BridgePhotoCheckpoint>(JsonUtility.ToJson(reference));next.aligned=true;
                     try{roll=ParkFilmStore.SaveTask(roll.id,CurrentTaskId,next);}
                     catch(Exception e){Debug.LogWarning("Alignment not saved: "+e.Message);alignedFor=0;}
+                    if(CurrentTaskId=="bridge" && CurrentTask.aligned)GameScore.Instance?.PhotoAnswered();
                 }
             }
             companion.photoLookBack=CurrentTask.aligned && CurrentTaskId!="entrance";
@@ -220,7 +221,7 @@ namespace MemoryWhitebox
         {
             if(!PhotoHandPointerActive || !PointerOnHand)return false;
             var next=JsonUtility.FromJson<BridgePhotoCheckpoint>(JsonUtility.ToJson(CurrentTask));next.handJoined=true;
-            try{roll=ParkFilmStore.SaveTask(roll.id,CurrentTaskId,next);shotCooldown=.5f;Notify("Hands joined. LMB to take the photograph. No frame used.");return true;}
+            try{roll=ParkFilmStore.SaveTask(roll.id,CurrentTaskId,next);shotCooldown=.5f;GameScore.Instance?.PhotoAnswered();Notify("Hands joined. LMB to take the photograph. No frame used.");return true;}
             catch(Exception e){Notify("Hand response not saved. Click the offered hand to retry. No frame used.");Debug.LogWarning("Hand response not saved: "+e.Message);return true;}
         }
         string PhotographyNextAction()

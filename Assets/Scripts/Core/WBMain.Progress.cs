@@ -13,6 +13,7 @@ namespace MemoryWhitebox
         public bool unlockAllChaptersInEditor=true;
 #endif
         public StoryDay CurrentDay=>story!=null?story.Day:StoryDay.SpringTape;
+        public bool DepartureDoorOpen=>chapters[4] is EndingChapter ending && ending.DoorOpen;
         public bool StoryFinished=>story!=null && story.Finished;
         public event System.Action<StoryDay> DayChanged;
         public bool CanEnterDay(int index)

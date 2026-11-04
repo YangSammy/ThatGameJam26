@@ -32,6 +32,13 @@ namespace MemoryWhitebox.EditorTools
                         Require(TapeRecordingSourceResolver.Hash(resolved.Samples)==TapeRecordingSourceResolver.Hash(version.Samples),"Wrong source selected");
                         Require(ReferenceEquals(resolved.Rules,version.Rules),"Wrong acceptance revision selected");Require(before.SequenceEqual(File.ReadAllBytes(file)),"Resolver modified save");
                     }
+                    if(i<=2)
+                    {
+                        var oldest=versions[versions.Count-1];
+                        using(var w=new BinaryWriter(File.Create(file))){w.Write(1);w.Write(48000);w.Write(oldest.Samples.Length);}
+                        var restored=TapeRecordingSourceResolver.ResolveFile(d,48000,file);
+                        Require(TapeRecordingSourceResolver.Hash(restored.Samples)==TapeRecordingSourceResolver.Hash(oldest.Samples),"Hashless recording must use original PCM");
+                    }
                     using(var w=new BinaryWriter(File.Create(file))){w.Write(3);w.Write(48000);w.Write(current.Samples.Length);w.Write("unknown hash");}
                     bool rejected=false;try{TapeRecordingSourceResolver.ResolveFile(d,48000,file);}catch(InvalidDataException){rejected=true;}Require(rejected,"Unknown source must not reset recording");
                     report.AppendLine("PASS commission "+i+": changed PCM, clean submission, new/legacy source and acceptance restoration, unknown version rejected.");

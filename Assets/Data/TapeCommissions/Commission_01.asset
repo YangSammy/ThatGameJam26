@@ -13,15 +13,15 @@ MonoBehaviour:
   m_Name: Commission_01
   m_EditorClassIdentifier: 
   title: Music 1
-  sourceAudio: {fileID: 8300000, guid: a7ca80984ddeba34dac9778c96ca5d10, type: 3}
-  legacyDefinition: {fileID: 11400000, guid: d1481fb8c397d464790ffd318205b98a, type: 2}
+  sourceAudio: {fileID: 8300000, guid: c2c50df5f0c84340ad89e6a5350ba3cc, type: 3}
+  legacyDefinition: {fileID: 11400000, guid: d04080e8b8b3458c9bee1bded6c25930, type: 2}
   noiseAudio: {fileID: 8300000, guid: 2105e8132c958df43940927929569be4, type: 3}
   noiseAudioStart: 1
   sourceLayers: []
-  cleanDuration: 12
+  cleanDuration: 0
   noiseSeed: 861
   noise:
-  - atCleanSecond: 6
+  - atCleanSecond: 14
     duration: 2
     amplitude: 0.22
-  acceptance: {fileID: 11400000, guid: 2884af2f447a7b340bf7e368c5eaf58f, type: 2}
+  acceptance: {fileID: 11400000, guid: a48f58401867441883a7cd1f5941adff, type: 2}

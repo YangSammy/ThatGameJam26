@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c12738ebe1440d5a4b1b6320f690273, type: 3}
+  m_Name: GameScore
+  m_EditorClassIdentifier: 
+  roomSeasons:
+  - {fileID: 8300000, guid: dc925dff79904d3a859bce05d1e8554f, type: 3}
+  - {fileID: 8300000, guid: 7ebff6ddf16e4dc8a0cd470ae925cf27, type: 3}
+  - {fileID: 8300000, guid: e19d6842382f4bd8b23975a92480daff, type: 3}
+  - {fileID: 8300000, guid: 739017e360b046ac835a805c63983c2c, type: 3}
+  parkLoop: {fileID: 8300000, guid: fade59f3ea7d457eb89272da8e8b9601, type: 3}
+  photoResponse: {fileID: 8300000, guid: c18a7f30402b4076849834d51825fea9, type: 3}
+  letterLoop: {fileID: 8300000, guid: fdba48fecf38445eae6b8f0eda70a640, type: 3}
+  farewell: {fileID: 8300000, guid: 05518b84f19f4f3ba41c477e42033ae0, type: 3}
+  winterPark: {fileID: 8300000, guid: 73a9cc958d714957a6666ce1a3e1356a, type: 3}
+  winterRoom: {fileID: 8300000, guid: c1d9a6e616b84bf5a02facf4af8dc093, type: 3}
+  ward: {fileID: 8300000, guid: 5e18768c68cc482c8e685cdc13bda9b8, type: 3}
+  springWaiting: {fileID: 8300000, guid: ed03d40c93164a6baaa0068a490e6648, type: 3}
+  springDoor: {fileID: 8300000, guid: 7109271a5df1474eabf9d8d2c0e0be42, type: 3}
+  theme: {fileID: 8300000, guid: 9741b3f4c7024fb794502069ac806fa4, type: 3}
+  gain: 0.18

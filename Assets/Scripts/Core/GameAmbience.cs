@@ -21,7 +21,7 @@ namespace MemoryWhitebox
         {
             settings=Resources.Load<GameAmbienceSettings>("GameAmbience");
             if(settings==null){Destroy(gameObject);return;}
-            DontDestroyOnLoad(gameObject);bed=Make("Global bed 001");bed.clip=settings.globalLoop;
+            DontDestroyOnLoad(gameObject);if(GetComponent<GameScore>()==null)gameObject.AddComponent<GameScore>();bed=Make("Global bed 001");bed.clip=settings.globalLoop;
             seasonal[0]=Make("Season A");seasonal[1]=Make("Season B");
             BindScene();if(bed.clip!=null)bed.Play();
         }

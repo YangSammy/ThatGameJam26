@@ -24,9 +24,19 @@ namespace MemoryWhitebox
                 // v1 has no hash: only the immutable legacy definition can interpret it safely.
                 if(hash!=null && length==current.Samples.Length && hash==Hash(current.Samples))return current;
                 var old=definition.legacyDefinition;
+                TapeCommissionAudio oldestMatching=null;
                 var visited=new System.Collections.Generic.HashSet<TapeCommissionDefinition>{definition};
                 while(old!=null && visited.Add(old))
-                {var legacy=TapeCommissionCompiler.Build(old,rate);if(length==legacy.Samples.Length && (hash==null || hash==Hash(legacy.Samples)))return legacy;old=old.legacyDefinition;}
+                {
+                    var legacy=TapeCommissionCompiler.Build(old,rate);
+                    if(length==legacy.Samples.Length)
+                    {
+                        if(hash==null)oldestMatching=legacy;
+                        else if(hash==Hash(legacy.Samples))return legacy;
+                    }
+                    old=old.legacyDefinition;
+                }
+                if(oldestMatching!=null)return oldestMatching;
                 throw new InvalidDataException("No matching source revision; recording preserved without rewriting.");
             }
         }

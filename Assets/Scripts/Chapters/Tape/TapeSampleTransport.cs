@@ -24,6 +24,7 @@ namespace MemoryWhitebox
         public float SourceDuration {get{lock(sync)return source==null?0:source.Length/(float)Math.Max(1,rate);}}
         public float SourceSeconds {get{lock(sync)return a/(float)Math.Max(1,rate);}}
         public float TargetSeconds {get{lock(sync)return b/(float)Math.Max(1,rate);}}
+        public bool TargetRunning {get{lock(sync)return configured && (playB || seek!=0);}}
         public bool SourcePlaying {get{lock(sync)return playA;}}
         public string SourceStatus {get{lock(sync)return playA?"PLAYING":source!=null && a>=source.Length?"END":"STOPPED";}}
         public bool Writing {get{lock(sync)return configured && playB && record && seek==0 && b<target.Length;}}
