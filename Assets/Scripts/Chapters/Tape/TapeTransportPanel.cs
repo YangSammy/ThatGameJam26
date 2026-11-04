@@ -18,6 +18,24 @@ namespace MemoryWhitebox
         public bool SuccessOpen=>successPopup!=null && successPopup.activeSelf;
         readonly PlayerInputReleaseGate successGate=new PlayerInputReleaseGate();
         Text recordLabel,playLabel;
+        static readonly string[] targetTooltipCommands={"Record","Play","Rewind","Forward","Stop","Eject"};
+        static readonly string[] sourceTooltipCommands={"Play","Stop","Rewind","Eject"};
+        readonly System.Collections.Generic.List<UnityEngine.EventSystems.RaycastResult> tooltipHits=new System.Collections.Generic.List<UnityEngine.EventSystems.RaycastResult>();
+        public string TooltipAt(Vector2 point)
+        {
+            var events=UnityEngine.EventSystems.EventSystem.current;
+            if(events==null || deck==null || !panel.activeInHierarchy || SuccessOpen)return null;
+            tooltipHits.Clear();
+            events.RaycastAll(new UnityEngine.EventSystems.PointerEventData(events){position=point},tooltipHits);
+            if(tooltipHits.Count==0)return null;
+            var hit=tooltipHits[0].gameObject.transform;
+            for(int i=0;i<buttons.Length && i<targetTooltipCommands.Length;i++)if(hit.IsChildOf(buttons[i].transform))return deck.DeckControlTooltip("B_"+targetTooltipCommands[i]);
+            for(int i=0;sourceButtons!=null && i<sourceButtons.Length && i<sourceTooltipCommands.Length;i++)if(hit.IsChildOf(sourceButtons[i].transform))return deck.DeckControlTooltip("A_"+sourceTooltipCommands[i]);
+            if(listenAction!=null && hit.IsChildOf(listenAction.transform))return "Listen to copy · Stops A and plays B from the start";
+            if(submitAction!=null && hit.IsChildOf(submitAction.transform))return "Submit copy · Check and save this recording";
+            if(prepareAction!=null && hit.IsChildOf(prepareAction.transform))return "Workbench · Check reels and cover protection holes";
+            return null;
+        }
         bool CanOperate=>deck!=null && deck.RecordingInputReady;
         void Awake()
         {
@@ -46,6 +64,8 @@ namespace MemoryWhitebox
             if(sourceButtons!=null)foreach(var button in sourceButtons)button.interactable=CanOperate && deck.Chapter.SourceLoaded;
             for(int i=0;i<buttons.Length;i++)
             {
+                // An empty B deck must not put disabled controls over desk cassettes.
+                buttons[i].gameObject.SetActive(loaded);
                 buttons[i].interactable=CanOperate && loaded && (i!=0 || !deck.Chapter.Completed);
                 var colors=buttons[i].colors;colors.normalColor=deck.UITransportCommand==i?new Color(.3f,.46f,.36f):new Color(.2f,.23f,.22f);buttons[i].colors=colors;
             }

@@ -8,7 +8,7 @@ namespace MemoryWhitebox
     /// The right hand writes on a desk; the left hand inhabits a small memory.
     /// WritingChapter is only the tested rule model. Its Draw method is never used.
     /// </summary>
-    public sealed class WritingWorld3D : WorldChapter3D
+    public sealed partial class WritingWorld3D : WorldChapter3D
     {
         public readonly WritingChapter State;
         public readonly Camera MemoryCamera;
@@ -33,13 +33,22 @@ namespace MemoryWhitebox
         bool writingHeld, draggingPaper;
         public override Transform[] PlayerHandTargets => new Transform[]{null,penHand};
         public override bool PlayerHandsEngaged => writingHeld || draggingPaper;
+        public override bool HasPointerGesture => writingHeld || draggingPaper;
+        public override void CancelPointerGesture()
+        {
+            // Cancel is never a successful drop in the bin. Keep already written ink.
+            State.CancelInput();
+            writingHeld=draggingPaper=false;currentStroke=null;activeStroke.Clear();
+            sheet.SetActive(true);paperBall.gameObject.SetActive(false);
+            foreach(var stroke in ink)stroke.gameObject.SetActive(true);
+        }
         Vector3 penPoint, lastMemoryPlayer;
         Rect originalRect;
         string previousPhase;
         LineRenderer currentStroke;
         Light memoryLight;
 
-        public override string Help { get { return "LMB drag right  Write  /  Return pen left for next line\nWASD  Move memory  /  E  Hold door\nDiscard draft in bin; carry scarf to the person by the window."; } }
+        public override string Help=>State.Help;
 
         public WritingWorld3D(WBMain host, WritingChapter model) : base(host, model, 2)
         {
@@ -103,8 +112,8 @@ namespace MemoryWhitebox
             MemoryCamera.transform.LookAt(World(memoryOffset + new Vector3(3.05f, .45f, 2.5f)));
             MemoryCamera.fieldOfView = 49; MemoryCamera.nearClipPlane = .05f; MemoryCamera.farClipPlane = 25;
             MemoryCamera.clearFlags = CameraClearFlags.SolidColor; MemoryCamera.backgroundColor = new Color(.12f, .17f, .18f); MemoryCamera.cullingMask = 1 << MemoryLayer;
-            MemoryCamera.depth = View != null ? View.depth + 1 : 1; MemoryCamera.rect = new Rect(0, 0, .5f, 1); MemoryCamera.enabled = false;
-            UpdateActors(.02f);
+            MemoryCamera.depth = View != null ? View.depth + 1 : 1; MemoryCamera.rect = new Rect(.5f, 0, .5f, 1); MemoryCamera.enabled = false;
+            BuildAutumnProps();UpdateActors(.02f);
         }
 
         void BuildMemoryRoom()
@@ -152,6 +161,7 @@ namespace MemoryWhitebox
         public override void Activate()
         {
             base.Activate();
+            RestoreInk();
             if(State.WritingProgress==0)
             {
                 foreach(var stroke in ink)ReleaseObject(stroke.gameObject);
@@ -165,12 +175,12 @@ namespace MemoryWhitebox
                     scarf.localRotation=Quaternion.identity;
                 }
             }
-            if (View != null) { originalRect = View.rect; originalMask = View.cullingMask; View.rect = new Rect(.5f, 0, .5f, 1); View.cullingMask = originalMask & ~(1 << MemoryLayer); }
+            if (View != null) { originalRect = View.rect; originalMask = View.cullingMask; View.rect = new Rect(0, 0, .5f, 1); View.cullingMask = originalMask & ~(1 << MemoryLayer); }
             MemoryCamera.enabled = true;
         }
         public override void Deactivate()
         {
-            if(Host!=null && Host.sharedHouse)Release("",new Ray(Vector3.zero,Vector3.up));
+            CancelPointerGesture();
             MemoryCamera.enabled = false;
             if (View != null) { View.cullingMask = originalMask == 0 ? -1 : originalMask; View.rect = originalRect.width > 0 ? originalRect : new Rect(0, 0, 1, 1); }
             writingHeld = false; State.PointerUp(Vector2.zero); draggingPaper = false;
@@ -179,12 +189,12 @@ namespace MemoryWhitebox
         }
         public override Ray PointerRay(Vector2 nativeScreenBottomLeft)
         {
-            return nativeScreenBottomLeft.x < Screen.width * .5f ? MemoryCamera.ScreenPointToRay(nativeScreenBottomLeft) : View.ScreenPointToRay(nativeScreenBottomLeft);
+            return nativeScreenBottomLeft.x < Screen.width * .5f ? View.ScreenPointToRay(nativeScreenBottomLeft) : MemoryCamera.ScreenPointToRay(nativeScreenBottomLeft);
         }
         public override void Press(string id, Ray ray, int button)
         {
             LastHit = id;
-            if (button != 0 || State.Completed) return;
+            if (button != 0 || State.Completed || HasPointerGesture) return;
             if (State.Phase == "crumple" && id == "paper")
             {
                 draggingPaper = true; crumple = 0;
@@ -255,6 +265,19 @@ namespace MemoryWhitebox
             penPoint = new Vector3(-.467f + end / 535f * .95f, 1.022f, .399f - State.Row * .0615f + v * .0016f);
             penLift = 0;
         }
+        void RestoreInk()
+        {
+            foreach(var stroke in ink)ReleaseObject(stroke.gameObject);
+            ink.Clear();strokeRows.Clear();activeStroke.Clear();currentStroke=null;
+            int savedRow=State.Row;
+            for(int row=0;row<State.InkRows.Count;row++)
+            {
+                if(State.InkRows[row]<=0)continue;
+                State.Row=row;lineExtent=0;currentStroke=null;activeStroke.Clear();AppendInk(State.InkRows[row]);
+            }
+            State.Row=savedRow;lineExtent=State.InkRows[savedRow];previousRow=savedRow;previousDraft=State.Draft;previousPhase=State.Phase;
+            currentStroke=null;activeStroke.Clear();
+        }
         public override void Release(string overId, Ray ray)
         {
             if (draggingPaper)
@@ -269,8 +292,8 @@ namespace MemoryWhitebox
         }
         public override void Tick(float dt, WBInput input)
         {
-            dt = Mathf.Min(.1f, dt); time += dt;
-            State.Tick(dt, input);
+            float elapsed=Mathf.Max(0,dt);dt = Mathf.Min(.1f, dt); time += dt;
+            State.Tick(elapsed, input);
             if (State.Draft != previousDraft)
             {
                 foreach (var stroke in ink) ReleaseObject(stroke.gameObject);
@@ -288,29 +311,6 @@ namespace MemoryWhitebox
             binLip.sharedMaterial.color = Color.Lerp(new Color(.55f, .59f, .52f), new Color(.95f, .75f, .40f), State.Phase == "crumple" ? .5f + Mathf.Sin(time * 3) * .25f : 0);
             UpdateActors(dt);
         }
-        void UpdateActors(float dt)
-        {
-            Vector3 next = MemoryPosition(State.Player), npcPosition = MemoryPosition(State.Npc);
-            Vector3 direction = next - lastMemoryPlayer;
-            if (direction.sqrMagnitude > .00001f) player.localRotation = Quaternion.LookRotation(direction);
-            player.localPosition = next; npc.localPosition = npcPosition;
-            npc.localRotation = State.Phase == "door" ? Quaternion.Euler(0, 90, 0) : Quaternion.Euler(0, 180, 0);
-            lastMemoryPlayer = next;
-            npcBox.gameObject.SetActive(State.Phase == "door" || State.Phase == "crumple");
-            if (State.Carried)
-            {
-                scarf.SetParent(State.Completed ? npc : player, false); scarf.localPosition = new Vector3(0, .86f, -.11f); scarf.localRotation = Quaternion.identity;
-            }
-            else scarf.gameObject.SetActive(State.Phase == "return");
-            bool open = State.DoorOpen || State.DoorHeld && State.InkFresh;
-            door.localRotation = Quaternion.Slerp(door.localRotation, Quaternion.Euler(0, open ? -100 : 0, 0), Mathf.Clamp01(dt * 10));
-            handle.sharedMaterial.color = State.Phase == "door" ? Color.Lerp(new Color(.65f, .52f, .30f), new Color(1, .85f, .48f), .5f + Mathf.Sin(time * 4) * .35f) : new Color(.65f, .58f, .42f);
-            float warmth = State.Completed ? 1 : State.InkFresh ? .85f : .22f;
-            memoryLight.intensity = Mathf.Lerp(memoryLight.intensity, .65f + warmth * 1.7f, Mathf.Clamp01(dt * 3));
-            memoryWindow.sharedMaterial.color = Color.Lerp(new Color(.37f, .46f, .49f), new Color(.9f, .85f, .65f), warmth);
-            // The player can see the remembered hand physically support the doorway.
-            doorHand.gameObject.SetActive(State.DoorHeld);
-        }
+        void UpdateActors(float dt){UpdateAutumnActors(dt);}
     }
 }
-

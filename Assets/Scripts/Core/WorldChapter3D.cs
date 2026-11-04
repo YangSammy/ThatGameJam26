@@ -54,6 +54,8 @@ namespace MemoryWhitebox
         public virtual void Press(string id,Ray ray,int button){}
         public virtual void Move(Ray ray){}
         public virtual void Release(string overId,Ray ray){}
+        public virtual bool HasPointerGesture => false;
+        public virtual void CancelPointerGesture(){Release("",new Ray(Vector3.zero,Vector3.up));}
         public virtual void Scroll(string id,float delta,Ray ray){}
         public virtual Ray PointerRay(Vector2 nativeScreenBottomLeft){return View.ScreenPointToRay(nativeScreenBottomLeft);}
         public virtual string Pick(Ray ray)

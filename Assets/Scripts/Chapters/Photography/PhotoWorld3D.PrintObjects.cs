@@ -7,8 +7,6 @@ namespace MemoryWhitebox
         DarkroomPrintSceneBinding printObjects;
         DarkroomPrintState printObjectsState;
         string printDrag;
-        Plane printDragPlane;
-        Vector3 printDragOffset;
         Texture2D contactTexture;
         MaterialPropertyBlock printProperties=new MaterialPropertyBlock();
         Vector3 negativeHomePosition,paperHomePosition,negativeHomeScale,paperHomeScale;
@@ -106,14 +104,15 @@ namespace MemoryWhitebox
             string location=negative?printObjectsState.negative.locationId:printObjectsState.paper.locationId;
             if(location=="print-frame" && printObjectsState.frameClosed){DarkroomNotice("Open the contact frame first.");return true;}
             printDrag=id;var item=Nodes[id].transform;
-            printDragPlane=new Plane(View.transform.forward,item.position);
-            float distance;printDragOffset=printDragPlane.Raycast(ray,out distance)?item.position-ray.GetPoint(distance):Vector3.zero;
+            Transform container=location=="print-frame"?Nodes["print-frame"].transform:
+                negative && printStage==ParkPrintStage.NegativeDrying?Nodes["tank"].transform:null;
+            objectDrag.Begin(item,ray,Vector3.up,.025f,1.8f,true,container);
             SetColliders(item.gameObject,false);return true;
         }
         bool MovePhysicalPrint(Ray ray)
         {
             if(printDrag==null)return false;
-            float distance;if(printDragPlane.Raycast(ray,out distance))Nodes[printDrag].transform.position=ray.GetPoint(distance)+printDragOffset;
+            MoveDarkroomDrag(ray);
             return true;
         }
         void StartPhysicalProcess()
@@ -127,27 +126,37 @@ namespace MemoryWhitebox
                 printStage==ParkPrintStage.ContactReady?"print-frame":printStage==ParkPrintStage.PaperDeveloper?"print-developer":
                 printStage==ParkPrintStage.PaperStop?"print-stop":printStage==ParkPrintStage.PaperFixer?"print-fixer":
                 printStage==ParkPrintStage.PaperWash?"print-wash":"print-photo-clip";
-            bool valid=CanDropDarkroom(ray,expected) && !(expected=="print-frame" && printObjectsState.frameClosed);
+            bool valid=CanCommitDarkroom(ray,expected) && !(expected=="print-frame" && printObjectsState.frameClosed);
+            bool placed=!valid && objectDrag.TryPlaceInArea();
+            objectDrag.End(true);
             SetColliders(Nodes[item],true);printDrag=null;
             if(valid)
             {
+                OperationArea.ClearPlacement(Nodes[item].transform);
                 var record=item=="print-negative"?printObjectsState.negative:printObjectsState.paper;record.locationId=expected;
                 if(printStage==ParkPrintStage.NegativeDrying || (printStage>=ParkPrintStage.PaperDeveloper && printStage!=ParkPrintStage.PaperWash))StartPhysicalProcess();
                 WBMain.Tone(260,.05f);
             }
+            else if(placed)
+            {
+                var record=item=="print-negative"?printObjectsState.negative:printObjectsState.paper;
+                record.locationId="area/"+OperationArea.For(Nodes[item].transform).areaId;
+                DarkroomNotice("Placed on work area.");
+            }
             else {WBMain.Tone(110,.05f);DarkroomNotice(expected=="print-frame" && printObjectsState.frameClosed?"Open the contact frame first.":"Move closer to "+DarkroomName(expected)+" and release.");}
-            SyncPhysicalPrint();SaveProgress();return true;
+            SyncPhysicalPrint();SaveProgress();Host.SaveStableProgress();return true;
         }
         void CancelPhysicalPrint()
         {
-            if(printDrag!=null){SetColliders(Nodes[printDrag],true);printDrag=null;}
+            if(printDrag!=null){objectDrag.End(true);SetColliders(Nodes[printDrag],true);printDrag=null;}
             SyncPhysicalPrint();
         }
         void PlacePrintItem(string id,ItemSaveRecord state)
         {
             if(printDrag==id || state==null)return;
+            if(state.locationId!=null && state.locationId.StartsWith("area/") && OperationArea.RestorePose(Nodes[id].transform))return;
             // At home, the material's own Inspector pose is authoritative, not an old duplicate anchor.
-            if(state.locationId=="print-negative-home" || state.locationId=="print-paper-home")
+            if(state.locationId=="print-negative-home" || state.locationId=="print-paper-home" || (state.locationId!=null && state.locationId.StartsWith("area/")))
             {
                 var item=Nodes[id].transform;bool negative=id=="print-negative";
                 item.localPosition=negative?negativeHomePosition:paperHomePosition;

@@ -17,7 +17,7 @@ namespace MemoryWhitebox
                 radioDeck!=null && radioDeck.WorkbenchMode?InputContextId.TapeWorkbench:
                 radioDeck!=null && radioDeck.RecordingMode?InputContextId.TapeTransport:
                 InStation && CurrentWorld is PhotoWorld3D && ((PhotoWorld3D)CurrentWorld).ParkGalleryOpen?InputContextId.Gallery:
-                InStation?InputContextId.Station:InputContextId.Exploration;
+                InStation?NarrativeContext:InputContextId.Exploration;
             var cursor=id==InputContextId.Modal?PlayerControlState.Paused:ControlState;
             InputContext.Select(id,cursor,InStation && CurrentWorld!=null && CurrentWorld.WantsMouseLook,continueGesture);
         }
@@ -31,11 +31,10 @@ namespace MemoryWhitebox
                 if(!DarkroomWorld.HasActiveGesture)return false;
                 DarkroomWorld.CancelInteraction();DarkroomWorld.SaveProgress();darkroomWasLeft=false;SuspendHouseInput();return true;
             },()=>SetHelpVisible(true));
-            if(id==InputContextId.Station)return InputContext.ExitPressed(id,()=>
+            if(id==InputContextId.Station || id==InputContextId.AutumnWriting || id==InputContextId.WinterObserve || id==InputContextId.WinterBook || id==InputContextId.WardWalk)return InputContext.ExitPressed(id,()=>
             {
-                var photo=CurrentWorld as PhotoWorld3D;
-                if(photo==null || !photo.HasActiveGesture)return false;
-                photo.CancelInteraction();SuspendHouseInput();return true;
+                if(CurrentWorld==null || !CurrentWorld.HasPointerGesture)return false;
+                CurrentWorld.CancelPointerGesture();InputState.Down=false;SuspendHouseInput();return true;
             },ExitHouseStation);
             if(id==InputContextId.Exploration && DirectTapeHandling)return InputContext.ExitPressed(id,null,()=>{radioDeck.PutBack();SyncTapePointer();SuspendHouseInput();});
             return false;

@@ -62,210 +62,177 @@ namespace MemoryWhitebox
         }
     }
 
-    public class PaintingChapter : Chapter
+    public class PaintingChapter:Chapter
     {
-        public int Phase { get; private set; }
-        public float Focus { get; private set; }
-        public float Elapsed { get; private set; }
-        public bool[] Painted { get; private set; } = new bool[3];
-        [System.Serializable] sealed class Checkpoint { public int version=1; public int phase; }
-        public override string CaptureCheckpoint()=>JsonUtility.ToJson(new Checkpoint{phase=Phase});
+        public int Phase {get;private set;}
+        public float Focus {get;private set;}
+        public float Elapsed {get;private set;}
+        public bool[] Painted {get;private set;}=new bool[5];
+        public bool BookOpen {get;private set;}
+        public Vector2 Actor=new Vector2(.7f,0),Velocity;
+        public float SwingAngle=-.55f,SwingSpeed,FlowerAngle=-Mathf.PI/2,CrateX=2;
+        public float BridgeGrowth,WhiteTime,WardDistance,WardRevealHeight;
+        public float NoseHeight=1.55f;
+        public bool KeyInserted,HighCheckpoint,MiddleCheckpoint;
+        public int Riding=-1;
+        public bool Grounded=true;
+        bool jumpWasDown;float remount,focusId=-1;
+        public Vector2 CurrentTarget=>Vector2.zero;
+        public bool CupContact=>false;
+        public bool HandsContact=>false;
+        public bool Ready=>true;
+        public bool AtDoor=>Phase==1 && Actor.x>=14 && Actor.y>=3.1f;
+        public bool PlatePressed=>Mathf.Abs(CrateX-4)<.36f && Painted[2] || Mathf.Abs(Actor.x-4)<.3f && Actor.y<.2f;
+        float Speed=>NarrativeDefinition.Resolve(this)?.albumSpeed??2.5f;
+        float Jump=>NarrativeDefinition.Resolve(this)?.jumpSpeed??5;
+        float Gravity=>NarrativeDefinition.Resolve(this)?.gravity??12;
+        public override string Help=>"Hold LMB  Focus / Lower edge  Raise album / Upper edge  Lower album\nA D  Move or swing / Space  Jump off / Drag pendant into the matching door recess";
+        public string TaskHint=>Phase>=2?"D  Follow the line":!BookOpen?"Hold LMB  Focus / RMB drag  Look / Lower edge  Raise album":
+            AtDoor&&!KeyInserted?(Painted[4]?"Drag the pendant into the recess":"Upper edge  Look for the matching shape"):
+            Riding==0?"A D  Swing / Space  Jump off":Riding>0?"Wait for the high ledge / D + Space  Jump off":
+            Phase==1&&!HighCheckpoint?(PlatePressed?"D + Space  Jump over the suitcase":"D  Push the suitcase onto the plate"):
+            "A D  Move / Space  Jump / Upper edge  Observe";
+        public override string DebugState=>CaptureCheckpoint();
+        [System.Serializable] sealed class Checkpoint
+        {
+            public int version=2,phase;public bool[] shapes;
+            public bool middle,high,key;public float crate=2,ward,white;
+        }
+        public override string CaptureCheckpoint()=>JsonUtility.ToJson(new Checkpoint{phase=Phase,shapes=Painted,middle=MiddleCheckpoint,high=HighCheckpoint,key=KeyInserted,crate=CrateX,ward=WardDistance,white=WhiteTime});
         public override void RestoreCheckpoint(string json)
         {
-            if(string.IsNullOrEmpty(json))return;
-            var node=JsonUtility.FromJson<Checkpoint>(json);
-            if(node==null || node.version!=1 || node.phase<0 || node.phase>3)throw new System.IO.InvalidDataException("Invalid painting checkpoint.");
-            Phase=node.phase;Focus=0;Elapsed=0;finishTime=0;
-            for(int i=0;i<Painted.Length;i++)Painted[i]=i<Phase;
+            CancelInput();if(string.IsNullOrEmpty(json))return;
+            var n=JsonUtility.FromJson<Checkpoint>(json);
+            if(n==null || n.version<1 || n.version>2)throw new System.IO.InvalidDataException("Invalid album checkpoint.");
+            if(n.version==1){Phase=0;return;}
+            if(n.phase<0 || n.phase>4 || n.shapes==null || n.shapes.Length!=5 || !Finite(n.crate) || !Finite(n.ward) || !Finite(n.white) || n.ward<0)throw new System.IO.InvalidDataException("Invalid album route.");
+            if(n.key && !n.shapes[4] || n.phase>=2 && !n.key)throw new System.IO.InvalidDataException("Invalid pendant ownership.");
+            Phase=n.phase;Painted=n.shapes;MiddleCheckpoint=n.middle;HighCheckpoint=n.high;KeyInserted=n.key;
+            CrateX=Mathf.Clamp(n.crate,1.3f,4.2f);WardDistance=n.ward;WhiteTime=Mathf.Max(0,n.white);BridgeGrowth=Painted[1]?1:0;
+            WardRevealHeight=Mathf.Min(NoseHeight,WardDistance/(NarrativeDefinition.Resolve(this)?.wardWalkDistance??8)*3.2f);
+            Respawn();BookOpen=Phase>=2;
         }
-        public Vector2 CurrentTarget { get { return Targets[Mathf.Min(Phase, 2)]; } }
-        // Drawing and focus validation share the same contact state.
-        public bool CupContact { get { return Elapsed % 5 < 2.7f; } }
-        public bool HandsContact { get { return Elapsed % 6 < 3.8f; } }
-        public bool Ready { get { return Phase == 0 || (Phase == 1 ? CupContact : Phase == 2 && HandsContact); } }
-        private readonly Vector2[] Targets = { new Vector2(1030, 412), new Vector2(885, 327), new Vector2(935, 557) };
-        private readonly float[] Radii = { 48, 35, 46 };
-        private Vector2 pointer;
-        private float finishTime;
-        public override string Help
+        static bool Finite(float x)=>!float.IsNaN(x)&&!float.IsInfinity(x);
+        public void CancelInput(){Focus=0;focusId=-1;jumpWasDown=false;}
+        public void SetBook(bool open){if(Phase>=2)return;BookOpen=open;Focus=0;jumpWasDown=false;}
+        public bool Observe(int id,bool held,float dt)
         {
-            get { return "鼠标控制视线，按住左键才聚焦。参照底稿，依次看向红围巾、手停在杯口时的接触处、两手相接处，按住左键稳定注视约 1.25 秒。动作未对齐时等待；松开或移开会减少当前聚焦，已完成的笔触保留。"; }
+            if(BookOpen || Phase>1 || id<0 || id>=5 || (Phase==0 && id>1)){Focus=0;focusId=-1;return false;}
+            if(focusId!=id){Focus=0;focusId=id;}
+            Focus=held?Focus+Mathf.Max(0,dt):0;
+            if(Painted[id] || Focus<(NarrativeDefinition.Resolve(this)?.shapeFocusSeconds??1.2f))return false;
+            Painted[id]=true;Focus=0;return true;
         }
-        public override string DebugState
+        public bool InsertPendant()
+        {if(!BookOpen || !AtDoor || !Painted[4] || KeyInserted)return false;KeyInserted=true;return true;}
+        public Vector2 SwingSeat=>new Vector2(4.5f+Mathf.Sin(SwingAngle)*3,3.3f-Mathf.Cos(SwingAngle)*3);
+        public Vector2 FlowerSeat(int petal)
+        {float a=FlowerAngle+petal*Mathf.PI/3;return new Vector2(8+Mathf.Cos(a)*2,2+Mathf.Sin(a)*2);}
+        public void Respawn()
         {
-            get { return string.Format(CultureInfo.InvariantCulture, "{{\"phase\":{0},\"focus\":{1:0.00},\"time\":{2:0.00},\"ready\":{3},\"completed\":{4}}}", Phase, Focus, Elapsed, Ready ? "true" : "false", Completed ? "true" : "false"); }
+            Riding=-1;Velocity=Vector2.zero;Grounded=true;remount=0;SwingSpeed=0;SwingAngle=-.55f;
+            FlowerAngle=-Mathf.PI/2;
+            Actor=Phase==0?(MiddleCheckpoint?new Vector2(6.8f,.7f):new Vector2(.7f,0)):
+                Phase==1?(HighCheckpoint?new Vector2(10.8f,3.2f):new Vector2(.7f,0)):new Vector2(WardDistance,0);
         }
-        public override void Tick(float dt, WBInput input)
+        public override void Tick(float dt,WBInput input)
         {
-            dt = Mathf.Clamp(dt, 0, .1f); Elapsed += dt; pointer = input.Pointer;
-            if (Phase == 3)
+            if(Completed || !BookOpen)return;dt=Mathf.Max(0,dt);Elapsed+=dt;
+            if(Phase==4){Finish();return;}
+            if(Phase==2){WhiteTime+=dt;if(WhiteTime>=(NarrativeDefinition.Resolve(this)?.whiteTransitionSeconds??1.2f)){Phase=3;Actor=Vector2.zero;}return;}
+            if(Phase==3)
             {
-                finishTime += dt;
-                if (finishTime > 2.4f && !Completed) Finish();
-                return;
+                float axis=(input.Keys.Contains(KeyCode.D)||input.Keys.Contains(KeyCode.W)?1:0)-(input.Keys.Contains(KeyCode.A)||input.Keys.Contains(KeyCode.S)?1:0);
+                Actor.x=Mathf.Max(0,Actor.x+axis*Speed*dt);WardDistance=Mathf.Max(WardDistance,Actor.x);
+                WardRevealHeight=WardDistance/(NarrativeDefinition.Resolve(this)?.wardWalkDistance??8)*3.2f;
+                if(WardRevealHeight>=NoseHeight){WardRevealHeight=NoseHeight;Phase=4;Finish();}return;
             }
-            bool looking = input.Down && Vector2.Distance(pointer, CurrentTarget) < Radii[Phase];
-            Focus = Mathf.Clamp(Focus + dt * (Ready && looking ? 1 : -.8f), 0, 1.25f);
-            if (Focus >= 1.25f)
-            {
-                Painted[Phase] = true; WBMain.Tone(new float[] { 330, 392, 494 }[Phase], .35f);
-                Phase++; Focus = 0;
-            }
+            float direction=(input.Keys.Contains(KeyCode.D)?1:0)-(input.Keys.Contains(KeyCode.A)?1:0);
+            bool jump=input.Keys.Contains(KeyCode.Space),edge=jump&&!jumpWasDown;jumpWasDown=jump;
+            float remaining=Mathf.Min(dt,.25f);while(remaining>0){float h=Mathf.Min(remaining,.01f);remaining-=h;Step(h,direction,edge);edge=false;if(!BookOpen || Phase>=2)break;}
         }
-        public override void PointerMove(Vector2 p) { pointer = p; }
-        public override void PointerDown(Vector2 p, int button) { pointer = p; }
-        public override void PointerUp(Vector2 p) { pointer = p; }
-        public override void Draw()
+        void Step(float dt,float axis,bool jump)
         {
-            MemoryArt.Background();
-            G.Box(new Rect(52, 123, 553, 579), G.C("#a99378"));
-            G.Box(new Rect(68, 137, 520, 546), G.C("#e4d8bc"));
-            for (int y = 150; y < 680; y += 10)
-                G.Line(new Vector2(75, y), new Vector2(581, y + 1), new Color(.4f, .3f, .2f, .04f), 1);
-            string[] faint = { "#b5aa94", "#b5aa94", "#b5aa94" };
-            faint[Mathf.Min(Phase, 2)] = "#948774";
-            MemoryArt.Scarf(new[] { new Vector2(215, 228), new Vector2(290, 254), new Vector2(352, 227), new Vector2(420, 267) }, 25, Painted[0] ? "#a6504f" : faint[0]);
-            MemoryArt.Cup(new Vector2(310, 360), Painted[1] ? "#8d9d98" : faint[1], !Painted[1]);
-            MemoryArt.Hand(new Vector2(362, 363), 180, Painted[1] ? "#b78a70" : faint[1], .6f);
-            MemoryArt.Hand(new Vector2(308, 535), 0, Painted[2] ? "#c29b80" : faint[2], .8f);
-            MemoryArt.Hand(new Vector2(328, 533), 180, Painted[2] ? "#9d7665" : faint[2], .8f);
-            G.Box(new Rect(654, 140, 566, 525), G.C("#4e5855"));
-            G.Box(new Rect(1030, 145, 184, 203), G.C("#b5b89b"));
-            G.Line(new Vector2(1115, 145), new Vector2(1115, 350), G.C("#ded4b7"), 5);
-            G.Line(new Vector2(1030, 235), new Vector2(1214, 235), G.C("#ded4b7"), 5);
-            G.Box(new Rect(685, 383, 510, 63), G.C("#85705b"));
-            float move = CupContact ? 0 : Mathf.Sin((Elapsed % 5 - 2.7f) / 2.3f * Mathf.PI) * 115;
-            MemoryArt.Cup(new Vector2(856, 329));
-            MemoryArt.Hand(new Vector2(912 + move, 329 + move * .18f), 180, "#c79e83", .9f);
-            G.Line(new Vector2(852, 308), new Vector2(848 + Mathf.Sin(Elapsed) * 4, 280), new Color(.87f, .84f, .72f, .4f), 2);
-            MemoryArt.Scarf(new[] { new Vector2(987, 390), new Vector2(1030, 414), new Vector2(1095, 389), new Vector2(1123, 447) }, 30);
-            float gap = HandsContact ? 0 : Mathf.Sin((Elapsed % 6 - 3.8f) / 2.2f * Mathf.PI) * 100;
-            MemoryArt.Hand(new Vector2(924 - gap, 557), -2, "#c79e83", 1.1f);
-            MemoryArt.Hand(new Vector2(950 + gap, 553), 182, "#ad826e", 1.1f);
-            if (Phase < 3)
+            remount=Mathf.Max(0,remount-dt);
+            if(Painted[1])BridgeGrowth=Mathf.MoveTowards(BridgeGrowth,1,dt/ .65f);
+            if(Phase==1 && Painted[3])FlowerAngle+=dt*(NarrativeDefinition.Resolve(this)?.flowerRadiansPerSecond??.65f);
+            if(Riding==0)
             {
-                if (Vector2.Distance(pointer, CurrentTarget) < Radii[Phase] || Focus > 0)
-                    G.Ring(CurrentTarget, Radii[Phase] + 12, Focus / 1.25f, G.C("#efcea0"), 3);
-                if (pointer.x > 650 && pointer.y > 140) G.Ring(pointer, 6, 1, new Color(.94f, .90f, .82f, .5f), 1);
+                SwingSpeed+=(-Mathf.Sin(SwingAngle)*3.2f+axis*3.5f-SwingSpeed*.25f)*dt;
+                SwingAngle+=SwingSpeed*dt;float limit=(NarrativeDefinition.Resolve(this)?.swingMaxDegrees??65)*Mathf.Deg2Rad;
+                if(Mathf.Abs(SwingAngle)>limit){SwingAngle=Mathf.Clamp(SwingAngle,-limit,limit);SwingSpeed=0;}
+                Actor=SwingSeat;
+                if(!jump)return;
+                Velocity=new Vector2(Mathf.Cos(SwingAngle)*SwingSpeed*3+axis*Speed*.6f,Mathf.Sin(SwingAngle)*SwingSpeed*3+Jump);Riding=-1;Grounded=false;remount=.45f;
+            }
+            else if(Riding>=1)
+            {
+                int petal=Riding-1;Actor=FlowerSeat(petal);
+                if(!jump)return;
+                Velocity=new Vector2(axis*Speed,Jump);Riding=-1;Grounded=false;remount=.45f;
             }
             else
             {
-                float lead = Mathf.Clamp01(finishTime / 2.1f);
-                MemoryArt.Scarf(new[] { new Vector2(417, 267), new Vector2(490, 276), new Vector2(540 + 650 * lead, 650) }, 14);
-                G.Box(new Rect(0, 90, 1280, 670), new Color(.91f, .76f, .54f, lead * .12f));
+                Velocity.x=Grounded?axis*Speed:Mathf.MoveTowards(Velocity.x,axis*Speed,dt*2);
+                if(jump && Grounded){Velocity.y=Jump;Grounded=false;remount=.2f;}
+            }
+            var before=Actor;var next=Actor+Velocity*dt;Velocity.y-=Gravity*dt;
+            next.x=Mathf.Clamp(next.x,.15f,16.5f);
+            if(Phase==1)
+            {
+                if(Painted[2] && !HighCheckpoint && Mathf.Abs(next.x-CrateX)<.62f && next.y<.5f)
+                {CrateX=Mathf.Clamp(CrateX+axis*Speed*dt,1.3f,4.2f);next.x=CrateX-Mathf.Sign(axis==0?1:axis)*.62f;}
+                if(!PlatePressed && before.x<6.2f && next.x>=5.9f && next.y<2.5f)next.x=5.9f;
+            }
+            Grounded=false;
+            float floor=Floor(next.x);
+            if(Velocity.y<=0 && before.y>=floor-.03f && next.y<=floor && floor>-5){next.y=floor;Velocity.y=0;Grounded=true;}
+            Actor=next;
+            if(Actor.y< -3){Respawn();return;}
+            if(Phase==0)
+            {
+                if(Grounded && Actor.x>=6 && Actor.x<=9)MiddleCheckpoint=true;
+                if(Painted[0] && remount<=0 && !MiddleCheckpoint && Vector2.Distance(Actor,SwingSeat)<.8f){Riding=0;Actor=SwingSeat;Velocity=Vector2.zero;}
+                if(Actor.x>=15.3f && Grounded && Painted[0] && Painted[1]){Phase=1;MiddleCheckpoint=false;Respawn();SetBook(false);}
+            }
+            else
+            {
+                if(Grounded && Actor.x>=10.3f && Actor.y>=3.1f)HighCheckpoint=true;
+                if(Painted[3] && remount<=0 && !HighCheckpoint)for(int i=0;i<6;i++)if(Vector2.Distance(Actor,FlowerSeat(i))<.52f){Riding=i+1;Actor=FlowerSeat(i);Velocity=Vector2.zero;break;}
+                if(Actor.x>=15.5f && Grounded && KeyInserted){Phase=2;WhiteTime=0;Riding=-1;Velocity=Vector2.zero;}
+                else if(!KeyInserted && Actor.x>14.9f)Actor.x=14.9f;
             }
         }
+        float Floor(float x)
+        {
+            if(Phase==0){if(x<=3)return 0;if(x>=6 && x<=9 || x>=12)return .7f;if(x>9 && x<12 && BridgeGrowth>=1)return .7f;return -10;}
+            if(x<=6 || x<=8.2f && PlatePressed)return 0;
+            if(x>=10.1f)return 3.2f;return -10;
+        }
+        public override void Draw(){}
     }
 
-    public class EndingChapter : Chapter
+    public class EndingChapter:Chapter
     {
-        [System.Serializable] sealed class Checkpoint { public int version=1; public int phase; }
-        public override string CaptureCheckpoint()=>JsonUtility.ToJson(new Checkpoint{phase=Phase});
+        public int Phase {get;private set;}
+        public float SpringProgress {get;private set;}
+        public bool DoorOpen=>Phase>=1;
+        public bool Dragging=>false;
+        public bool LeftHeld=>false;
+        public Vector2 Point=>Vector2.zero;
+        public Vector2 Target=>Vector2.zero;
+        [System.Serializable] sealed class Checkpoint{public int version=2,phase;public float spring;}
+        public override string CaptureCheckpoint()=>JsonUtility.ToJson(new Checkpoint{phase=Phase,spring=SpringProgress});
         public override void RestoreCheckpoint(string json)
         {
-            if(string.IsNullOrEmpty(json))return;
-            var node=JsonUtility.FromJson<Checkpoint>(json);
-            if(node==null || node.version!=1 || node.phase<0 || node.phase>3)throw new System.IO.InvalidDataException("Invalid ending checkpoint.");
-            Phase=node.phase;Dragging=LeftHeld=false;time=finishTime=0;
-            if(Phase>=1)corner=new Vector2(450,442);
-            if(Phase>=2)tail=new Vector2(580,448);
-            if(Phase>=3)tight=new Vector2(660,613);
+            if(string.IsNullOrEmpty(json))return;var n=JsonUtility.FromJson<Checkpoint>(json);
+            if(n==null || n.version<1 || n.version>2 || n.phase<0 || n.phase>3 || float.IsNaN(n.spring)||float.IsInfinity(n.spring))throw new System.IO.InvalidDataException("Invalid departure checkpoint.");
+            Phase=n.version==1?0:Mathf.Min(n.phase,2);SpringProgress=n.version==1?0:Mathf.Clamp01(n.spring);
         }
-        public int Phase { get; private set; }
-        public bool Dragging { get; private set; }
-        public bool LeftHeld { get; private set; }
-        public Vector2 Point { get { return Phase == 0 ? corner : Phase == 1 ? tail : tight; } }
-        public Vector2 Target { get { return Phase == 0 ? new Vector2(450, 442) : Phase == 1 ? new Vector2(580, 448) : new Vector2(660, 613); } }
-        private Vector2 corner = new Vector2(365, 385), tail = new Vector2(920, 430), tight = new Vector2(660, 460), pointer;
-        private float time, finishTime;
-        public override string Help
-        {
-            get { return "左键按住亮圈，拖到淡色轮廓：先抚平左侧折角，再把右端交叠到中间。最后按住 W/A/S/D 任一键（或左右方向键）扶住左端，同时用鼠标把右端向下拉紧；无需松键。中途松手可以从当前位置继续。"; }
-        }
-        public override string DebugState
-        {
-            get { return string.Format(CultureInfo.InvariantCulture, "{{\"phase\":{0},\"dragging\":{1},\"leftHeld\":{2},\"x\":{3:0},\"y\":{4:0},\"completed\":{5}}}", Phase, Dragging ? "true" : "false", LeftHeld ? "true" : "false", Point.x, Point.y, Completed ? "true" : "false"); }
-        }
-        private void Advance()
-        {
-            WBMain.Tone(new float[] { 293, 349, 440 }[Phase], .45f); Phase++; Dragging = false;
-        }
-        public override void Tick(float dt, WBInput input)
-        {
-            dt = Mathf.Clamp(dt, 0, .1f); time += dt;
-            LeftHeld = input.Keys != null && (input.Keys.Contains(KeyCode.A) || input.Keys.Contains(KeyCode.D) || input.Keys.Contains(KeyCode.W) || input.Keys.Contains(KeyCode.S) || input.Keys.Contains(KeyCode.LeftArrow) || input.Keys.Contains(KeyCode.RightArrow));
-            if (Dragging && Phase == 2 && LeftHeld && Vector2.Distance(tight, Target) < 65) Advance();
-            if (Phase == 3) { finishTime += dt; if (finishTime > 2.8f && !Completed) Finish(); }
-        }
-        public override void PointerDown(Vector2 p, int button)
-        {
-            pointer = p;
-            if (button == 0 && Phase < 3 && Vector2.Distance(p, Point) < (Phase == 0 ? 55 : 85)) Dragging = true;
-        }
-        public override void PointerMove(Vector2 p)
-        {
-            pointer = p;
-            if (!Dragging || Phase >= 3) return;
-            Vector2 next = new Vector2(Mathf.Clamp(p.x, 260, 1040), Mathf.Clamp(p.y, 300, 655));
-            if (Phase == 0) corner = next; else if (Phase == 1) tail = next; else tight = next;
-            if (Phase == 0 && Vector2.Distance(corner, Target) < 42) { corner = Target; Advance(); }
-            else if (Phase == 1 && Vector2.Distance(tail, Target) < 90) { tail = Target; Advance(); }
-            // Validate the final pull in Tick, after the current frame's keys
-            // have been read. PointerMove arrives before Tick in WBMain.
-        }
-        public override void PointerUp(Vector2 p) { pointer = p; Dragging = false; }
-        public override void Draw()
-        {
-            MemoryArt.Background(true);
-            G.Box(new Rect(185, 284, 910, 354), G.C("#78614e"));
-            G.Box(new Rect(205, 304, 870, 310), G.C("#806852"));
-            G.Line(new Vector2(220, 493), new Vector2(1060, 493), new Color(.62f, .51f, .39f, .2f), 2);
-            if (Phase < 2)
-            {
-                MemoryArt.Scarf(new[] { new Vector2(385, 427), new Vector2(540, 427), new Vector2(730, 430), tail }, 58);
-                if (Phase == 0)
-                {
-                    MemoryArt.Stroke(corner, new Vector2(405, 450), G.C("#8c4242"), 36);
-                    G.Line(new Vector2(402, 452), new Vector2(469, 403), G.C("#d58d75"), 2);
-                    G.Line(new Vector2(410, 420), Target, G.C("#bba58a"), 2);
-                }
-                else
-                {
-                    G.Line(new Vector2(920, 431), new Vector2(840, 500), G.C("#baa084"), 3);
-                    G.Line(new Vector2(840, 500), new Vector2(580, 448), G.C("#baa084"), 3);
-                }
-            }
-            else if (Phase == 2)
-            {
-                MemoryArt.Scarf(new[] { new Vector2(390, 443), new Vector2(497, 443), new Vector2(580, 450), new Vector2(620, 418), new Vector2(663, 453), tight }, 54);
-                MemoryArt.Scarf(new[] { new Vector2(580, 450), new Vector2(590, 505), new Vector2(545, 560) }, 46, "#8e4446");
-                MemoryArt.Hand(new Vector2(495, 440), 0, LeftHeld ? "#d4ac90" : "#9d8874", 1.1f);
-                MemoryArt.Hand(new Vector2(660, 615), -90, "#9d8874", 1.1f);
-                Vector2[] keys = { new Vector2(410, 650), new Vector2(444, 650), new Vector2(478, 650), new Vector2(444, 616) };
-                Vector2[] dirs = { Vector2.left, Vector2.up, Vector2.right, Vector2.down };
-                for (int i = 0; i < keys.Length; i++)
-                {
-                    G.Box(new Rect(keys[i].x, keys[i].y, 27, 25), G.C(LeftHeld ? "#cdb18b" : "#8d7a67"));
-                    Vector2 center = keys[i] + new Vector2(13, 12), d = dirs[i], n = new Vector2(-d.y, d.x);
-                    G.Line(center - d * 3 + n * 4, center + d * 3, G.C("#392f2a"), 2);
-                    G.Line(center - d * 3 - n * 4, center + d * 3, G.C("#392f2a"), 2);
-                }
-                G.Ring(new Vector2(497, 443), 31 + Mathf.Sin(time * 4) * 2, 1, G.C(LeftHeld ? "#e2c18b" : "#9d8874"), 2);
-            }
-            else
-            {
-                float settle = Mathf.Clamp01(finishTime / 1.5f);
-                MemoryArt.Scarf(new[] { new Vector2(410, 430), new Vector2(550, 441), new Vector2(615, 422), new Vector2(660, 465), new Vector2(700, 570) }, 53);
-                MemoryArt.Scarf(new[] { new Vector2(610, 447), new Vector2(580, 515), new Vector2(548, 565) }, 45, "#8e4446");
-                MemoryArt.Hand(new Vector2(553 + settle * 28, 451), -5, "#d4ac90", 1.25f);
-                MemoryArt.Hand(new Vector2(710 - settle * 25, 463), 185, "#b38870", 1.25f);
-                G.Box(new Rect(0, 90, 1280, 670), new Color(.96f, .8f, .54f, .1f * settle));
-            }
-            if (Phase < 3)
-            {
-                MemoryArt.Guide(Point, Target, time, Phase == 1 ? 65 : 29);
-                if (Dragging) MemoryArt.Hand(pointer + new Vector2(-12, 12), -32, "#d4ac90", .8f);
-            }
-        }
+        public void OpenDoor(){if(!Completed)Phase=1;}
+        public void CrossThreshold(){if(DoorOpen && !Completed){Phase=2;Finish();}}
+        public override void Tick(float dt,WBInput input){SpringProgress=Mathf.Clamp01(SpringProgress+Mathf.Max(0,dt)/(NarrativeDefinition.Resolve(this)?.springSeconds??5));if(Phase==2&&!Completed)Finish();}
+        public override string Help=>"LMB  Open door / Walk through the doorway";
+        public override void Draw(){}
     }
 }

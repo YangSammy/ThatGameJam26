@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace MemoryWhitebox
@@ -62,7 +62,7 @@ namespace MemoryWhitebox
                 speaker.Play();speaker.time=Mathf.Clamp(hiddenAudioPosition,0,Mathf.Max(0,speaker.clip.length-.001f));speaker.Pause();restoreHiddenAudio=false;
             }
         }
-        void OnDisable(){if(initialized)SetStationActive(false);}
+        void OnDisable(){if(initialized){SetStationActive(false);SettleDualDeck();}}
         bool SelectForDrag(int index)
         {
             if(!initialized || State!=Phase.Empty || index<0 || index>=tapes.Length)return false;
@@ -74,6 +74,8 @@ namespace MemoryWhitebox
         public bool InsertDragged()
         {
             if(State!=Phase.Dragging || Selected<0)return false;
+            if(dualDeck!=null)return InsertDualTarget();
+            OperationArea.ClearPlacement(tapes[Selected].root);
             Chapter.WorkingTapeIndex=Selected;
             if(Chapter.WorkbenchTapeIndex==Selected)Chapter.WorkbenchTapeIndex=-1;
             CancelTapeDrag();ReleaseSpindle();
@@ -89,23 +91,24 @@ namespace MemoryWhitebox
         {
             if(!initialized)return;
             CancelTapeDrag();ReleaseSpindle();
-            transport?.StopAll();speaker.Stop();animator.speed=1;
+            if(dualDeck==null)transport?.StopAll();else StopTargetOnly();speaker.Stop();animator.speed=1;
             foreach(var t in tapes)
             {
-                t.root.SetParent(t.homeParent,false);t.root.localPosition=t.homePosition;t.root.localRotation=t.homeRotation;t.root.localScale=t.homeScale;
+                t.root.SetParent(t.homeParent,false);t.root.localPosition=t.homePosition;t.root.localRotation=t.homeRotation;t.root.localScale=t.homeScale;OperationArea.RestorePose(t.root);
                 t.model.localPosition=t.modelPosition;t.model.localRotation=t.modelRotation;t.model.localScale=t.modelScale;
-                t.hit.enabled=true;
+                VisibleCassette(t.root,true);t.hit.enabled=true;
                 if(t.leftReel!=null)t.leftReel.localRotation=Quaternion.identity;
                 if(t.rightReel!=null)t.rightReel.localRotation=Quaternion.identity;
             }
             Selected=-1;State=Phase.Empty;Chapter.Tape.Selected=-1;Chapter.WorkingTapeIndex=-1;
-            if(animator.isActiveAndEnabled){animator.Play("Ready_Open",0,0);animator.Update(0);}
+            if(dualDeck!=null)dualDeck.Snap(1,false);
+            if(dualDeck==null && animator.isActiveAndEnabled){animator.Play("Ready_Open",0,0);animator.Update(0);}
         }
         void Update()
         {
             if(!initialized)return;
             if(!StationActive || waitingForRelease || !focused || (house!=null && house.ShowHelp) || (house!=null && house.safeInspection!=null && house.safeInspection.BlocksInput))return;
-            if(State==Phase.Loading && animator.GetCurrentAnimatorStateInfo(0).IsName("PlaybackLoop"))
+            if(dualDeck==null && State==Phase.Loading && animator.GetCurrentAnimatorStateInfo(0).IsName("PlaybackLoop"))
             {
                 speaker.Stop();animator.speed=0;State=Phase.Paused;
                 tapes[Selected].hit.enabled=true;
@@ -116,6 +119,8 @@ namespace MemoryWhitebox
         }
         void LateUpdate()
         {
+            if(initialized)TickWorkbenchAssets(Time.unscaledDeltaTime);
+            if(dualDeck!=null){TickDualDeck();FocusLoadedRadio();if(State==Phase.Returning)AdvanceReturn(Time.unscaledDeltaTime);else if(State==Phase.Dragging&&view!=null)PoseDraggedTape(Time.unscaledDeltaTime);return;}
             if(RecordingMode)return;
             if(!initialized || Selected<0)return;
             if(house!=null && house.safeInspection!=null && house.safeInspection.BlocksInput)return;
@@ -141,7 +146,7 @@ namespace MemoryWhitebox
             var hit=Pick(ray);
             var sourceHint=SourceHint(hit);if(sourceHint!=null)return sourceHint;
             if(!StationActive)return IsEntryHit(hit)?"LMB  Interact   /   E  Inspect":null;
-            if(State==Phase.Dragging)return draggingTape?(hit==slotHit?"Release LMB to insert   /   RMB  Return":"LMB drag to slot. Release to insert."):"LMB drag shell to slot   /   RMB  Return";
+            if(State==Phase.Dragging)return draggingTape?(hit==slotHit?"Release LMB to insert   /   Esc  Cancel":"LMB drag to slot. Release to insert."):"LMB drag shell to slot   /   Esc  Cancel";
             if(State==Phase.Loading)return "Loading tape...";
             if(State==Phase.Returning)return string.IsNullOrEmpty(Notice)?"Returning tape...":Notice;
             if(hit==radioHit || hit==slotHit)

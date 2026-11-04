@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MemoryWhitebox
 {
@@ -42,18 +42,21 @@ namespace MemoryWhitebox
         }
         public void SetUITransportCommand(int command)
         {
-            if(SuccessPopupOpen || !RecordingMode || recordingWait || State!=Phase.Paused || Selected<0)return;
+            if(SuccessPopupOpen || !RecordingMode || recordingWait || State!=Phase.Paused || Selected<0 || DeckBusy(1))return;
             SubmissionMessage="";lastFeedback="";
             UITransportCommand=-1;
             ApplyRecordingKeys(false,false,false,false,true);
+            if(dualDeck!=null && command==4)dualDeck.Press(1,"Stop");
             if(command==5)
             {
-                CloseRecording();TakeOut();house.SaveStableProgress();return;
+                if(dualDeck!=null){dualDeck.Press(1,"Eject");EjectDualDeck(1);}else {CloseRecording();TakeOut();}house.SaveStableProgress();return;
             }
+            if(dualDeck!=null && !dualDeck.Closed(1))return;
             if(command<0 || command>=4 || (Chapter.Completed && command==0))return;
             if(command==0 && !Chapter.Tape.Candidates[Selected].Intact){SubmissionMessage="Check both reels on the workbench first.";return;}
             if(command==0 && !Chapter.AuditionComplete){SubmissionMessage="Listen to this original first.";return;}
             if(command==0 && !Chapter.SourceLoaded){SubmissionMessage="Load the original tape into A first.";return;}
+            if(command==0 && dualDeck!=null && !dualDeck.Closed(0)){SubmissionMessage="Close A before recording.";return;}
             if(command==0 && !Chapter.Tape.Candidates[Selected].Prepared)
             {Chapter.ProtectionDiscovered=true;house.SaveStableProgress();SubmissionMessage="Recording protected. Eject B, cover both upper-edge holes, then reload.";return;}
             // First recording starts both decks from their beginning; later REC resumes only B.
@@ -106,15 +109,16 @@ namespace MemoryWhitebox
                 Notice="Recording unavailable";
                 Debug.LogWarning("Recording entry blocked: "+(RecordingError!=""?RecordingError:transport!=null?transport.SaveError:"Missing transport"),this);return;
             }
-            RecordingMode=true;recordingWait=true;recordingGate.Arm();recordingLeft=false;mouseKey=-1;stopLatch=true;
+            RecordingMode=true;recordingWait=true;recordingGate.Arm();recordingLeft=false;mouseKey=-1;stopLatch=UITransportCommand<0;
             house.Room.StopMotion();PlayerInputPolicy.SetCursor(true);
             house.SyncInputContext();
         }
         public void CloseRecording()
         {
-            UITransportCommand=-1;
+            RestoreRadioCamera();
+            if(!internalDeckHandoff || dualDeck==null){UITransportCommand=-1;transport?.StopAll();}
             handKey=-1;
-            transport?.StopAll();RecordingMode=false;wasWriting=false;stopLatch=true;recordingWait=true;
+            RecordingMode=false;wasWriting=false;stopLatch=true;recordingWait=true;
             RestoreRecordingControls();
             house?.SaveStableProgress();house?.SuspendHouseInput();
             house?.SyncInputContext();
@@ -122,11 +126,11 @@ namespace MemoryWhitebox
         void RestoreRecordingControls()
         {
             if(!recordingReady)return;
-            for(int i=0;i<keys3d.Length;i++)if(keys3d[i]!=null)keys3d[i].localPosition=keyHomes[i];
+            for(int i=0;i<keys3d.Length;i++)if(dualDeck==null && keys3d[i]!=null)keys3d[i].localPosition=keyHomes[i];
             UpdateTransportDisplay();
         }
         void StopRecordingInput()
-        {UITransportCommand=-1;transport?.StopAll();RestoreRecordingControls();wasWriting=false;mouseKey=-1;handKey=-1;stopLatch=true;recordingWait=true;recordingGate.Arm();}
+        {if(!internalDeckHandoff || dualDeck==null){UITransportCommand=-1;transport?.StopAll();}RestoreRecordingControls();wasWriting=false;mouseKey=-1;handKey=-1;stopLatch=true;recordingWait=true;recordingGate.Arm();}
         public void RetryCurrentCommission()
         {
             if(SuccessPopupOpen || Chapter.Completed || !recordingReady || transport==null)return;
@@ -182,17 +186,22 @@ namespace MemoryWhitebox
         public void TickRecording()
         {
             if(SuccessPopupOpen || !RecordingMode || transport==null)return;
-            house.Room.StopMotion();
+            house.Room.StopMotion();TickRadioCamera(Time.unscaledDeltaTime);
             TickAudition();
             if(recordingWait){if(recordingGate.Ready)recordingWait=false;return;}
-            if(house.InputContext.ExitPressed(InputContextId.TapeTransport,null,CloseRecording))return;
+            if(!radioCameraMoving && PollWorkspaceInspection())return;
+            if(house.InputContext.ExitPressed(InputContextId.TapeTransport,null,ExitTapeWorkspace))return;
             bool left=Input.GetMouseButton(0);
-            bool overPanel=UnityEngine.EventSystems.EventSystem.current!=null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
-            if(left && !recordingLeft && !overPanel && !RetryButtonRect.Contains(new Vector2(Input.mousePosition.x,Screen.height-Input.mousePosition.y)))
+            bool overPanel=TapeUIAt(Input.mousePosition);
+            if(!radioCameraMoving && left && !recordingLeft && !overPanel && !RetryButtonRect.Contains(new Vector2(Input.mousePosition.x,Screen.height-Input.mousePosition.y)))
             {
+                var body=PickWorkbenchTarget(view.ScreenPointToRay(Input.mousePosition));
+                if(body==radioHit || body==slotHit || body==sourceSlot){FocusRadio(true);recordingLeft=left;return;}
                 if(TryBeginOriginalInteraction(view.ScreenPointToRay(Input.mousePosition)))return;
                 if(TryBeginWorkbenchInteraction(view.ScreenPointToRay(Input.mousePosition)))return;
-                var hit=StudyEntry.PickVisible(view.ScreenPointToRay(Input.mousePosition));
+                var hit=PickWorkbenchTarget(view.ScreenPointToRay(Input.mousePosition));
+                if(hit==radioHit){FocusRadio(true);recordingLeft=left;return;}
+                if(dualDeck!=null && PressDualControl(dualDeck.Command(hit))){recordingLeft=left;return;}
                 for(int i=0;i<controlHits.Length;i++)if(hit==controlHits[i])
                 {
                     mouseKey=i;
@@ -212,16 +221,16 @@ namespace MemoryWhitebox
             if(UITransportCommand==0 && transport.SourceStatus=="END")UITransportCommand=-1;
             if(UITransportCommand==1 && transport.TargetSeconds>=transport.RecordedSeconds)UITransportCommand=-1;
             bool[] pressed={transport.SourcePlaying,false,false,s,f,j,l,stop,false,false,false};
-            for(int i=0;i<keys3d.Length;i++)keys3d[i].localPosition=keyHomes[i]+(pressed[i]?Vector3.down*keyTravel:Vector3.zero);
+            for(int i=0;dualDeck==null && i<keys3d.Length;i++)keys3d[i].localPosition=keyHomes[i]+(pressed[i]?Vector3.down*keyTravel:Vector3.zero);
             UpdateTransportDisplay();
         }
         public void ApplyRecordingKeys(bool f,bool s,bool j,bool l,bool stop)
         {
             if(transport==null || SuccessPopupOpen)return;
             if(stop)stopLatch=true;else if(!f)stopLatch=false;
-            bool ready=Selected>=0 && State==Phase.Paused;
+            bool ready=Selected>=0 && State==Phase.Paused && (dualDeck==null || dualDeck.Closed(1));
             bool play=ready && f && !stopLatch && !stop && (!s || !Chapter.Completed);
-            bool writing=play && s && !j && !l && Chapter.SourceLoaded && Chapter.AuditionComplete && Chapter.Tape.Candidates[Selected].Prepared && transport.SourceSeconds<transport.SourceDuration;
+            bool writing=play && s && !j && !l && Chapter.SourceLoaded && (dualDeck==null || dualDeck.Closed(0)) && Chapter.AuditionComplete && Chapter.Tape.Candidates[Selected].Prepared && transport.SourceSeconds<transport.SourceDuration;
             if(writing && !wasWriting && !transport.SourcePlaying)transport.SourceCommand(1);
             if(play && s && !writing)
             {
@@ -235,6 +244,7 @@ namespace MemoryWhitebox
         void UpdateTransportDisplay()
         {
             if(transport==null)return;
+            if(dualDeck!=null)return;
             sourceWheel.localRotation=sourceWheelHome*Quaternion.Euler(0,transport.SourceSeconds*180,0);
             // Both visible spools in the source window belong to A. B uses its own cassette reels.
             targetWheel.localRotation=targetWheelHome*Quaternion.Euler(0,transport.SourceSeconds*180,0);

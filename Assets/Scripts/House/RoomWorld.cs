@@ -17,6 +17,11 @@ namespace MemoryWhitebox
         public float WalkSpeed=1.8f,LookSensitivity=2.1f;
         public Vector3 Velocity => velocity;
         public void StopMotion(){velocity=Vector3.zero;}
+        public Transform ExitThreshold;
+        public float ExitHalfWidth=.52f;
+        public bool ExitOpen;
+        bool InExitCorridor(Vector3 p)
+        {if(!ExitOpen || ExitThreshold==null)return false;var v=ExitThreshold.InverseTransformPoint(p);return Mathf.Abs(v.x)<ExitHalfWidth && v.z> -1.2f && v.z<1;}
         private bool looking;
         private bool shared;
         private bool study;
@@ -174,17 +179,18 @@ namespace MemoryWhitebox
                 float stepTime=Mathf.Min(remaining,.01f);remaining-=stepTime;
                 velocity=PlayerControlSettings.Current.ApproachVelocity(velocity,wanted,stepTime);
                 Vector3 step=velocity*stepTime,pos=Camera.transform.position;
-                var next=new Vector3(Mathf.Clamp(pos.x+step.x,shared?-3.45f:-4.6f,shared?3.45f:4.6f),pos.y,pos.z);
+                var next=pos+Vector3.right*step.x;if(!InExitCorridor(next))next.x=Mathf.Clamp(next.x,shared?-3.45f:-4.6f,shared?3.45f:4.6f);
                 if(Clear(next))pos=next;else velocity.x=0;
-                next=new Vector3(pos.x,pos.y,Mathf.Clamp(pos.z+step.z,shared?-4.05f:-4.6f,shared?4.05f:4.6f));
+                next=pos+Vector3.forward*step.z;if(!InExitCorridor(next))next.z=Mathf.Clamp(next.z,shared?-4.05f:-4.6f,shared?4.05f:4.6f);
                 if(Clear(next))pos=next;else velocity.z=0;
                 Camera.transform.position=pos;
             }
             UpdateAim();
         }
-        public bool CanWalkAt(Vector3 position){return (!shared || (position.x>=-3.45f && position.x<=3.45f && position.z>=-4.05f && position.z<=4.05f)) && Clear(position);}
+        public bool CanWalkAt(Vector3 position){return (!shared || InExitCorridor(position) || (position.x>=-3.45f && position.x<=3.45f && position.z>=-4.05f && position.z<=4.05f)) && Clear(position);}
         private bool Clear(Vector3 position)
         {
+            if(InExitCorridor(position))return true;
             if(curtain!=null && curtain.Blocks(position))return false;
             foreach(var box in liveBlockers)
             {

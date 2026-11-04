@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -37,7 +37,10 @@ namespace MemoryWhitebox
             if(view==null)return;
             bool inspection=house!=null && house.safeInspection.Active;
             if(inspection)view=house.safeInspection.displayCamera;
-            if(EventSystem.current!=null && Cursor.lockState!=CursorLockMode.Locked && EventSystem.current.IsPointerOverGameObject())return;
+            bool overUI=EventSystem.current!=null && Cursor.lockState!=CursorLockMode.Locked && EventSystem.current.IsPointerOverGameObject();
+            var radio=house!=null && !inspection?house.radioDeck:null;
+            string radioUI=radio!=null && radio.transportPanel!=null?radio.transportPanel.TooltipAt(point):null;
+            if(overUI && radioUI==null)return;
             Collider hit=null;
             if(park!=null && park.PhotoMode!=ParkPhotoPrototype.PhotographyMode.Exploration)
             {point=park.TooltipPoint;hit=park.TooltipTarget;}
@@ -47,9 +50,17 @@ namespace MemoryWhitebox
                 RaycastHit info;
                 if(Physics.Raycast(view.ScreenPointToRay(point),out info,inspection?20:60,inspection?view.cullingMask:~0,QueryTriggerInteraction.Collide))hit=info.collider;
             }
+            if(radio!=null && (radio.WorkbenchMode || radio.RecordingMode))hit=radio.PickWorkbenchTarget(view.ScreenPointToRay(point));
             bool darkroom=guidedPhoto!=null && guidedPhoto.DarkroomGuidanceActive && !inspection;
             if(darkroom && guidedPhoto.PointerOverUI)return;
             string value=darkroom?guidedPhoto.DarkroomTooltip(view.ScreenPointToRay(point)):TextFor(hit);
+            if(radioUI!=null)value=radioUI;
+            else if(radio!=null && radio.dualDeck!=null)
+            {
+                string hint=radio.WorkbenchObjectTooltip(hit);
+                if(hint==null)hint=radio.DeckControlTooltip(radio.dualDeck.Command(hit));
+                if(hint!=null)value=hint;
+            }
             if(string.IsNullOrWhiteSpace(value))return;
             label.text=value;
             float width=Mathf.Min(320,Screen.width-32);float height=Mathf.Clamp(label.preferredHeight+24,42,180);

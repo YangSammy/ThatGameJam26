@@ -1,0 +1,9 @@
+﻿细石土路 | floor_pebbles_01
+来源：https://polyhaven.com/a/floor_pebbles_01
+许可：CC0。原始2K贴图，非道路模型；用于 Unity Terrain 绘制地表。
+floor_pebbles_01_diff_2k.png：颜色图，放 Terrain Layer 的 Diffuse。
+floor_pebbles_01_nor_gl_2k.png：法线，导入类型 Normal map，放 Normal Map；Normal Scale 可从0.2开始试。
+floor_pebbles_01_rough_2k.png：粗糙度，暂不用，不要直接放入 Mask Map。
+floor_pebbles_01_ao_2k.png：环境遮蔽，暂不用。
+建议新建 Terrain Layer 使用这些贴图，避免替换共享旧层而改变所有旧泥土地面。
+两套贴图均按官方下载清单校验MD5。未在你的Unity场景中实测。

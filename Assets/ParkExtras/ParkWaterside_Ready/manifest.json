@@ -1,0 +1,506 @@
+[
+  {
+    "model": "flower_gazania_a",
+    "label": "勋章菊A",
+    "group": "03_亮色花卉",
+    "height": 0.30000001192092896,
+    "triangles": 416,
+    "materials": {
+      "flower_gazania": "flower_gazania_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.138230562210083,
+      0.133338063955307,
+      0.30000001192092896
+    ]
+  },
+  {
+    "model": "flower_gazania_b",
+    "label": "勋章菊B",
+    "group": "03_亮色花卉",
+    "height": 0.30000001192092896,
+    "triangles": 448,
+    "materials": {
+      "flower_gazania": "flower_gazania_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.21493658423423767,
+      0.26836085319519043,
+      0.30000001192092896
+    ]
+  },
+  {
+    "model": "flower_gazania_c",
+    "label": "勋章菊C",
+    "group": "03_亮色花卉",
+    "height": 0.30000001192092896,
+    "triangles": 752,
+    "materials": {
+      "flower_gazania": "flower_gazania_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.2408578246831894,
+      0.18604767322540283,
+      0.30000001192092896
+    ]
+  },
+  {
+    "model": "flower_gazania_patch",
+    "label": "勋章菊整簇",
+    "group": "03_亮色花卉",
+    "height": 0.30000001192092896,
+    "triangles": 7740,
+    "materials": {
+      "flower_gazania": "flower_gazania_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.7999999523162842,
+      0.797236442565918,
+      0.30000001192092896
+    ]
+  },
+  {
+    "model": "flower_empodium_a",
+    "label": "黄色星花A",
+    "group": "03_亮色花卉",
+    "height": 0.3799999952316284,
+    "triangles": 758,
+    "materials": {
+      "flower_empodium": "flower_empodium_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.2173636257648468,
+      0.25076568126678467,
+      0.3799999952316284
+    ]
+  },
+  {
+    "model": "flower_empodium_b",
+    "label": "黄色星花B",
+    "group": "03_亮色花卉",
+    "height": 0.3799999952316284,
+    "triangles": 758,
+    "materials": {
+      "flower_empodium": "flower_empodium_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.1815178543329239,
+      0.204665407538414,
+      0.3799999952316284
+    ]
+  },
+  {
+    "model": "flower_empodium_c",
+    "label": "黄色星花C",
+    "group": "03_亮色花卉",
+    "height": 0.3800000250339508,
+    "triangles": 933,
+    "materials": {
+      "flower_empodium": "flower_empodium_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.21688038110733032,
+      0.1579342782497406,
+      0.3800000250339508
+    ]
+  },
+  {
+    "model": "flower_empodium_patch",
+    "label": "黄色星花整簇",
+    "group": "03_亮色花卉",
+    "height": 0.3799999952316284,
+    "triangles": 2364,
+    "materials": {
+      "flower_empodium": "flower_empodium_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.7869712114334106,
+      0.7999999523162842,
+      0.3799999952316284
+    ]
+  },
+  {
+    "model": "celandine_01_a",
+    "label": "黄花地被A",
+    "group": "03_亮色花卉",
+    "height": 0.2199999988079071,
+    "triangles": 622,
+    "materials": {
+      "celandine_01": "celandine_01_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.2757267951965332,
+      0.22823578119277954,
+      0.2199999988079071
+    ]
+  },
+  {
+    "model": "celandine_01_b",
+    "label": "黄花地被B",
+    "group": "03_亮色花卉",
+    "height": 0.2199999988079071,
+    "triangles": 599,
+    "materials": {
+      "celandine_01": "celandine_01_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.2517130374908447,
+      0.3066580295562744,
+      0.2199999988079071
+    ]
+  },
+  {
+    "model": "celandine_01_c",
+    "label": "黄花地被C",
+    "group": "03_亮色花卉",
+    "height": 0.2199999839067459,
+    "triangles": 4301,
+    "materials": {
+      "celandine_01": "celandine_01_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.2571471631526947,
+      0.18633997440338135,
+      0.2199999839067459
+    ]
+  },
+  {
+    "model": "celandine_01_patch",
+    "label": "黄花地被整簇",
+    "group": "03_亮色花卉",
+    "height": 0.2199999988079071,
+    "triangles": 10108,
+    "materials": {
+      "celandine_01": "celandine_01_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.7866439819335938,
+      0.800000011920929,
+      0.2199999988079071
+    ]
+  },
+  {
+    "model": "cattail_clump",
+    "label": "香蒲整簇",
+    "group": "01_岸边高草",
+    "height": 1.25,
+    "triangles": 9380,
+    "materials": {
+      "cattail_0": "cattail_0_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      1.0001015663146973,
+      1.0437650680541992,
+      1.25
+    ]
+  },
+  {
+    "model": "cattail_medium",
+    "label": "香蒲中簇",
+    "group": "01_岸边高草",
+    "height": 0.8125,
+    "triangles": 9380,
+    "materials": {
+      "cattail_0": "cattail_0_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      1.0001015663146973,
+      1.0437650680541992,
+      0.8125
+    ]
+  },
+  {
+    "model": "reed_clump",
+    "label": "芦苇整簇",
+    "group": "01_岸边高草",
+    "height": 1.5999999046325684,
+    "triangles": 14056,
+    "materials": {
+      "reed_0": "reed_0_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.9123155474662781,
+      0.8129332065582275,
+      1.5999999046325684
+    ]
+  },
+  {
+    "model": "reed_medium",
+    "label": "芦苇中簇",
+    "group": "01_岸边高草",
+    "height": 1.0399999618530273,
+    "triangles": 14056,
+    "materials": {
+      "reed_0": "reed_0_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.9123155474662781,
+      0.8129332065582275,
+      1.0399999618530273
+    ]
+  },
+  {
+    "model": "lily_pad_clump",
+    "label": "睡莲浮叶整簇",
+    "group": "02_水面浮叶",
+    "height": 0.08154936879873276,
+    "triangles": 8848,
+    "materials": {
+      "lily_pad_0": "lily_pad_0_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.6499999761581421,
+      0.6216250658035278,
+      0.08154936879873276
+    ]
+  },
+  {
+    "model": "LilyPad_Single_1",
+    "label": "浮叶单片1",
+    "group": "02_水面浮叶",
+    "height": 0.006472629960626364,
+    "triangles": 577,
+    "materials": {
+      "lily_pad_0": "lily_pad_0_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.25,
+      0.249549001455307,
+      0.006472629960626364
+    ]
+  },
+  {
+    "model": "LilyPad_Single_2",
+    "label": "浮叶单片2",
+    "group": "02_水面浮叶",
+    "height": 0.009452464058995247,
+    "triangles": 575,
+    "materials": {
+      "lily_pad_0": "lily_pad_0_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.29335805773735046,
+      0.29500001668930054,
+      0.009452464058995247
+    ]
+  },
+  {
+    "model": "LilyPad_Single_3",
+    "label": "浮叶单片3",
+    "group": "02_水面浮叶",
+    "height": 0.010524486191570759,
+    "triangles": 575,
+    "materials": {
+      "lily_pad_0": "lily_pad_0_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.3397945165634155,
+      0.3399999737739563,
+      0.010524486191570759
+    ]
+  },
+  {
+    "model": "Lily_Tall",
+    "label": "高株百合单株",
+    "group": "03_亮色花卉",
+    "height": 0.6500000357627869,
+    "triangles": 4792,
+    "materials": {
+      "Lily_2": "Lily_2_Albedo.png",
+      "Lily_4": "Lily_4_Albedo.png",
+      "Lily_1": "Lily_1_Albedo.png",
+      "Lily_3": "Lily_3_Albedo.png",
+      "Lily_0": "Lily_0_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.129035085439682,
+      0.1396588236093521,
+      0.6500000357627869
+    ]
+  },
+  {
+    "model": "Lily_Medium",
+    "label": "中株百合单株",
+    "group": "03_亮色花卉",
+    "height": 0.45000001788139343,
+    "triangles": 4792,
+    "materials": {
+      "Lily_2": "Lily_2_Albedo.png",
+      "Lily_4": "Lily_4_Albedo.png",
+      "Lily_1": "Lily_1_Albedo.png",
+      "Lily_3": "Lily_3_Albedo.png",
+      "Lily_0": "Lily_0_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.129035085439682,
+      0.1396588236093521,
+      0.45000001788139343
+    ]
+  },
+  {
+    "model": "Gazania_Bloom_f",
+    "label": "橙花开放株F",
+    "group": "03_亮色花卉",
+    "height": 0.3499999940395355,
+    "triangles": 2728,
+    "materials": {
+      "flower_gazania": "flower_gazania_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.3123237192630768,
+      0.30694305896759033,
+      0.3499999940395355
+    ]
+  },
+  {
+    "model": "Gazania_Bloom_h",
+    "label": "橙花开放株H",
+    "group": "03_亮色花卉",
+    "height": 0.3500000238418579,
+    "triangles": 3540,
+    "materials": {
+      "flower_gazania": "flower_gazania_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.33756721019744873,
+      0.3262104392051697,
+      0.3500000238418579
+    ]
+  },
+  {
+    "model": "Turf_Small",
+    "label": "厚草皮小块",
+    "group": "05_有厚度草皮",
+    "height": 0.13999786972999573,
+    "triangles": 11318,
+    "materials": {
+      "Turf_Grass008": "Turf_Grass008_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.8085042238235474,
+      0.8151832818984985,
+      0.13999786972999573
+    ]
+  },
+  {
+    "model": "Turf_Medium",
+    "label": "厚草皮中块",
+    "group": "05_有厚度草皮",
+    "height": 0.13999931514263153,
+    "triangles": 28918,
+    "materials": {
+      "Turf_Grass008": "Turf_Grass008_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      1.4089996814727783,
+      1.409580945968628,
+      0.13999931514263153
+    ]
+  },
+  {
+    "model": "Turf_Strip",
+    "label": "厚草皮长条",
+    "group": "05_有厚度草皮",
+    "height": 0.13999786972999573,
+    "triangles": 12918,
+    "materials": {
+      "Turf_Grass008": "Turf_Grass008_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      1.4003633260726929,
+      0.5749223232269287,
+      0.13999786972999573
+    ]
+  },
+  {
+    "model": "Shore_Stones",
+    "label": "岸边苔石小组",
+    "group": "06_补充装饰",
+    "height": 0.25999999046325684,
+    "triangles": 26996,
+    "materials": {
+      "rock_moss_set_01": "rock_moss_set_01_Albedo.png"
+    },
+    "stone": true,
+    "size": [
+      0.8988538384437561,
+      0.6096614599227905,
+      0.25999999046325684
+    ]
+  },
+  {
+    "model": "Grass_Low",
+    "label": "低草整簇",
+    "group": "04_高中低草簇",
+    "height": 0.2199999988079071,
+    "triangles": 126,
+    "materials": {
+      "Bermuda_Photographic": "Bermuda_Photographic_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.42260977625846863,
+      0.44999998807907104,
+      0.2199999988079071
+    ]
+  },
+  {
+    "model": "Grass_Medium",
+    "label": "中草整簇",
+    "group": "04_高中低草簇",
+    "height": 0.4000000059604645,
+    "triangles": 126,
+    "materials": {
+      "Bermuda_Photographic": "Bermuda_Photographic_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.6104363799095154,
+      0.6500000357627869,
+      0.4000000059604645
+    ]
+  },
+  {
+    "model": "Grass_Tall",
+    "label": "较高草整簇",
+    "group": "04_高中低草簇",
+    "height": 0.6000000238418579,
+    "triangles": 124,
+    "materials": {
+      "Bermuda_Photographic": "Bermuda_Photographic_Albedo.png"
+    },
+    "stone": false,
+    "size": [
+      0.7488570809364319,
+      0.800000011920929,
+      0.6000000238418579
+    ]
+  }
+]

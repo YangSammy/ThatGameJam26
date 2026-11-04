@@ -52,6 +52,8 @@ namespace MemoryWhitebox
                 parkFilm=active;
                 var d=active.darkroom ?? (active.version>=3 && active.state!=ParkFilmState.Developed?
                     new ParkDarkroomProgress{workflowVersion=3,phase=PhotoChapter.FilmPhase.Exposed}:new ParkDarkroomProgress());
+                // Upgrade legacy flow rules while retaining its material stage and timers.
+                if(d.workflowVersion==0 && active.version>=3 && active.state!=ParkFilmState.Developed)d.workflowVersion=2;
                 if(d.workflowVersion==1 && active.state!=ParkFilmState.Developed)d.workflowVersion=2;
                 if(d.workflowVersion==2 && active.state!=ParkFilmState.Developed){d.printObjects=DarkroomPrintState.FromLegacy(d.printStage,d.printProcessing);d.workflowVersion=3;}
                 darkroomWorkflow=d.workflowVersion;tankSealed=d.tankSealed;needsDrain=d.needsDrain;

@@ -1,0 +1,55 @@
+﻿整洁公园素材包 | ParkTidyGarden_Ready
+打开 Unity：Assets/ParkExtras/ParkTidyGarden_Ready/Prefabs。
+五个子文件夹按用途分类。每个蓝色方块都是一整簇/一整片，直接拖放，不需要自己拼材质。
+先试：05_整组示范里的“灌木配雏菊”和“绿篱配花带”；再用01里的“修剪半球灌木”和04里的路沿石收边。
+本包未自动摆入、保存或修改你的场景。原来的杂草仍维持隐藏预览；没有重新刷入高草。
+
+01_修剪灌木：优先半球、黄杨、圆润灌木；圆角/方整绿篱适合沿路排成小段。绿篱拱门是备用，不必加到现在的桥旁。
+02_整块花丛地被：长春花、雏菊已加入密实叶丛底座；绣球是完整一簇。三叶草和多色绣球风格较卡通，建议先少量比较，不必全部混用。
+03_修剪草坪：方块、长条、圆块是有贴图的平面模型，不是立体高草，不会自动贴合斜坡。放在平整区域时略高于地面一点，避免闪烁。
+TerrainLayers/修剪草坪_Grass008.terrainlayer 是已配好颜色和法线的草坪图层：Terrain -> Paint Texture -> Edit Terrain Layers -> Add Layer，选择它即可刷。比在斜坡上铺平面更合适。它没有自动替换你原来的地表。
+04_路边收口：路沿石1米、半米、弧段，宽约18厘米、高约12厘米。底部原点在地面；可往土里埋一部分，只露约5厘米。
+05_整组示范：灌木配雏菊、绿篱配花带，组合已完成，整组拖入即可。需要细调时可以展开子物体。
+
+风格建议：大片区域留草坪；桥头/长凳只用少数完整种植组；主路留空。不要把所有素材平均铺满整个公园。
+尺寸以米为单位，比例可继续调整。所有模型均无碰撞和交互，不会阻挡或替换玩法。植物没有风动画。
+植物为双面裁切材质，关闭探针，避免此前的异常变暗；Brightness/Shadow Fill/Saturation 分别调亮度、暗部补光和饱和度。草坪与路沿石用Standard材质。
+草坪颜色与整个场景的光照相关，并不保证在所有树影里呈现相同亮度。切回 Game 视角比较即可。
+
+独立模型清单（中文 | 英文 | 宽x高x深 / 米 | 三角面）
+圆润低灌木 | Hedge_Round | 0.70 x 0.48 x 0.64 | 1240
+方整低绿篱 | Hedge_Block | 0.69 x 0.45 x 0.70 | 1210
+圆角绿篱条 | Hedge_SoftStrip | 1.25 x 0.45 x 0.50 | 2480
+整齐绿篱条 | Hedge_Straight | 1.25 x 0.45 x 0.48 | 2410
+绿篱拱门_备用 | Hedge_Arch | 1.90 x 2.10 x 0.40 | 9640
+修剪球形灌木 | Topiary_Ball | 0.70 x 0.65 x 0.70 | 21070
+修剪半球灌木 | Topiary_Dome | 0.85 x 0.42 x 0.85 | 21070
+黄杨低绿篱 | Boxwood_Low | 1.00 x 0.45 x 0.63 | 25672
+自然圆润灌木 | Rounded_Shrub | 0.85 x 0.55 x 0.84 | 14688
+整簇绣球花 | Hydrangea_Bush | 0.80 x 0.70 x 0.79 | 19623
+整片三叶草 | Clover_Patch | 0.65 x 0.14 x 0.63 | 14367
+长春花整片花境 | Periwinkle_Rect | 1.00 x 0.24 x 0.65 | 45687
+长春花圆形花簇 | Periwinkle_Round | 0.65 x 0.24 x 0.64 | 32019
+整块雏菊花境 | Daisy_Bed_Rect | 1.20 x 0.38 x 0.65 | 40661
+圆形雏菊花丛 | Daisy_Bed_Round | 0.82 x 0.38 x 0.82 | 31213
+蓝色绣球小花簇 | Hydrangea_Blue_Cluster | 0.65 x 0.46 x 0.33 | 43860
+修剪草坪方块 | Lawn_Square | 2.00 x 0.00 x 2.00 | 2
+修剪草坪长条 | Lawn_Strip | 2.00 x 0.00 x 0.65 | 2
+修剪草坪圆块 | Lawn_Round | 1.50 x 0.00 x 1.50 | 40
+路沿石一米 | Curb_Straight | 1.00 x 0.12 x 0.18 | 12
+路沿石半米 | Curb_Short | 0.50 x 0.12 x 0.18 | 12
+路沿石弧段 | Curb_Curve | 0.62 x 0.12 x 0.20 | 52
+
+来源及许可：以下均按原CC0许可整理；不要求署名，保留来源便于追溯。
+Yughues / Nobiax Free Hedges：https://opengameart.org/content/free-hedges
+Innerscene Boxwood hedge：https://www.innerscene.com/tools/library/3d-parts/boxwood-hedge-one-metre-section-dcc4e7d1
+Innerscene Clipped ball topiary：https://www.innerscene.com/tools/library/3d-parts/clipped-ball-topiary-f4f66de1
+Innerscene Rounded landscape shrub：https://www.innerscene.com/tools/library/3d-parts/rounded-landscape-shrub-71bcc316
+Innerscene Hydrangea flower：https://www.innerscene.com/tools/library/3d-parts/hydrangea-flower-with-stem-77d795e6
+Grab3D Hydrangea：https://grab3d.com/models/nature/hydrangea/
+Grab3D Clover：https://grab3d.com/models/nature/clover-patch/
+Poly Haven Periwinkle：https://polyhaven.com/a/periwinkle_plant
+ambientCG Grass008：https://ambientcg.com/view?id=Grass008
+雏菊源自此前的 Innerscene Daisy flower with stem；路沿石贴图源自此前的 Innerscene Garden stepping stones。
+处理：下载真实模型与贴图，合并/拆分、规范坐标和尺寸、适度简化、提取贴图、组合花境、制作Unity材质与预制体。路沿石和草坪平面为本地制作的简易几何体；并非所有组合都是网上原包自带。
+文件夹 Editor 中的脚本仅配置本包；配置结果文件存在时不重复自动构建。需要重建可从 Tools/Park Extras/Build Tidy Garden Prefabs 执行。会覆盖本包预制体，通常无需使用。

@@ -1,0 +1,17 @@
+﻿石块、昆虫和苔藓独立摆放包 | ParkProps_Ready
+Unity 内打开 Assets/ParkExtras/ParkProps_Ready/Prefabs，直接拖预制体放到场景。不要拖原始整套模型。
+石头、踏步石、苔藓已经拆开并配好材质；昆虫按完整的一只合并，未拆成腿、翅膀和身体碎块。
+6种苔藓石块 MossRock_01-06，最长边约45厘米；另附6种“小石子”版本，约16厘米。可用缩放工具调整。
+4种扁平岸石 FlatRock_01-04，最长边约80厘米。原色灰褐，不是银白色。该套必须按附带文件署名 DJMaesen / CC BY 4.0。
+6块独立踏步石 SteppingStone_01-06，宽约45厘米，三种原始材质。
+12种苔藓小株 Moss_01-12，最长边约8厘米。它们是独立小苔藓枝，不会自动铺满或贴合石面。
+Cricket_Static_Light：蟋蟀静态轻量版，优先摆放；Cricket_Static_Full：原精度静态版，近景特写备用。两者是同一只蟋蟀的精度版本，不要重叠放置。无动画、声音或脚本；已去除原模型的无关立方体。
+Bee_Static：静态蜜蜂，卡通风格；Butterfly_Static：静态蝴蝶。均已冻结姿势、移除骨骼与动画，根节点在底部。摆在花叶附近即可，不会自动飞行。
+Road_gravel_floor_02_Straight / Curve 与 Road_pavement_05_Straight / Curve：四块独立直路/弯路模型，约4米。没有厚度和碰撞，不会自动贴合地形。你现在的地形刷路不需要用它们。
+所有预制体默认无碰撞，不会改变角色玩法。石块太靠近道路时要自己检查不要挡住行走。
+石块使用 Standard 材质；苔藓和昆虫使用双面透明裁切材质。预制体关闭探针以避免之前的异常变暗。
+若材质太暗，可在非石头材质调 Brightness / Shadow Fill。保留贴图原本的颜色，不统一强行改成鲜绿。
+花草另在 ParkFlowers_Ready/Prefabs，之前的布景和原始素材均保留。
+源许可：Poly Haven 石块/苔藓 CC0；Innerscene 踏步石 CC0；蟋蟀 ffish.asia/floraZia CC0；蜜蜂 MarshReaper CC0；蝴蝶 Čestmír Dammer / CDmir CC0；扁平岸石 DJMaesen CC BY 4.0。
+蟋蟀模型原始为雌性，静态布景不自带鸣叫；你已有音乐中的蟋蟀声可继续独立使用。
+编辑器工具 Tools/Park Extras/Build Stone and Insect Prefabs 仅重建本包预制体，不自动摆放或保存你的场景。
