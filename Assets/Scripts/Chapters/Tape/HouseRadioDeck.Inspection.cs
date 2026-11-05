@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 namespace MemoryWhitebox
 {
     public sealed partial class HouseRadioDeck
@@ -16,9 +16,10 @@ namespace MemoryWhitebox
         bool waitingForRelease,leftWasDown,rightWasDown,focused=true;
         float statusHeight=60;
         int heldSpindle=-1;
-        readonly float[] visualTapePositions=new float[3];
+        readonly float[] visualTapePositions=new float[RadioTapeChapter.WorkTapeCount];
         public bool IsEntryHit(Collider hit)
         {
+            if(StorageSurface(hit) || FinishedSurface(hit))return true;
             if(workbenchVisuals!=null && (hit==workbenchVisuals.lidHit || hit==workbenchVisuals.finishedHit))return true;
             if(workbenchVisuals!=null && hit!=null)foreach(var grip in workbenchVisuals.candidateGrips)if(hit==grip)return true;
             if(hit==null)return false;if(dualDeck!=null && dualDeck.Command(hit)!=null)return true;if(SourceHit(hit))return true;if(BenchHit(hit))return true;if(RecordingHit(hit))return true;if(hit==radioHit || hit==slotHit)return true;
@@ -36,7 +37,7 @@ namespace MemoryWhitebox
         public bool TryInspect(Ray ray)
         {
             bool workspace=WorkbenchMode || RecordingMode;
-            if(radioCameraMoving || preparationCameraMoving || house==null || house.safeInspection==null || waitingForRelease || draggingTape || movingOriginal || benchDrag.Active || tapeDrag.Active ||
+            if(storageDelivery!=null || radioCameraMoving || preparationCameraMoving || house==null || house.safeInspection==null || waitingForRelease || draggingTape || movingOriginal || benchDrag.Active || tapeDrag.Active ||
                 benchGesture!=BenchGesture.None || benchLeft || benchRight || (!workspace && (leftWasDown || rightWasDown)) || heldSpindle>=0 ||
                 DeckBusy(0) || DeckBusy(1) || transferA || transferB || State==Phase.Loading || State==Phase.Returning || State==Phase.Playing)return false;
             var source=InspectionSource(ray);if(source==null && State==Phase.Dragging)source=tapes[Selected].root;
@@ -53,7 +54,7 @@ namespace MemoryWhitebox
         public void SetStationActive(bool active)
         {
             if(!initialized)return;
-            if(!active){focusRadioAfterLoad=false;RestoreRadioCamera();RestorePreparationCamera();StopRecordingInput();}
+            if(!active){CancelStorageDelivery();focusRadioAfterLoad=false;RestoreRadioCamera();RestorePreparationCamera();StopRecordingInput();}
             CancelTapeDrag();ReleaseSpindle();StationActive=active;waitingForRelease=active;leftWasDown=rightWasDown=false;
             if(stationLight!=null)stationLight.enabled=active;
             if(active && house!=null)speaker.mute=house.Muted;

@@ -12,7 +12,7 @@ namespace MemoryWhitebox
         bool studyRevealed;
         // Tape handling uses the current exploration pose, never an operation anchor.
         public bool DirectTapeHandling => !InStation && radioDeck!=null && radioDeck.State==HouseRadioDeck.Phase.Dragging;
-        public bool DirectRadioReady => houseReady && !InStation && transition<=0 && !houseReturnGate && houseFocused && !(safeInspection!=null && safeInspection.BlocksInput);
+        public bool DirectRadioReady => houseReady && !loadingSpringRoom && !InStation && transition<=0 && !houseReturnGate && houseFocused && !(safeInspection!=null && safeInspection.BlocksInput);
         bool tapePointerWasFree;
         public Camera playerCamera;
         public FirstPersonHands playerHands;
@@ -28,8 +28,9 @@ namespace MemoryWhitebox
         bool returningToRoom,houseFade;
         float houseTransitionDuration;
         public PlayerControlState ControlState=>!houseFocused?PlayerControlState.Unfocused:
+            bedroomLoadFailed?PlayerControlState.Paused:
             safeInspection!=null && safeInspection.Active?PlayerControlState.Inspection:
-            transition>0 || awaitRelease?PlayerControlState.Transition:ShowHelp?PlayerControlState.Paused:
+            transition>0 || loadingSpringRoom || awaitRelease?PlayerControlState.Transition:ShowHelp?PlayerControlState.Paused:
             InStation && CurrentWorld is PhotoWorld3D && ((PhotoWorld3D)CurrentWorld).ParkGalleryOpen?PlayerControlState.Gallery:
             InStation || DirectDarkroomActive || DirectTapeHandling || (radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode || radioDeck.SuccessPopupOpen))?PlayerControlState.Operation:PlayerControlState.Exploration;
         public void SuspendHouseInput()
@@ -48,31 +49,36 @@ namespace MemoryWhitebox
         string cameraRouteNotice="";
         float cameraRouteNoticeUntil;
         public bool HouseReady => houseReady;
-        public bool HouseInputReady => houseReady && houseFocused && InStation && transition<=0 && !awaitRelease && !houseReturnGate && !ShowHelp && !(safeInspection!=null && safeInspection.BlocksInput);
+        public bool HouseInputReady => houseReady && !loadingSpringRoom && houseFocused && InStation && transition<=0 && !awaitRelease && !houseReturnGate && !ShowHelp && !(safeInspection!=null && safeInspection.BlocksInput);
 
         void Start()
         {
             if(!sharedHouse)return;
             Instance=this;IsQA=false;Application.targetFrameRate=60;
+            var startupTrace=new BedroomLoadTrace("host-startup");
             UIFont=Font.CreateDynamicFontFromOSFont(new[]{"Microsoft YaHei","Arial"},18);
+            InitializeBedroomCover();
             audioSource=gameObject.AddComponent<AudioSource>();audioSource.playOnAwake=false;audioSource.volume=.12f;
             if(playerCamera==null || playerHands==null)
             {Debug.LogError("House requires its authored player camera and hands.",this);enabled=false;return;}
             Room=new RoomWorld();Room.CreateShared(playerCamera,houseShell);
             if(safeInspection!=null){safeInspection.InputContext=InputContext;safeInspection.RestoreInputContext=()=>{SuspendHouseInput();SyncInputContext();};}
+            startupTrace.Mark("player-and-input");
             chapters[0]=new RadioTapeChapter();
             for(int i=1;i<5;i++)
             {
-                CreateHouseChapter(i);
+                using(startupTrace.Measure("create-chapter-"+i))CreateHouseChapter(i);
                 if(deskStudy)worlds[i].Root.SetActive(false);
             }
             ((PhotoWorld3D)worlds[1]).BindOperationAreas();
-            BindChapterData();
-            LoadStoryProgress();
+            startupTrace.Mark("all-chapters-created");
+            using(startupTrace.Measure("bind-chapter-data"))BindChapterData();
+            using(startupTrace.Measure("restore-story-save"))LoadStoryProgress();
             ((PaintingWorld3D)worlds[3]).BindSharedScarf((EndingWorld3D)worlds[4]);
             var hands=playerHands;hands.BindHouse(this);hands.Register(0,worlds[0]);
             for(int i=1;i<5;i++)hands.Register(i,worlds[i]);
             if(deskStudy){StudyEntries=houseShell.transform.Find("Study entry props");Curtain=houseShell.GetComponentInChildren<StudyCurtain>();SetStudyPresentation(-1);}
+            if(bedroomCover!=null)HideLegacyHousePresentation();
             // Writing's memory is rendered only by its dedicated camera.
             Room.Camera.cullingMask &= ~(1<<26);
             if(playerSpawn!=null)playerSpawn.Apply(Room.Camera);
@@ -83,6 +89,7 @@ namespace MemoryWhitebox
             Room.EnableLook(true);houseReady=true;SuspendHouseInput();
             if(ParkFilmRoute.EnterDarkroomOnLoad){ParkFilmRoute.EnterDarkroomOnLoad=false;if(Curtain!=null && !Curtain.IsOpen){Curtain.Toggle();Curtain.Advance(1);}}
             PrepareContinuousDarkroom();
+            startupTrace.Mark("restore-and-presentation");startupTrace.End();
             StartSeasonBedroom(returnedView);
         }
         void CreateHouseChapter(int index)
@@ -101,7 +108,7 @@ namespace MemoryWhitebox
         {
             if((index==0 && !tapeDeskView) || DirectTapeHandling)return false;
             if(deskStudy && index==5 && !InStation && transition<=0){var curtainEntry=StudyEntry.Pick(Room.Camera);if(curtainEntry==null || curtainEntry.chapter!=5)return false;Curtain.Toggle();return true;}
-            if(!houseReady || InStation || transition>0 || index<0 || index>=5)return false;
+            if(!houseReady || loadingSpringRoom || InStation || transition>0 || index<0 || index>=5)return false;
             if(!CanEnterDay(index))
             {
                 cameraRouteNotice=ChapterEntryBlockReason(index);
@@ -418,6 +425,7 @@ namespace MemoryWhitebox
         }
         void DrawHouse()
         {
+            if(loadingSpringRoom)return;
             if(!houseReady || Room==null)return;
             if(StoryFinished){var old=GUI.color;GUI.color=new Color(1,.98f,.91f,1);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=old;return;}
             if(DepartureRoom!=null && !ShowHelp)return;
@@ -468,6 +476,7 @@ namespace MemoryWhitebox
             }
             else if(InStation)
             {
+                if(ChapterIndex==3 && Current is PaintingChapter winter && winter.Phase>=2)return;
                 if(ChapterIndex==0 && radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode))return;
                 if(ChapterIndex==0 && radioDeck!=null){radioDeck.DrawStation(style);if(ShowHelp){InteractionUI.Label(new Rect(32,140,Mathf.Min(826,Screen.width-64),170),CurrentWorld.Help,style);}}
                 InteractionUI.Label(new Rect(Screen.width-230,12,220,30),"Esc  Back",style);

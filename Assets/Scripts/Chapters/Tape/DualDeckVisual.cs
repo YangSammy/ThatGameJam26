@@ -11,6 +11,9 @@ namespace MemoryWhitebox
         public Transform tapeA,tapeB;
         public Collider[] keyHits;
         public string[] keyCommands;
+        [Tooltip("Authored door frame surfaces used for hover and valid cassette drops.")]
+        public Renderer[] doorOutlineA,doorOutlineB;
+        public Renderer[] DoorOutline(int deck)=>deck==0?doorOutlineA:doorOutlineB;
         readonly Dictionary<string,AnimationClip> library=new Dictionary<string,AnimationClip>();
         readonly Dictionary<string,Motion> motions=new Dictionary<string,Motion>();
         readonly List<string> finished=new List<string>();
@@ -49,14 +52,15 @@ namespace MemoryWhitebox
             });};
             if(open[deck])move();else Play(p+"door",p+"Open",move);return true;
         }
-        public void Tick(float dt,bool aPlaying,string bStatus,bool writing,bool recordPressed=false,string transportPressed=null)
+        public void Tick(float dt,bool aPlaying,string bStatus,bool writing,bool recordPressed=false,string transportPressed=null,string sourceStatus=null)
         {
             finished.Clear();foreach(var pair in motions){var m=pair.Value;m.time=Mathf.Min(m.clip.length,m.time+dt);m.clip.SampleAnimation(gameObject,m.time);if(m.time>=m.clip.length)finished.Add(pair.Key);}
             foreach(var key in finished){var done=motions[key].complete;motions.Remove(key);done?.Invoke();}
+            bool aRunning=aPlaying || sourceStatus=="REWINDING" || sourceStatus=="FAST FORWARD";
             bool bPlaying=bStatus=="PLAYBACK"||bStatus=="RECORDING"||bStatus=="RUNNING BLANK"||bStatus=="REWINDING"||bStatus=="FAST FORWARD";
-            for(int i=0;i<2;i++)if(Closed(i)&&(i==0?aPlaying:bPlaying))
-            {float speed=i==1&&bStatus=="REWINDING"?-4:i==1&&bStatus=="FAST FORWARD"?4:1;reelTime[i]=Mathf.Repeat(reelTime[i]+dt*speed,2);Pose(Prefix(i)+"PlaybackLoop",reelTime[i]);}
-            Latch(0,aPlaying?"Play":null);
+            for(int i=0;i<2;i++)if(Closed(i)&&(i==0?aRunning:bPlaying))
+            {string status=i==0?sourceStatus:bStatus;float speed=status=="REWINDING"?-4:status=="FAST FORWARD"?4:1;reelTime[i]=Mathf.Repeat(reelTime[i]+dt*speed,2);Pose(Prefix(i)+"PlaybackLoop",reelTime[i]);}
+            Latch(0,sourceStatus=="REWINDING" || bStatus=="REWINDING"?"Rewind":sourceStatus=="FAST FORWARD" || bStatus=="FAST FORWARD"?"Forward":aPlaying?"Play":null);
             Latch(1,transportPressed??(bStatus=="REWINDING"?"Rewind":bStatus=="FAST FORWARD"?"Forward":bPlaying?"Play":null));
             if(recordHeld!=recordPressed){recordHeld=recordPressed;Play("record-key","B_Key_Record_"+(recordPressed?"Latch":"Release"));}
             EndPose(writing?"B_RecordLight_On":"B_RecordLight_Off");

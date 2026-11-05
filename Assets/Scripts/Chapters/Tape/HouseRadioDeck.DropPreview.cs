@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
 namespace MemoryWhitebox
@@ -7,13 +7,11 @@ namespace MemoryWhitebox
     {
         [Tooltip("Authored slot outlines. Shown only for an eligible cassette drop.")]
         public LineRenderer sourceDropPreview,targetDropPreview;
+        readonly HoverOutline dropOutline=new HoverOutline();
         [Min(.01f)] public float tapeDropTolerance=.035f;
         readonly List<RaycastResult> tapeUIHits=new List<RaycastResult>();
         bool TapeUIAt(Vector2 point)
         {
-            if(radioFocused && RadioBackRect.Contains(new Vector2(point.x,Screen.height-point.y)))return true;
-            if(preparationFocused && PreparationBackRect.Contains(new Vector2(point.x,Screen.height-point.y)))return true;
-            if(PreparationButtonVisible && PreparationButtonRect.Contains(new Vector2(point.x,Screen.height-point.y)))return true;
             if(EventSystem.current==null)return false;
             var pointer=new PointerEventData(EventSystem.current){position=point};
             tapeUIHits.Clear();EventSystem.current.RaycastAll(pointer,tapeUIHits);
@@ -31,6 +29,8 @@ namespace MemoryWhitebox
             if(DeckBusy(a?0:1))return "Wait for the tape and door to settle";
             if(a && Chapter.Completed)return "All copies complete";
             if(a?Chapter.SourceLoaded:(State!=Phase.Empty && State!=Phase.Dragging))return a?"Eject A before loading another tape":"Eject B before loading another tape";
+            var command=dualDeck!=null?dualDeck.Command(PickWorkbenchTarget(ray)):null;
+            if(command!=null && !command.EndsWith("_Door"))return "Aim at the cassette door, above the buttons";
             var point=view.WorldToScreenPoint(ray.GetPoint(1));
             return TapeUIAt(point)?"Move off the controls and onto the slot":null;
         }
@@ -53,8 +53,15 @@ namespace MemoryWhitebox
         void ShowTapeDropPreview(Transform receiver)
         {
             if(preparationDropPreview!=null)preparationDropPreview.enabled=receiver!=null && receiver==workMat.transform;
-            if(sourceDropPreview!=null)sourceDropPreview.enabled=receiver!=null && receiver==sourceSlot.transform;
-            if(targetDropPreview!=null)targetDropPreview.enabled=receiver!=null && receiver==slotHit.transform;
+            // Legacy rectangular guides stay disabled; use the same physical door silhouette as hover.
+            if(sourceDropPreview!=null)sourceDropPreview.enabled=false;
+            if(targetDropPreview!=null)targetDropPreview.enabled=false;
+            int side=receiver!=null && sourceSlot!=null && receiver==sourceSlot.transform?0:
+                receiver!=null && slotHit!=null && receiver==slotHit.transform?1:-1;
+            var surfaces=side>=0 && dualDeck!=null?dualDeck.DoorOutline(side):
+                receiver!=null && workbenchVisuals!=null && workbenchVisuals.finishedHit!=null && receiver==workbenchVisuals.finishedHit.transform?
+                dropOutline.Surfaces(receiver):null;
+            dropOutline.Show(view,surfaces);
         }
     }
 }

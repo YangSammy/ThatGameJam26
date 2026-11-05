@@ -21,9 +21,12 @@ namespace MemoryWhitebox
             bool silent=!focused || house==null || house.Muted || house.ShowHelp || (house.safeInspection!=null&&house.safeInspection.BlocksInput);
             sfx.SetMuted(silent);
             if(transport==null)return;
+            transport.SetMuted(silent);
             string status=transport.TargetStatus;
             bool seeking=status=="REWINDING"||status=="FAST FORWARD";
-            sfx.Loop(0,12,!silent&&Chapter.SourceLoaded&&transport.SourcePlaying,sourceSocket.position,-.3f);
+            string sourceStatus=transport.SourceStatus;
+            bool sourceSeeking=sourceStatus=="REWINDING" || sourceStatus=="FAST FORWARD";
+            sfx.Loop(0,sourceSeeking?13:12,!silent&&Chapter.SourceLoaded&&(sourceSeeking||sourceStatus=="PLAYING"),sourceSocket.position,-.3f);
             sfx.Loop(1,12,!silent&&Selected>=0&&(status=="PLAYBACK"||transport.Writing),slotHit.bounds.center,.3f);
             sfx.Loop(2,13,!silent&&Selected>=0&&seeking,slotHit.bounds.center,.3f);
             if(silent || !WorkbenchMode || benchGesture!=BenchGesture.Spindle || Time.unscaledTime>windingSoundUntil)sfx.StopLoop(3);

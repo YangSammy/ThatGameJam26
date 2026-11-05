@@ -7,6 +7,7 @@ namespace MemoryWhitebox
         public bool DirectDarkroomAvailable=>UsesProgress && sceneProcessing && ParkMode && !parkFilmUnavailable;
         public void SetDirectDarkroom(bool value)
         {
+            if(!value)StopPhotographySound();
             if(DirectDarkroom==value)return;
             CancelInteraction();SaveProgress();DirectDarkroom=value;
             if(value)DarkroomNotice("LMB: interact / RMB: look / WASD: move");

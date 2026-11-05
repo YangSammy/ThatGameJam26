@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace MemoryWhitebox
 {
@@ -26,13 +26,16 @@ namespace MemoryWhitebox
                 RecordingPointerDown(new Vector2(pointer.mousePosition.x,Screen.height-pointer.mousePosition.y));
             DrawWorkbench();
             if(!RecordingPanelVisible || transport==null || house==null)return;
-            if(radioFocused && !radioCameraMoving && GUI.Button(RadioBackRect,"Back to desk"))FocusRadio(false);
+
             if(SubmissionMessage!=lastFeedback)
             {lastFeedback=SubmissionMessage;feedbackUntil=Time.unscaledTime+8;}
             var text=new GUIStyle(GUI.skin.label){fontSize=14,wordWrap=true};
             text.normal.textColor=new Color(.94f,.94f,.88f);
+            GUI.Label(new Rect(24,Screen.height-44,Screen.width-48,26),
+                "A ORIGINAL  "+(Chapter.SourceLoaded?transport.SourceStatus+"  "+transport.SourceSeconds.ToString("0.0")+"s":"EMPTY")+
+                "     |     B COPY  "+(Selected>=0?transport.TargetStatus+"  "+transport.TargetSeconds.ToString("0.0")+"s":"EMPTY"),text);
             bool canRetry=!Chapter.Completed && transport.RecordedSeconds>0;
-            if(canRetry && RecordingInputReady && GUI.Button(RetryButtonRect,"Retry"))RetryCurrentCommission();
+
             string feedback=Time.unscaledTime<feedbackUntil?SubmissionMessage:"";
             if(transport.Writing && !transport.SourcePlaying)feedback="A is stopped. B is recording silence.";
             else if(transport.TargetStatus=="RUNNING BLANK")feedback="B is running blank. STOP to pause.";

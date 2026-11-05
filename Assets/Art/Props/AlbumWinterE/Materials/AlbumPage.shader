@@ -5,7 +5,7 @@ Shader "ThatGamejam/Art/AlbumPage" {
  #pragma surface surf Lambert
  sampler2D _MainTex,_PaperTex;float _ContentAmount;float4 _ContentRect;
  struct Input{float2 uv_MainTex;};
- void surf(Input IN,inout SurfaceOutput o){float3 paper=tex2D(_PaperTex,IN.uv_MainTex).rgb;float3 picture=tex2D(_MainTex,IN.uv_MainTex*_ContentRect.xy+_ContentRect.zw).rgb;o.Albedo=paper*(1-_ContentAmount);o.Emission=picture*_ContentAmount;o.Alpha=1;}
+ void surf(Input IN,inout SurfaceOutput o){float3 paper=tex2D(_PaperTex,IN.uv_MainTex).rgb;float4 picture=tex2D(_MainTex,IN.uv_MainTex*_ContentRect.xy+_ContentRect.zw);float ink=_ContentAmount*picture.a;o.Albedo=paper*(1-ink);o.Emission=picture.rgb*ink;o.Alpha=1;}
  ENDCG
  } Fallback "Diffuse"
 }

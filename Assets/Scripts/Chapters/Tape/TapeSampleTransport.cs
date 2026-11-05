@@ -14,7 +14,7 @@ namespace MemoryWhitebox
         int[] mapping;
         int a,b,length,rate;
         bool playA,playB,record,runBlank,muted,dirty;
-        int seek;
+        int seek,sourceSeek;
         AudioClip clockClip;
         int commission;
         string sourceHash;
@@ -26,7 +26,8 @@ namespace MemoryWhitebox
         public float TargetSeconds {get{lock(sync)return b/(float)Math.Max(1,rate);}}
         public bool TargetRunning {get{lock(sync)return configured && (playB || seek!=0);}}
         public bool SourcePlaying {get{lock(sync)return playA;}}
-        public string SourceStatus {get{lock(sync)return playA?"PLAYING":source!=null && a>=source.Length?"END":"STOPPED";}}
+        public bool SourceRunning {get{lock(sync)return playA || sourceSeek!=0;}}
+        public string SourceStatus {get{lock(sync)return sourceSeek<0?"REWINDING":sourceSeek>0?"FAST FORWARD":playA?"PLAYING":source!=null && a>=source.Length?"END":"STOPPED";}}
         public bool Writing {get{lock(sync)return configured && playB && record && seek==0 && b<target.Length;}}
         public string TargetStatus {get{lock(sync)return seek<0?"REWINDING":seek>0?"FAST FORWARD":playB && b>=target.Length?"END":playB && record?"RECORDING":playB && runBlank?"RUNNING BLANK":playB && b<length?"PLAYBACK":playB?"RUNNING BLANK":length==0?"EMPTY":"PAUSED";}}
         public float RecordedSeconds {get{lock(sync)return length/(float)Math.Max(1,rate);}}
@@ -41,7 +42,7 @@ namespace MemoryWhitebox
             var voice=GetComponent<AudioSource>();voice.Stop();
             lock(sync)
             {
-            playA=playB=record=runBlank=false;seek=0;a=b=length=0;dirty=false;
+            playA=playB=record=runBlank=false;seek=sourceSeek=0;a=b=length=0;dirty=false;
             commission=commissionIndex;SaveError="";
             var bytes=new byte[samples.Length*sizeof(float)];Buffer.BlockCopy(samples,0,bytes,0,bytes.Length);
             using(var hash=System.Security.Cryptography.SHA256.Create())sourceHash=Convert.ToBase64String(hash.ComputeHash(bytes));
@@ -73,12 +74,37 @@ namespace MemoryWhitebox
             voice.clip=clockClip;voice.loop=true;voice.spatialBlend=0;voice.Play();
         }
         public void SourceCommand(int command)
-        {lock(sync){if(!configured || SaveError!="")return;if(command==0)playA=false;else if(command==1)playA=a<source.Length;else {playA=false;a=0;}dirty=true;}if(command!=1)Save();}
+        {lock(sync){if(!configured || SaveError!="")return;sourceSeek=0;if(command==0)playA=false;else if(command==1)playA=a<source.Length;else {playA=false;a=0;}dirty=true;}if(command!=1)Save();}
+        public void ToggleSourcePlayback(){if(SourcePlaying)SourceCommand(0);else SourceCommand(1);}
+        public void SetMuted(bool value){lock(sync)muted=value;}
+        public void ToggleSourceWinding(int direction)
+        {
+            lock(sync)
+            {
+                if(!configured || SaveError!="")return;
+                direction=Math.Sign(direction);playA=false;
+                sourceSeek=sourceSeek==direction?0:direction;dirty=true;
+            }
+            Save();
+        }
+        public bool ToggleSharedWinding(int direction,bool sourceLoaded,bool targetLoaded,bool mute)
+        {
+            lock(sync)
+            {
+                if(!configured || SaveError!="" || record || (!sourceLoaded && !targetLoaded))return false;
+                direction=Math.Sign(direction);
+                bool stop=(sourceLoaded && sourceSeek==direction)||(targetLoaded && seek==direction);
+                if(sourceLoaded){playA=false;sourceSeek=stop?0:direction;}
+                if(targetLoaded){playB=runBlank=false;seek=stop?0:direction;}
+                muted=mute;dirty=true;
+            }
+            return Save();
+        }
         public void TargetCommand(bool play,bool write,int winding,bool mute)
         {
             lock(sync)
             {
-                bool writing=configured && play && write && a<source.Length && length<target.Length;
+                bool writing=configured && play && write && length<target.Length;
                 // Listening and winding move b, never the append point. Every new recording
                 // gesture resumes at the end of the saved copy instead of overwriting it.
                 if(writing && !record)b=length;
@@ -91,14 +117,14 @@ namespace MemoryWhitebox
                 record=writing;seek=!play && !write?Math.Sign(winding):0;muted=mute;
             }
         }
-        public void StopAll(){lock(sync){playA=playB=record=runBlank=false;seek=0;if(configured)dirty=true;}Save();}
+        public void StopAll(){lock(sync){playA=playB=record=runBlank=false;seek=sourceSeek=0;if(configured)dirty=true;}Save();}
         public void ClearTarget(){lock(sync){playB=record=runBlank=false;seek=0;b=length=0;if(target!=null)Array.Clear(target,0,target.Length);if(mapping!=null)for(int i=0;i<mapping.Length;i++)mapping[i]=-1;dirty=true;}Save();}
         public bool RetryCurrent()
         {
             lock(sync)
             {
                 if(!configured || SaveError!="")return false;
-                playA=playB=record=runBlank=false;seek=0;a=b=length=0;
+                playA=playB=record=runBlank=false;seek=sourceSeek=0;a=b=length=0;
                 Array.Clear(target,0,target.Length);for(int i=0;i<mapping.Length;i++)mapping[i]=-1;
                 dirty=true;
             }
@@ -114,7 +140,7 @@ namespace MemoryWhitebox
                 {
                     float input=a<source.Length?source[a]:0;
                     float heard=playA?input:0;
-                    if(seek!=0){b=seek<0?Math.Max(0,b-4):b<length?Math.Min(length,b+4):b;dirty=true;}
+                    if(seek!=0){b=seek<0?Math.Max(0,b-4):b<length?Math.Min(length,b+4):b;if(b==0 || b>=length)seek=0;dirty=true;}
                     else if(playB && b<target.Length)
                     {
                         if(record)
@@ -134,13 +160,34 @@ namespace MemoryWhitebox
                             if(b>=length){b=length;playB=false;}
                         }
                     }
-                    if(playA){a++;dirty=true;if(a>=source.Length){a=source.Length;playA=false;if(record || runBlank){playB=false;record=runBlank=false;}}}
+                    if(sourceSeek!=0){a=Math.Max(0,Math.Min(source.Length,a+sourceSeek*4));dirty=true;if(a==0 || a==source.Length)sourceSeek=0;}
+                    if(playA){a++;dirty=true;if(a>=source.Length){a=source.Length;playA=false;}}
                     for(int c=0;c<channels;c++)output[i+c]=muted?0:heard*.65f;
                 }
             }
         }
         // Submission only. This result never feeds transport or edits samples.
         public int[] SnapshotMapping(){lock(sync){var result=new int[length];Array.Copy(mapping,result,length);return result;}}
+#if UNITY_EDITOR
+        // Explicit editor completion only. Normal transport never reads acceptance metadata.
+        public bool EditorPrepareAcceptedCopy(TapeCommissionAudio audio)
+        {
+            StopAll();
+            if(!configured || SaveError!="" || audio==null || audio.Rate!=rate)return false;
+            if(audio.Reject(SnapshotMapping())=="")return Save();
+            // Keep the player's unfinished copy before substituting a test artifact.
+            if(File.Exists(path))File.Copy(path,path+".before-editor-complete-"+Guid.NewGuid().ToString("N"));
+            lock(sync)
+            {
+                Array.Clear(target,0,target.Length);for(int i=0;i<mapping.Length;i++)mapping[i]=-1;
+                length=0;
+                for(int i=0;i<audio.Samples.Length;i++)if(audio.CleanMap[i]>=0)
+                {target[length]=audio.Samples[i];mapping[length++]=i;}
+                a=source.Length;b=0;dirty=true;
+            }
+            return audio.Reject(SnapshotMapping())=="" && Save();
+        }
+#endif
         public bool Save()
         {
             // Serialize writers, but never hold the audio callback lock during disk IO.

@@ -14,6 +14,7 @@ namespace MemoryWhitebox
         [Min(.01f)] public float flowerRadiansPerSecond=.65f;
         [Min(.1f)] public float whiteTransitionSeconds=1.2f;
         [Min(1)] public float wardWalkDistance=8;
+        [Min(.1f)] public float wardWalkSpeed=.7f;
         [Min(.1f)] public float springSeconds=5;
         public static NarrativeDefinition Resolve(Chapter chapter)
         {

@@ -27,7 +27,8 @@ namespace MemoryWhitebox
         public bool SubmissionSucceeded {get;private set;}
         public string RecordingError {get;private set;}="";
         public bool RecordingMode {get;private set;}
-        bool stopLatch,wasWriting;
+        bool wasWriting;
+        float retryConfirmUntil;
         readonly PlayerInputReleaseGate recordingGate=new PlayerInputReleaseGate();
         bool recordingWait;
         int mouseKey=-1;
@@ -35,17 +36,15 @@ namespace MemoryWhitebox
         public int UITransportCommand {get;private set;}=-1;
         public bool SuccessPopupOpen=>transportPanel!=null && transportPanel.SuccessOpen;
         // Key feedback is independent of the tape motor and recording lamp.
-        readonly bool[] heldTargetKeys=new bool[5];
         int pointerFeedbackKey=-1;
         public bool TargetKeyDown(int key)
         {
-            return key>=0 && key<heldTargetKeys.Length && RecordingInputReady && focused &&
-                Selected>=0 && State==Phase.Paused && (dualDeck==null || dualDeck.Closed(1)) &&
-                (key!=0 || !Chapter.Completed) && (heldTargetKeys[key] || pointerFeedbackKey==key);
+            if(transport==null || Selected<0)return false;
+            return key==0?transport.Writing:key==1?transport.TargetStatus=="PLAYBACK":
+                key==2?transport.TargetStatus=="REWINDING":key==3?transport.TargetStatus=="FAST FORWARD":false;
         }
         void ClearKeyFeedback()
         {
-            System.Array.Clear(heldTargetKeys,0,heldTargetKeys.Length);
             pointerFeedbackKey=-1;
         }
         public bool RecordingInputReady=>RecordingMode && !recordingWait && house!=null && house.InputContext.Allows(InputContextId.TapeTransport);
@@ -57,13 +56,14 @@ namespace MemoryWhitebox
         }
         public void SetUITransportCommand(int command)
         {
-            if(SuccessPopupOpen || !RecordingMode || recordingWait || State!=Phase.Paused || Selected<0 || DeckBusy(1))return;
+            if(SuccessPopupOpen || !(RecordingMode && !recordingWait || WorkbenchMode && !benchWaiting) || State!=Phase.Paused || Selected<0 || DeckBusy(1))return;
             SubmissionMessage="";lastFeedback="";
+            if(command>=0 && command<4 && TargetKeyDown(command)){StopTargetOnly();return;}
             pointerFeedbackKey=command;
             UITransportCommand=-1;
             if(command==4)
             {
-                ApplyRecordingKeys(false,false,false,false,true);
+                StopTargetOnly();
                 if(dualDeck!=null)dualDeck.Press(1,"Stop");
                 return;
             }
@@ -79,18 +79,25 @@ namespace MemoryWhitebox
             if(command==0 && dualDeck!=null && !dualDeck.Closed(0)){SubmissionMessage="Close A before recording.";return;}
             if(command==0 && !Chapter.Tape.Candidates[Selected].Prepared)
             {Chapter.ProtectionDiscovered=true;house.SaveStableProgress();SubmissionMessage="Recording protected. Eject B, cover both upper-edge holes, then reload.";return;}
+            if(command==0)
+            {
+                var ownerLock=RecordingOwnerLock(Selected);if(ownerLock!=null){SubmissionMessage=ownerLock;return;}
+                if(transport.RecordedSeconds<=0)Chapter.ClearRecordingTapeBinding();
+                if(!Chapter.BindRecordingTape(Selected)){SubmissionMessage="This recording belongs to another tape. Retry before changing tapes.";return;}
+                if(!house.SaveStableProgress()){SubmissionMessage="Could not save tape identity. Try recording again. "+house.LastSaveError;return;}
+            }
             // B keys never alter A's position or motor. The player starts A explicitly.
             UITransportCommand=command;
+            // Toggle commands own their motor until a subsequent press or context exit.
+            // Changing from recording to playback must not retain the old blank-writing gesture.
+            transport.TargetCommand(false,false,0,house.Muted);
+            transport.TargetCommand(command==0 || command==1,command==0,command==2?-1:command==3?1:0,house.Muted);
+            wasWriting=transport.Writing;
         }
         public void ReleaseTransportKey(int command)
         {
+            // Pointer-up releases the finger, not the latched mechanical key.
             if(pointerFeedbackKey==command)pointerFeedbackKey=-1;
-            if(UITransportCommand!=command)return;
-            UITransportCommand=-1;
-            if(!RecordingInputReady){StopTargetOnly();return;}
-            // Apply the remaining keyboard state immediately, rather than leaving
-            // an extra frame of recording after pointer-up/exit/disable.
-            ApplyRecordingKeys(Input.GetKey(KeyCode.F),Input.GetKey(KeyCode.S),Input.GetKey(KeyCode.J),Input.GetKey(KeyCode.L),Input.GetKey(KeyCode.Quote));
         }
         public bool HandPressing=>RecordingMode && !recordingWait && handKey>=0;
         public Transform HandContactTarget=>HandPressing?keys3d[handKey]:
@@ -119,6 +126,8 @@ namespace MemoryWhitebox
                 if(commissions==null || commissions.Length<RadioTapeChapter.CommissionCount)throw new System.InvalidOperationException("Assign the original tape commission definition.");
                 commissionAudio=TapeRecordingSourceResolver.Resolve(commissions[index],AudioSettings.outputSampleRate,index);
                 transport.Initialize(commissionAudio.Samples,AudioSettings.outputSampleRate,index);
+                // Legacy saves reused work tape 03 for every commission.
+                if(!Chapter.Completed && Chapter.NeedsLegacyRecordingBinding && transport.RecordedSeconds>0 && Chapter.RecordingTapeIndex<0)Chapter.BindLegacyRecordingTape();
                 lastAuditionPosition=transport.SourceSeconds;
                 loadedCommission=index;
                 recordingReady=transport.SaveError=="";
@@ -138,7 +147,7 @@ namespace MemoryWhitebox
                 Notice="Recording unavailable";
                 Debug.LogWarning("Recording entry blocked: "+(RecordingError!=""?RecordingError:transport!=null?transport.SaveError:"Missing transport"),this);return;
             }
-            RecordingMode=true;recordingWait=true;recordingGate.Arm();mouseKey=-1;stopLatch=UITransportCommand<0;
+            RecordingMode=true;recordingWait=true;recordingGate.Arm();mouseKey=-1;
             house.Room.StopMotion();PlayerInputPolicy.SetCursor(true);
             house.SyncInputContext();
         }
@@ -148,7 +157,7 @@ namespace MemoryWhitebox
             RestoreRadioCamera();ClearKeyFeedback();
             if(!internalDeckHandoff || dualDeck==null){UITransportCommand=-1;transport?.StopAll();dualDeck?.ReleaseStoppedTarget();}
             handKey=-1;
-            RecordingMode=false;wasWriting=false;stopLatch=true;recordingWait=true;
+            RecordingMode=false;wasWriting=false;recordingWait=true;
             RestoreRecordingControls();
             house?.SaveStableProgress();house?.SuspendHouseInput();
             house?.SyncInputContext();
@@ -160,13 +169,14 @@ namespace MemoryWhitebox
             UpdateTransportDisplay();
         }
         void StopRecordingInput()
-        {ClearKeyFeedback();if(!internalDeckHandoff || dualDeck==null){UITransportCommand=-1;transport?.StopAll();dualDeck?.ReleaseStoppedTarget();}RestoreRecordingControls();wasWriting=false;mouseKey=-1;handKey=-1;stopLatch=true;recordingWait=true;recordingGate.Arm();}
+        {ClearKeyFeedback();if(!internalDeckHandoff || dualDeck==null){UITransportCommand=-1;transport?.StopAll();dualDeck?.ReleaseStoppedTarget();}RestoreRecordingControls();wasWriting=false;mouseKey=-1;handKey=-1;recordingWait=true;recordingGate.Arm();}
         public void RetryCurrentCommission()
         {
             if(SuccessPopupOpen || Chapter.Completed || !recordingReady || transport==null)return;
             lastFeedback="";
             StopRecordingInput();
             bool saved=transport.RetryCurrent();
+            Chapter.ClearRecordingTapeBinding();
             SubmissionSucceeded=false;
             SubmissionMessage=saved?"Current commission reset. A and B are at the start; prepared tape retained.":"Reset kept in memory, but save failed. Try again before exiting.";
             UpdateTransportDisplay();house?.SaveStableProgress();
@@ -181,53 +191,61 @@ namespace MemoryWhitebox
         }
         public void SubmitCurrentRecording()
         {
+            SubmissionSucceeded=false;
+            SubmissionMessage="Eject B, then drag the recorded tape into the box's finished compartment.";
+            ShowTapePointerNotice(SubmissionMessage);
+        }
+        void SubmitRecordingFromStorage(int tapeIndex)
+        {
             if(SuccessPopupOpen)return;
             lastFeedback="";
             UITransportCommand=-1;
             SubmissionSucceeded=false;
             if(Chapter.Completed){SubmissionSucceeded=true;SubmissionMessage="All 3 copies saved. Esc to return.";return;}
-            if(!Chapter.SourceLoaded || !Chapter.AuditionComplete){SubmissionMessage="Load and listen to the current original first.";return;}
-            if(Selected<0 || !Chapter.Tape.Candidates[Selected].Prepared || State!=Phase.Paused)
-            {SubmissionMessage="Insert a checked, sealed tape into B first.";return;}
+            string gate=FinishedTapeGate(tapeIndex,false);
+            if(gate!=null){SubmissionMessage=gate;return;}
             transport.StopAll();wasWriting=false;
-            if(!transport.Save()){SubmissionMessage="Could not save. Recording kept in memory; try Submit again.";return;}
+            if(!transport.Save()){SubmissionMessage="Could not save. Recording kept in memory; return the tape to the box again.";return;}
             string reason=commissionAudio.Reject(transport.SnapshotMapping());
             if(reason!=""){SubmissionMessage="Not accepted: "+reason;WBMain.Tone(95,.2f);return;}
             int finished=Chapter.CommissionIndex+1;
             StopRecordingInput();
             bool complete;
-            string prepared=Chapter.PrepareSubmission(out complete);
+            string prepared=Chapter.PrepareSubmission(tapeIndex,out complete);
             var result=house.CommitPreparedChapter(ChapterIds.Tape,prepared,complete,transport.Artifact);
-            if(!result.Success){SubmissionMessage="Could not save progress. Copy kept; try Submit again. "+result.Error;return;}
+            if(!result.Success){SubmissionMessage="Could not save progress. Copy kept; return it to the box again. "+result.Error;return;}
             house.ApplyCommittedChapter(ChapterIds.Tape,prepared);
+            ResetDeck();
+            adhesiveStrip.gameObject.SetActive(false);adhesiveRibbon.gameObject.SetActive(false);
             if(!Chapter.Completed)
             {
-                ResetDeck();
-                adhesiveStrip.gameObject.SetActive(false);adhesiveRibbon.gameObject.SetActive(false);
                 SynchronizeCommission();lastAuditionPosition=transport.SourceSeconds;
             }
             RestoreSource();
             SubmissionSucceeded=true;
-            SubmissionMessage=Chapter.Completed?"All 3 copies saved. Esc to return.":"Copy "+finished+" saved. Load Original "+(Chapter.CommissionIndex+1).ToString("00")+".";
+            SubmissionMessage=Chapter.Completed?"All 3 copies saved in the box. Esc to return.":"Copy "+finished+" saved in the box. Load Original "+(Chapter.CommissionIndex+1).ToString("00")+" and choose a NEW work tape.";
             if(!Chapter.Completed)RecordingMode=false;
-            transportPanel.ShowSuccess(Chapter.Completed?"All 3 copies saved.":"Copy "+finished.ToString("00")+" saved.");
+            transportPanel.ShowSuccess(Chapter.Completed?"All 3 copies saved in the box.":"Copy "+finished.ToString("00")+" saved. Choose a NEW work tape for the next copy.");
             WBMain.Tone(660,.2f);
         }
         void RecordingPointerDown(Vector2 point)
         {
-            if(!RecordingInputReady || SuccessPopupOpen || radioCameraMoving || house.safeInspection.Active || TapeUIAt(point))return;
-            if(RetryButtonRect.Contains(new Vector2(point.x,Screen.height-point.y)))return;
+            if(!RecordingInputReady || SuccessPopupOpen || radioCameraMoving || storageDelivery!=null || house.safeInspection.Active || TapeUIAt(point))return;
+
             // Use the native press location, not the later polled cursor position.
             // A quick desk-to-slot drag can cross the whole recorder in one frame.
             var ray=view.ScreenPointToRay(point);
             var hit=PickWorkbenchTarget(ray);
-            if(hit==radioHit || hit==slotHit || hit==sourceSlot){FocusRadio(true);return;}
+            if(hit==sourceSlot){EjectDualDeck(0);return;}
+            if(hit==slotHit){EjectDualDeck(1);return;}
+            if(hit==radioHit){FocusRadio(true);return;}
             if(TryBeginOriginalInteraction(ray) || TryBeginWorkbenchInteraction(ray))return;
             if(dualDeck!=null && PressDualControl(dualDeck.Command(hit)))return;
             for(int i=0;i<controlHits.Length;i++)if(hit==controlHits[i])
             {
                 mouseKey=i;
                 if(i==0)SourceControl(1);if(i==1)SourceControl(0);if(i==2)SourceControl(2);
+                if(i>=3 && i<=7)SetUITransportCommand(i-3);
                 if(i==8){UITransportCommand=-1;transport.RewindTarget();}if(i==9 && !Chapter.Completed){UITransportCommand=-1;transport.ClearTarget();}
                 if(i==10){SubmitCurrentRecording();return;}
             }
@@ -240,47 +258,38 @@ namespace MemoryWhitebox
             if(recordingWait){if(recordingGate.Ready)recordingWait=false;return;}
             if(!radioCameraMoving && PollWorkspaceInspection())return;
             if(house.InputContext.ExitPressed(InputContextId.TapeTransport,null,ExitTapeWorkspace))return;
-            bool left=Input.GetMouseButton(0);
-            if(!left){mouseKey=-1;UITransportCommand=-1;pointerFeedbackKey=-1;}
-            bool f=Input.GetKey(KeyCode.F)||mouseKey==4,s=Input.GetKey(KeyCode.S)||mouseKey==3,j=Input.GetKey(KeyCode.J)||mouseKey==5,l=Input.GetKey(KeyCode.L)||mouseKey==6,stop=Input.GetKey(KeyCode.Quote)||mouseKey==7;
-            // A pointer can hold one physical/UI key while the keyboard holds another.
-            // REC is S only; it does not silently also press PLAY.
-            if(UITransportCommand>=0){f|=UITransportCommand==1;s|=UITransportCommand==0;j|=UITransportCommand==2;l|=UITransportCommand==3;}
-            handKey=mouseKey>=0?mouseKey:stop?7:s?3:f?4:j?5:l?6:-1;
-            if(UITransportCommand>=0 || (handKey>=3 && handKey<=7))handKey=-1;
-            if(dualDeck!=null && Selected>=0 && dualDeck.Closed(1) && Input.GetKeyDown(KeyCode.Quote))dualDeck.Press(1,"Stop");
-            ApplyRecordingKeys(f,s,j,l,stop);
-            bool[] pressed={transport.SourcePlaying,false,false,s,f,j,l,stop,false,false,false};
-            for(int i=0;dualDeck==null && i<keys3d.Length;i++)keys3d[i].localPosition=keyHomes[i]+(pressed[i]?Vector3.down*keyTravel:Vector3.zero);
+            PollLatchedTransportKeys();
+            if(Input.GetKeyDown(KeyCode.R) && !Chapter.Completed && transport.RecordedSeconds>0)
+            {
+                if(Time.unscaledTime<retryConfirmUntil){retryConfirmUntil=0;RetryCurrentCommission();}
+                else {retryConfirmUntil=Time.unscaledTime+3;SubmissionMessage="Press R again to erase this copy and retry.";}
+            }
+            if(wasWriting && !transport.Writing)transport.Save();
+            wasWriting=transport.Writing;
             UpdateTransportDisplay();
         }
-        public void ApplyRecordingKeys(bool f,bool s,bool j,bool l,bool stop)
+        void PollLatchedTransportKeys()
         {
-            if(transport==null || SuccessPopupOpen)return;
-            heldTargetKeys[0]=s;heldTargetKeys[1]=f;heldTargetKeys[2]=j;heldTargetKeys[3]=l;heldTargetKeys[4]=stop;
-            if(stop)stopLatch=true;else if(!f)stopLatch=false;
-            bool ready=Selected>=0 && State==Phase.Paused && (dualDeck==null || dualDeck.Closed(1));
-            bool play=ready && f && !stopLatch && !stop && (!s || !Chapter.Completed);
-            bool writing=play && s && !j && !l && Chapter.SourceLoaded && (dualDeck==null || dualDeck.Closed(0)) && Chapter.AuditionComplete && Chapter.Tape.Candidates[Selected].Prepared && transport.SourceSeconds<transport.SourceDuration;
-            if(play && s && !writing)
-            {
-                if(transport.SourceStatus=="END")SubmissionMessage="Original finished. Listen to your copy.";
-                else {Chapter.ProtectionDiscovered=true;SubmissionMessage="Load A and cover both write-protect holes on B.";}
-            }
-            int winding=ready && !stop && !stopLatch && !f && !s && j!=l?(j?-1:1):0;
-            transport.TargetCommand(play && !j && !l && (!s || writing),writing,winding,house.Muted);
-            if(wasWriting && !writing)transport.Save();wasWriting=writing;
+            if(Input.GetKeyDown(KeyCode.Quote))PressTransportKey(KeyCode.Quote);
+            else if(Input.GetKeyDown(KeyCode.F))PressTransportKey(KeyCode.F);
+            else if(Input.GetKeyDown(KeyCode.J))PressTransportKey(KeyCode.J);
+            else if(Input.GetKeyDown(KeyCode.L))PressTransportKey(KeyCode.L);
+            if(Input.GetKeyDown(KeyCode.S))PressTransportKey(KeyCode.S);
         }
+        public void PressTransportKey(KeyCode key)
+        {
+            if(key==KeyCode.S)SetUITransportCommand(0);
+            else if(key==KeyCode.F)SourceControl(1);
+            else if(key==KeyCode.J)SourceControl(2);
+            else if(key==KeyCode.L)SourceControl(4);
+            else if(key==KeyCode.Quote)SourceControl(0);
+        }
+
         void TickHeldTargetDuringHandoff()
         {
-            if(RecordingMode || transport==null)return;
-            string status=transport.TargetStatus;
-            if(status!="RECORDING" && status!="PLAYBACK" && status!="RUNNING BLANK" && status!="REWINDING" && status!="FAST FORWARD")return;
-            // A source-cassette drag can temporarily own the pointer while B is
-            // driven by the keyboard. Continue only an already-running gesture;
-            // releasing its keys must still stop it outside TickRecording.
-            if(UITransportCommand>=0 || mouseKey>=3 && mouseKey<=7){StopTargetOnly();return;}
-            ApplyRecordingKeys(Input.GetKey(KeyCode.F),Input.GetKey(KeyCode.S),Input.GetKey(KeyCode.J),Input.GetKey(KeyCode.L),Input.GetKey(KeyCode.Quote));
+            // Moving another cassette is not a release of a latched transport key.
+            // Explicit stop, eject, inspection or leaving the workspace handles stopping.
+            if(wasWriting && transport!=null && !transport.Writing){transport.Save();wasWriting=false;}
         }
         void UpdateTransportCounters()
         {

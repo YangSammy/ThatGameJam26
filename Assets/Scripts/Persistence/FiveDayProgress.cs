@@ -78,6 +78,20 @@ namespace MemoryWhitebox
             return save;
         }
         static bool Finite(float v)=>!float.IsNaN(v) && !float.IsInfinity(v);
+        // Menu probing must not repair or rewrite saves merely by displaying Continue.
+        public static bool TryInspectSave(string root,bool development,out StoryDay day,out bool finished,out string error)
+        {
+            day=StoryDay.SpringTape;finished=false;error="";
+            string path=Path.Combine(root,development?"five-day-development-v1.json":"five-day-progress-v1.json");
+            var reader=new FiveDayProgress{development=development};
+            foreach(string candidate in new[]{path,path+".bak"})
+            {
+                if(!File.Exists(candidate))continue;
+                try{var save=reader.Parse(File.ReadAllText(candidate));day=(StoryDay)save.currentDay;finished=save.finished;error="";return true;}
+                catch(Exception e){error=e.Message;}
+            }
+            return false;
+        }
         public static FiveDayProgress Load(bool development=false)
         {
             var progress=new FiveDayProgress{development=development};

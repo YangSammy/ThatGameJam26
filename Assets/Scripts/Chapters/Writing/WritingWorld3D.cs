@@ -5,7 +5,7 @@ namespace MemoryWhitebox
 {
     /// <summary>
     /// Two simultaneous perspective cameras, both rendering spatial geometry.
-    /// The right hand writes on a desk; the left hand inhabits a small memory.
+    /// The left viewport shows writing; the right viewport shows the memory.
     /// WritingChapter is only the tested rule model. Its Draw method is never used.
     /// </summary>
     public sealed partial class WritingWorld3D : WorldChapter3D
@@ -30,7 +30,7 @@ namespace MemoryWhitebox
         readonly Vector3 memoryOffset = new Vector3(12, 0, 0);
         int originalMask, previousDraft, previousRow = -1;
         float time, lineExtent, penLift, crumple;
-        bool writingHeld, draggingPaper;
+        bool writingHeld, draggingPaper, newSheetSoundPending;
         public override Transform[] PlayerHandTargets => new Transform[]{null,writingHandContact != null ? writingHandContact : penHand};
         public override bool PlayerHandsEngaged => writingHeld || draggingPaper;
         public override bool HasPointerGesture => writingHeld || draggingPaper;
@@ -38,6 +38,9 @@ namespace MemoryWhitebox
         {
             // Cancel is never a successful drop in the bin. Keep already written ink.
             State.CancelInput();
+            CancelAutumnPresentation();
+            StorySfx.Stop(32);
+            newSheetSoundPending=false;
             writingHeld=draggingPaper=false;currentStroke=null;activeStroke.Clear();
             if(desk!=null){sheet.SetActive(true);paperBall.gameObject.SetActive(false);}
             foreach(var stroke in ink)stroke.gameObject.SetActive(true);
@@ -56,7 +59,7 @@ namespace MemoryWhitebox
         {
             if(fitted)return;
             fitted=true;originalEye=Eye;originalLook=Look;
-            // The left-hand memory and its own camera remain at their authored world poses.
+            // The memory and its own camera remain at their authored world poses.
             memory.SetParent(null,true);MemoryCamera.transform.SetParent(null,true);
             var root=Root.transform;
             root.SetPositionAndRotation(layout.transform.position,layout.transform.rotation);
@@ -67,31 +70,16 @@ namespace MemoryWhitebox
             memory.SetParent(root,true);MemoryCamera.transform.SetParent(root,true);
         }
 
-        const float LetterWidthFraction=.8f;
         const float FirstInkRow=.175f;
         const float InkRowSpacing=.055f;
         float binFraming;
 
         void FrameLetter()
         {
-            Transform t=desk.paper.transform;
-            Vector3 page=t.TransformPoint(desk.paper.center);
-            Vector3 offset=Vector3.ProjectOnPlane(BinCenter-page,t.up);
-            Look=page+offset*(.32f*binFraming);
             Fov=48;
-            float aspect=Mathf.Max(.15f,.5f*Screen.width/Mathf.Max(1,Screen.height));
-            float paperWidth=t.TransformVector(Vector3.right*desk.paper.size.x).magnitude;
-            float paperHeight=t.TransformVector(Vector3.forward*desk.paper.size.z).magnitude;
-            // Width determines the writing shot; keep both ends of the sheet
-            // visible even on an unusually wide monitor.
-            float closeHalfHeight=Mathf.Max(paperWidth/(2*LetterWidthFraction*aspect),paperHeight*.55f);
-            float wideHalfWidth=Mathf.Max(Mathf.Abs(Vector3.Dot(offset*.68f,t.right))+.12f,
-                Mathf.Abs(Vector3.Dot(offset*.32f,t.right))+paperWidth*.55f);
-            float wideHalfHeight=Mathf.Max(Mathf.Abs(Vector3.Dot(offset*.68f,t.forward))+.12f,
-                Mathf.Abs(Vector3.Dot(offset*.32f,t.forward))+paperHeight*.55f);
-            float halfHeight=Mathf.Lerp(closeHalfHeight,Mathf.Max(wideHalfWidth/aspect,wideHalfHeight),binFraming);
-            Eye=Look+t.up*(halfHeight/Mathf.Tan(Fov*Mathf.Deg2Rad*.5f));
+            CalculateLetterFrame(Mathf.Max(.15f,.5f*Screen.width/Mathf.Max(1,Screen.height)),binFraming,out Eye,out Look);
         }
+
 
         public override Quaternion ViewRotation=>desk!=null
             ? Quaternion.LookRotation(-desk.paper.transform.up,desk.paper.transform.forward)
@@ -132,13 +120,13 @@ namespace MemoryWhitebox
             var lamp = new GameObject("Memory warmth follows the pen"); lamp.transform.SetParent(memory, false); lamp.transform.localPosition = new Vector3(3.6f, 3.9f, 1.5f);
             memoryLight = lamp.AddComponent<Light>(); memoryLight.type = LightType.Point; memoryLight.range = 11; memoryLight.intensity = 1.6f; memoryLight.color = new Color(1, .85f, .64f); memoryLight.cullingMask = 1 << MemoryLayer;
             SetLayer(memory, MemoryLayer);
-            var cameraObject = new GameObject("Left memory perspective camera"); cameraObject.transform.SetParent(Root.transform, false);
+            var cameraObject = new GameObject("Right memory perspective camera"); cameraObject.transform.SetParent(Root.transform, false);
             MemoryCamera = cameraObject.AddComponent<Camera>(); MemoryCamera.orthographic = false;
             MemoryCamera.transform.position = World(memoryOffset + new Vector3(3.10f, 6.4f, -5.1f));
             MemoryCamera.transform.LookAt(World(memoryOffset + new Vector3(3.05f, .45f, 2.5f)));
             MemoryCamera.fieldOfView = 49; MemoryCamera.nearClipPlane = .05f; MemoryCamera.farClipPlane = 25;
             MemoryCamera.clearFlags = CameraClearFlags.SolidColor; MemoryCamera.backgroundColor = new Color(.12f, .17f, .18f); MemoryCamera.cullingMask = 1 << MemoryLayer;
-            MemoryCamera.depth = View != null ? View.depth + 1 : 1; MemoryCamera.rect = new Rect(0, 0, .5f, 1); MemoryCamera.enabled = false;
+            MemoryCamera.depth = View != null ? View.depth + 1 : 1; MemoryCamera.rect = new Rect(.5f, 0, .5f, 1); MemoryCamera.enabled = false;
             BuildAutumnProps();BuildWritingVisuals();UpdateActors(.02f);
         }
 
@@ -148,16 +136,14 @@ namespace MemoryWhitebox
             Child(memory, null, new Vector3(0, 1.2f, 2.65f), new Vector3(.13f, 2.4f, 5.3f), "#8e9687");
             Child(memory, null, new Vector3(6.0f, 1.2f, 2.65f), new Vector3(.13f, 2.4f, 5.3f), "#778278");
             Child(memory, null, new Vector3(3, 1.2f, 5.25f), new Vector3(6.2f, 2.4f, .13f), "#8c9486");
-            Child(memory, null, new Vector3(3.12f, .94f, .99f), new Vector3(.14f, 1.88f, 2.12f), "#a5a28b");
+            // The foreground return is low enough to see both people and a pointing hand.
+            Child(memory, null, new Vector3(3.12f, .38f, .99f), new Vector3(.14f, .76f, 2.12f), "#a5a28b");
             Child(memory, null, new Vector3(3.12f, .94f, 4.26f), new Vector3(.14f, 1.88f, 2.35f), "#a5a28b");
             Child(memory, null, new Vector3(3.12f, 2.20f, 2.56f), new Vector3(.14f, .24f, 1.06f), "#a5a28b");
             // The wall stops above the doorway. The player must actually pass its opening.
             for (int i = 1; i < 7; i++)
                 Child(memory, null, new Vector3(i * .85f, .008f, 2.6f), new Vector3(.012f, .008f, 5.2f), "#645f52");
-            Child(memory, null, new Vector3(1.3f, .50f, 1.50f), new Vector3(.72f, .12f, .58f), "#5a645c");
-            Child(memory, null, new Vector3(1.3f, .94f, 1.78f), new Vector3(.72f, .78f, .08f), "#5a645c");
-            for (int sign = -1; sign <= 1; sign += 2)
-                Child(memory, null, new Vector3(1.3f + sign * .29f, .25f, 1.50f), new Vector3(.07f, .5f, .48f), "#4b5550");
+
         }
 
         Transform Person(string id, string coat, bool small)
@@ -185,6 +171,7 @@ namespace MemoryWhitebox
             var plane=new Plane(hit.transform.up,PaperCenter);
             if(!plane.Raycast(ray,out float distance))return new Vector2(-1,-1);
             Vector3 p=hit.transform.InverseTransformPoint(ray.GetPoint(distance))-hit.center;
+            // Chapter-local paper coordinates, independent of the screen half.
             return new Vector2(685+(p.x/hit.size.x+.5f)*535,165+(.5f-p.z/hit.size.z)*445);
         }
         public override void Activate()
@@ -205,7 +192,7 @@ namespace MemoryWhitebox
                     scarf.localRotation=Quaternion.identity;
                 }
             }
-            if (View != null) { originalRect = View.rect; originalMask = View.cullingMask; View.rect = new Rect(.5f, 0, .5f, 1); View.cullingMask = originalMask & ~(1 << MemoryLayer); }
+            if (View != null) { originalRect = View.rect; originalMask = View.cullingMask; View.rect = new Rect(0, 0, .5f, 1); View.cullingMask = originalMask & ~(1 << MemoryLayer); }
             MemoryCamera.enabled = true;
         }
         public override void Deactivate()
@@ -225,7 +212,9 @@ namespace MemoryWhitebox
         }
         public override Ray PointerRay(Vector2 nativeScreenBottomLeft)
         {
-            return nativeScreenBottomLeft.x < View.pixelRect.xMin ? MemoryCamera.ScreenPointToRay(nativeScreenBottomLeft) : View.ScreenPointToRay(nativeScreenBottomLeft);
+            return MemoryCamera.pixelRect.Contains(nativeScreenBottomLeft)
+                ? MemoryCamera.ScreenPointToRay(nativeScreenBottomLeft)
+                : View.ScreenPointToRay(nativeScreenBottomLeft);
         }
         public override void Press(string id, Ray ray, int button)
         {
@@ -237,6 +226,7 @@ namespace MemoryWhitebox
                 State.PointerDown(new Vector2(1195, 590), 0);
                 sheet.SetActive(false); foreach (LineRenderer stroke in ink) stroke.gameObject.SetActive(false);
                 paperBall.gameObject.SetActive(true); MoveFoldedPaper(ray);
+                StorySfx.Shot(33,paperBall.position);
                 return;
             }
             if (id != "paper") return;
@@ -266,10 +256,10 @@ namespace MemoryWhitebox
             AcceptNewRow(oldRow, wasAwaitingReturn);
             float amount = State.WritingProgress - before;
             if (amount <= 0) return;
-            if(!wasStarted && State.Started)PlayWritingCue(timerStart);
-            else if(time>=nextPencil){PlayWritingCue(pencilStroke);nextPencil=time+.36f;}
             if (previousRow != State.Row) { lineExtent = 0; previousRow = State.Row; currentStroke = null; activeStroke.Clear(); }
             AppendInk(amount);
+            StorySfx.Motion(32,sheet.transform.TransformPoint(penPoint));
+            if(!wasStarted && State.Started)StorySfx.Shot(35,TimerSoundPosition);
         }
         void AcceptNewRow(int oldRow, bool wasAwaitingReturn)
         {
@@ -318,10 +308,17 @@ namespace MemoryWhitebox
         }
         public override void Release(string overId, Ray ray)
         {
+            StorySfx.Stop(32);
             if (draggingPaper)
             {
                 bool inBin = !string.IsNullOrEmpty(overId) && overId.StartsWith("bin");
+                int draft=State.Draft;
                 State.PointerUp(inBin ? new Vector2(1185, 635) : new Vector2(950, 450));
+                if(State.Draft!=draft)
+                {
+                    StorySfx.Shot(233,BinCenter);
+                    newSheetSoundPending=true;
+                }
                 draggingPaper = false; sheet.SetActive(true); paperBall.gameObject.SetActive(false);
                 foreach (LineRenderer stroke in ink) stroke.gameObject.SetActive(true);
             }
@@ -331,17 +328,26 @@ namespace MemoryWhitebox
         public override void Tick(float dt, WBInput input)
         {
             float elapsed=Mathf.Max(0,dt);dt = Mathf.Min(.1f, dt); time += dt;
+            int collected=State.Collected;
+            string phase=State.Phase;
+            bool clockRunning=State.Started && phase=="collect";
+            float remaining=State.Remaining;
             State.Tick(elapsed, input);
+            pickupIntent=input.Keys.Contains(KeyCode.E);
+            PlayWritingStateEdges(collected,phase,clockRunning,remaining);
             bool reachBlocked=input.Keys.Contains(KeyCode.E) && State.NearPickup && !State.InkFresh
                 && (State.Phase=="tutorial" || State.Phase=="collect");
-            if(reachBlocked && !attemptHeld)PlayWritingCue(pencilStroke);
-            attemptHeld=reachBlocked;
             if (State.Draft != previousDraft)
             {
                 foreach (var stroke in ink) ReleaseObject(stroke.gameObject);
                 ink.Clear(); strokeRows.Clear(); activeStroke.Clear(); currentStroke = null; lineExtent = 0; previousRow = -1;
                 previousDraft = State.Draft; penPoint=desk.InkPoint(BodyRowOrigin,0);
                 desk.ShowDrafts(State.Draft);
+                if(newSheetSoundPending)
+                {
+                    StorySfx.Shot(133,PaperCenter);
+                    newSheetSoundPending=false;
+                }
             }
             if (State.Phase != previousPhase && State.Phase == "crumple") writingHeld = false;
             previousPhase = State.Phase;
@@ -360,13 +366,12 @@ namespace MemoryWhitebox
         }
         public override void Dispose()
         {
+            StorySfx.Stop(32);
             foreach(var stroke in ink)if(stroke!=null)ReleaseObject(stroke.gameObject);
             ink.Clear();
-            foreach(var m in pickupMaterials.Values)ReleaseObject(m);
-            pickupMaterials.Clear();
+            StorySfx.Stop(234);
             base.Dispose();
         }
-        bool attemptHeld;
         void UpdateActors(float dt){UpdateAutumnActors(dt);}
     }
 }

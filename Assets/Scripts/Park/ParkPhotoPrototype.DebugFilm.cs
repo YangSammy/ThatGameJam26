@@ -9,6 +9,7 @@ namespace MemoryWhitebox
         // Darkroom test entry: use the same durable exposure pipeline as normal shots.
         void DebugFillCurrentRoll()
         {
+            if(HasPendingExposure){Notify("Wait for the current photograph to finish saving, then press 2.",6);return;}
             if(!string.IsNullOrEmpty(filmError)){Notify("Test film unavailable. Existing records kept.",6);return;}
             try
             {

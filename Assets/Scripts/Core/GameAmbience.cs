@@ -15,7 +15,15 @@ namespace MemoryWhitebox
         public int SeasonIndex=>selected;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Bootstrap()
-        {if(FindObjectOfType<GameAmbience>()==null)new GameObject("Game Ambience").AddComponent<GameAmbience>();}
+        {
+            SceneManager.sceneLoaded-=EnsureGameAudio;SceneManager.sceneLoaded+=EnsureGameAudio;
+            EnsureGameAudio(SceneManager.GetActiveScene(),LoadSceneMode.Single);
+        }
+        static void EnsureGameAudio(Scene scene,LoadSceneMode mode)
+        {
+            if(scene.path!=ParkFilmRoute.HouseScenePath && scene.path!=ParkFilmRoute.ParkScenePath)return;
+            if(FindObjectOfType<GameAmbience>()==null)new GameObject("Game Ambience").AddComponent<GameAmbience>();
+        }
         AudioSource Make(string name){var g=new GameObject(name);g.transform.SetParent(transform,false);var a=g.AddComponent<AudioSource>();a.playOnAwake=false;a.loop=true;a.spatialBlend=0;a.volume=0;return a;}
         void Awake()
         {

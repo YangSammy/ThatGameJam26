@@ -10,7 +10,7 @@ namespace MemoryWhitebox
         bool guidedResumedAtPhoto;
         ParkPhotoWaypoint guidedDepartureNode;
         public bool GuidedDeparturePending=>guidedDeparturePending;
-        public bool GuidedPhotoAdjustment=>guidedDocked && companion!=null && companion.AtPhotoNode && !guidedDeparturePending;
+        public bool GuidedPhotoAdjustment {get{guidedDocked=companion!=null && companion.AtPhotoNode && !guidedDeparturePending;return guidedInitialized && guidedDocked;}}
         bool GuidedCanTravel=>focused && !applicationPaused && !Paused && !changingScene && !inputGate &&
             InputContext.Ready && photoMode==PhotographyMode.Exploration && roll!=null && roll.ReadyForPark &&
             taskRoutingReady && filmError=="" && !HasPendingExposure && !guidedDeparturePending && !GuidedRecoveryBusy;
@@ -54,40 +54,10 @@ namespace MemoryWhitebox
         }
         Vector3 GuidedBound(Vector3 position)=>ClampGuidedPhotoPosition(position,GuidedPhotoCentre,
             Quaternion.Euler(0,bridgeNode.referenceView.eulerAngles.y,0),bridgeNode.photoTask==ParkPhotoWaypoint.PhotoTask.Bridge);
-        Vector3 GuidedDesiredVelocity(Vector3 manual,float dt)
-        {
-            if(!guidedInitialized || guidedPath.Count==0)InitializeGuidedWalk();
-            if(bridgeNode==null || bridgeNode.referenceView==null || roll==null || !roll.ReadyForPark || guidedDeparturePending || HasPendingExposure)return Vector3.zero;
-            if(GuidedPhotoAdjustment)
-            {
-                manual=SoftenPhotoBoundary(transform.position,manual,GuidedPhotoCentre,
-                    Quaternion.Euler(0,bridgeNode.referenceView.eulerAngles.y,0),bridgeNode.photoTask==ParkPhotoWaypoint.PhotoTask.Bridge);
-                var wanted=GuidedBound(transform.position+manual*dt)-transform.position;wanted.y=0;
-                return wanted/Mathf.Max(.001f,dt);
-            }
-            if(!GuidedCanTravel)return Vector3.zero;
-            while(guidedPathIndex<guidedPath.Count)
-            {
-                var delta=guidedPath[guidedPathIndex]-transform.position;delta.y=0;
-                if(delta.magnitude<=.10f)
-                {
-                    if(guidedPathIndex==guidedPath.Count-1)
-                    {if(companion.AtPhotoNode && !guidedDocked){guidedDocked=true;Notify("Photo spot. WASD: adjust position. E: camera.",4);}return Vector3.zero;}
-                    guidedPathIndex++;continue;
-                }
-                float gap=Vector3.Distance(new Vector3(transform.position.x,0,transform.position.z),new Vector3(companion.transform.position.x,0,companion.transform.position.z));
-                if(!companion.AtPhotoNode && gap<=2.5f)return Vector3.zero;
-                float speed=companion.AtPhotoNode?1.1f:Mathf.Clamp((gap-2.5f)*.8f,0,companion.walkSpeed+.25f);
-                return delta.normalized*Mathf.Min(speed,delta.magnitude/Mathf.Max(.001f,dt));
-            }
-            return Vector3.zero;
-        }
-        Vector3 ConstrainGuidedMove(Vector3 displacement)
-        {
-            if(!GuidedPhotoAdjustment)return displacement;
-            var bounded=GuidedBound(transform.position+displacement)-transform.position;
-            bounded.y=displacement.y;return bounded;
-        }
+        // V3: the player chooses position with WASD, including before loading and
+        // while waiting for the companion. Only normal scene collision limits motion.
+        Vector3 GuidedDesiredVelocity(Vector3 manual,float dt)=>manual;
+        Vector3 ConstrainGuidedMove(Vector3 displacement)=>displacement;
         void RecoverGuidedWalk()
         {
             if(bridgeNode==null || bridgeNode.referenceView==null)return;

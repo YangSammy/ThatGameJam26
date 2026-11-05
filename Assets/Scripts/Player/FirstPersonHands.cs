@@ -25,6 +25,7 @@ namespace MemoryWhitebox
         }
         readonly Dictionary<int,Set> sets=new Dictionary<int,Set>();
         readonly List<Renderer> hidden=new List<Renderer>();
+        bool parkMeshesHidden;
         WBMain house;
         Transform rig;
         public int VisibleSet {get;private set;}=-1;
@@ -86,10 +87,78 @@ namespace MemoryWhitebox
             if(source==null)return;
             foreach(var r in source.GetComponentsInChildren<Renderer>(true)){r.forceRenderingOff=true;hidden.Add(r);}
         }
+        void HideParkHandMeshes()
+        {
+            if(park==null || parkMeshesHidden)return;
+            parkMeshesHidden=true;
+            // Keep poses and contact targets alive; instruments share HandLayer and must remain visible.
+            if(skeletalRig!=null)Hide(skeletalRig.transform);
+            foreach(var hand in authoredHands)Hide(hand);
+            foreach(var arm in parkArms)Hide(arm);
+        }
         static Vector3 Rest(int side){return new Vector3(side==0?-.23f:.23f,-.27f,.65f);}
-        void LateUpdate(){Advance(Time.unscaledDeltaTime);}
+        object clothingContext;
+        int clothingPose;
+
+        void LateUpdate()
+        {
+            Advance(Time.unscaledDeltaTime);
+            UpdateClothingSound();
+        }
+
+        void UpdateClothingSound()
+        {
+            if (!handFocused || handPaused || Time.timeScale <= 0 || (park == null && house == null))
+            {
+                clothingContext = null;
+                return;
+            }
+
+            var control = park != null ? park.ControlState : house.ControlState;
+            if ((control != PlayerControlState.Exploration && control != PlayerControlState.Operation) ||
+                (park != null && !park.isActiveAndEnabled) ||
+                (house != null && (house.AwaitingHouseRelease ||
+                    (house.DirectDarkroomActive && house.DarkroomWorld.ParkGalleryOpen))))
+            {
+                clothingContext = null;
+                return;
+            }
+
+            object context;
+            int pose = 0;
+            if (park != null)
+            {
+                context = park;
+                if (park.PhotoMode != ParkPhotoPrototype.PhotographyMode.Exploration) pose |= 1;
+                if (park.HoldingPhotoHand) pose |= 2;
+                if (park.HandContactTarget != null) pose |= 4;
+            }
+            else if (house.DirectDarkroomActive)
+            {
+                context = house.DarkroomWorld;
+                if (house.DarkroomWorld.PlayerHandsEngaged) pose = 1;
+            }
+            else if (house.HouseInputReady)
+            {
+                context = house.CurrentWorld;
+                if (house.CurrentWorld != null && house.CurrentWorld.PlayerHandsEngaged) pose = 1;
+            }
+            else if (house.DirectRadioReady && house.radioDeck != null)
+            {
+                context = house.radioDeck;
+                if (house.radioDeck.HandContactTarget != null) pose = 1;
+            }
+            else
+                context = house;
+
+            if (context == clothingContext && pose != clothingPose)
+                StorySfx.Shot(103, transform.position + transform.forward * .35f);
+            clothingContext = context;
+            clothingPose = pose;
+        }
         public void Advance(float dt)
         {
+            HideParkHandMeshes();
             if(skeletalRig!=null){AdvanceSkeletal(dt);return;}
             if(park!=null){AdvancePark(dt);return;}
             if(rig==null || house==null)return;
@@ -156,6 +225,6 @@ namespace MemoryWhitebox
             }
         }
         void OnDestroy(){foreach(var r in hidden)if(r!=null)r.forceRenderingOff=false;}
-        public void PosePhotoHandForShutter(){if(park!=null && park.HoldingPhotoHand){if(skeletalRig!=null)AdvanceSkeletal(0,true);else AdvancePark(1);}}
+        public void PosePhotoHandForShutter(){HideParkHandMeshes();if(park!=null && park.HoldingPhotoHand){if(skeletalRig!=null)AdvanceSkeletal(0,true);else AdvancePark(1);}}
     }
 }

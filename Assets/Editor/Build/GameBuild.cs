@@ -7,7 +7,7 @@ namespace MemoryWhitebox.Editor
 {
     public static class GameBuild
     {
-        public static readonly string[] Scenes={ParkFilmRoute.HouseScenePath,ParkFilmRoute.ParkScenePath,SpringTapeRoom.ScenePath,SummerPhotoRoom.ScenePath,NarrativeBedroom.AutumnScene,NarrativeBedroom.WinterScene};
+        public static readonly string[] Scenes={MainMenuSaveAccess.ScenePath,ParkFilmRoute.HouseScenePath,ParkFilmRoute.ParkScenePath,SpringTapeRoom.ScenePath,SummerPhotoRoom.ScenePath,NarrativeBedroom.AutumnScene,NarrativeBedroom.WinterScene};
         [MenuItem("Tools/Build/Build Windows Player")]
         public static void ValidateAndBuild()
         {

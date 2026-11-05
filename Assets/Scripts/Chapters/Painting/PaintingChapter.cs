@@ -72,16 +72,25 @@ namespace MemoryWhitebox
         public Vector2 Actor=new Vector2(.7f,0),Velocity;
         public float SwingAngle=-.55f,SwingSpeed,FlowerAngle=-Mathf.PI/2,CrateX=2;
         public float BridgeGrowth,WhiteTime,WardDistance,WardRevealHeight;
+        // Retained only to migrate the previous automatic-reveal save format.
+        public const float WardRevealSeconds=12;
+        public float WardTime {get;private set;}
+        public float WardProgress=>Phase==4?1:Mathf.Clamp01(WardDistance/WardWalkDistance);
         public float NoseHeight=1.55f;
-        float DistanceRevealHeight=>WardDistance/(NarrativeDefinition.Resolve(this)?.wardWalkDistance??8)*3.2f;
+        public float WardWalkDistance=>Mathf.Max(.01f,NarrativeDefinition.Resolve(this)?.wardWalkDistance??8);
+        public float WardWalkSpeed=>Mathf.Max(.01f,NarrativeDefinition.Resolve(this)?.wardWalkSpeed??.7f);
         internal void BindWardCutoff(float height)
         {
             NoseHeight=height;
-            WardRevealHeight=Mathf.Min(height,DistanceRevealHeight);
+            UpdateWardReveal();
         }
-        public bool KeyInserted,HighCheckpoint,MiddleCheckpoint;
+        void UpdateWardReveal()=>WardRevealHeight=NoseHeight*WardProgress;
+        public bool KeyInserted,HighCheckpoint,MiddleCheckpoint,PendantHintPlayed;
         public int Riding=-1;
         public bool Grounded=true;
+        internal int FallCount { get; private set; }
+        internal bool OnDrawnBridge => Phase==0 && Grounded && BridgeGrowth>=1 && Actor.x>9 && Actor.x<12 &&
+            Actor.x>=bridgeLeft && Actor.x<=bridgeRight;
         bool jumpWasDown;float remount,focusId=-1;
         public Vector2 CurrentTarget=>Vector2.zero;
         public bool CupContact=>false;
@@ -112,7 +121,7 @@ namespace MemoryWhitebox
         float Jump=>NarrativeDefinition.Resolve(this)?.jumpSpeed??5;
         float Gravity=>NarrativeDefinition.Resolve(this)?.gravity??12;
         public override string Help=>"Hold LMB  Focus / Lower edge  Raise album / Upper edge  Lower album\nA D  Move or swing / Space  Jump off / Drag pendant into the matching door recess";
-        public string TaskHint=>Phase>=2?"D  Follow the line":!BookOpen?"Hold LMB  Focus / RMB drag  Look / Lower edge  Raise album":
+        public string TaskHint=>Phase>=2?"D  Follow the line":!BookOpen?"Hold LMB  Focus / Mouse  Look / Lower edge  Raise album":
             AtDoor&&!KeyInserted?(Painted[4]?"Drag the pendant into the recess":"Upper edge  Look for the matching shape"):
             Riding==0?"A D  Swing / Space  Jump off":Riding>0?"Wait for the high ledge / D + Space  Jump off":
             Phase==1&&!HighCheckpoint?(PlatePressed?"D + Space  Jump over the suitcase":"D  Push the suitcase onto the plate"):
@@ -120,22 +129,35 @@ namespace MemoryWhitebox
         public override string DebugState=>CaptureCheckpoint();
         [System.Serializable] sealed class Checkpoint
         {
-            public int version=2,phase;public bool[] shapes;
-            public bool middle,high,key;public float crate=2,ward,white;
+            public int version=5,phase;public bool[] shapes;
+            public bool middle,high,key,pendantHint;public float crate=2,ward,wardActor,white,wardTime;
         }
-        public override string CaptureCheckpoint()=>JsonUtility.ToJson(new Checkpoint{phase=Phase,shapes=Painted,middle=MiddleCheckpoint,high=HighCheckpoint,key=KeyInserted,crate=CrateX,ward=WardDistance,white=WhiteTime});
+        public override string CaptureCheckpoint()=>JsonUtility.ToJson(new Checkpoint{phase=Phase,shapes=Painted,middle=MiddleCheckpoint,high=HighCheckpoint,key=KeyInserted,pendantHint=PendantHintPlayed,crate=CrateX,ward=WardDistance,wardActor=Phase>=3?Actor.x:0,white=WhiteTime,wardTime=WardTime});
         public override void RestoreCheckpoint(string json)
         {
             CancelInput();if(string.IsNullOrEmpty(json))return;
             var n=JsonUtility.FromJson<Checkpoint>(json);
-            if(n==null || n.version<1 || n.version>2)throw new System.IO.InvalidDataException("Invalid album checkpoint.");
+            if(n==null || n.version<1 || n.version>5)throw new System.IO.InvalidDataException("Invalid album checkpoint.");
             if(n.version==1){Phase=0;return;}
             if(n.phase<0 || n.phase>4 || n.shapes==null || n.shapes.Length!=5 || !Finite(n.crate) || !Finite(n.ward) || !Finite(n.white) || n.ward<0)throw new System.IO.InvalidDataException("Invalid album route.");
+            if(n.version>=3 && (!Finite(n.wardActor) || n.wardActor<0 || n.wardActor>n.ward))throw new System.IO.InvalidDataException("Invalid ward position.");
+            if(n.version>=4 && (!Finite(n.wardTime) || n.wardTime<0))throw new System.IO.InvalidDataException("Invalid ward reveal time.");
             if(n.key && !n.shapes[4] || n.phase>=2 && !n.key)throw new System.IO.InvalidDataException("Invalid pendant ownership.");
             Phase=n.phase;Painted=n.shapes;MiddleCheckpoint=n.middle;HighCheckpoint=n.high;KeyInserted=n.key;
-            CrateX=Mathf.Max(1.3f,n.crate);WardDistance=n.ward;WhiteTime=Mathf.Max(0,n.white);BridgeGrowth=Painted[1]?1:0;
-            WardRevealHeight=Mathf.Min(NoseHeight,DistanceRevealHeight);
-            Respawn();BookOpen=Phase>=2;
+            PendantHintPlayed=n.pendantHint;
+            CrateX=Mathf.Max(1.3f,n.crate);WardDistance=Mathf.Clamp(n.ward,0,WardWalkDistance);WhiteTime=Mathf.Max(0,n.white);BridgeGrowth=Painted[1]?1:0;
+            // v4 could reveal while the actor stood still, or let it reach the line's
+            // end before the picture. Preserve the picture, then rebase only an actor
+            // ahead of that picture. New v5 saves preserve retreats exactly.
+            if(n.version==4 && Phase==3)
+                WardDistance=Mathf.Clamp(n.wardTime/WardRevealSeconds,0,.999f)*WardWalkDistance;
+            if(Phase<3)WardDistance=0;
+            WardTime=WardProgress*WardRevealSeconds;
+            UpdateWardReveal();
+            Respawn();
+            // Old checkpoints recorded only the furthest distance and resumed there.
+            if(Phase>=3 && n.version>=3)Actor=new Vector2(Mathf.Clamp(n.wardActor,0,WardDistance),0);
+            BookOpen=Phase>=2;
         }
         static bool Finite(float x)=>!float.IsNaN(x)&&!float.IsInfinity(x);
         public void CancelInput(){Focus=0;focusId=-1;jumpWasDown=false;}
@@ -164,13 +186,19 @@ namespace MemoryWhitebox
         {
             if(Completed || !BookOpen)return;dt=Mathf.Max(0,dt);Elapsed+=dt;
             if(Phase==4){Finish();return;}
-            if(Phase==2){WhiteTime+=dt;if(WhiteTime>=(NarrativeDefinition.Resolve(this)?.whiteTransitionSeconds??1.2f)){Phase=3;Actor=Vector2.zero;}return;}
+            if(Phase==2){WhiteTime+=dt;if(WhiteTime>=(NarrativeDefinition.Resolve(this)?.whiteTransitionSeconds??1.2f)){Phase=3;Actor=Vector2.zero;WardDistance=WardTime=0;UpdateWardReveal();}return;}
             if(Phase==3)
             {
                 float axis=(input.Keys.Contains(KeyCode.D)||input.Keys.Contains(KeyCode.W)?1:0)-(input.Keys.Contains(KeyCode.A)||input.Keys.Contains(KeyCode.S)?1:0);
-                Actor.x=Mathf.Max(0,Actor.x+axis*Speed*dt);WardDistance=Mathf.Max(WardDistance,Actor.x);
-                WardRevealHeight=DistanceRevealHeight;
-                if(WardRevealHeight>=NoseHeight){WardRevealHeight=NoseHeight;Phase=4;Finish();}return;
+                float limit=WardWalkDistance;
+                Actor.x=Mathf.Clamp(Actor.x+axis*WardWalkSpeed*dt,0,limit);
+                WardDistance=Mathf.Max(WardDistance,Actor.x);
+                WardTime=WardProgress*WardRevealSeconds;
+                bool reachedCutoff=WardDistance>=limit;
+                if(reachedCutoff)Phase=4;
+                UpdateWardReveal();
+                if(reachedCutoff)Finish();
+                return;
             }
             float direction=(input.Keys.Contains(KeyCode.D)?1:0)-(input.Keys.Contains(KeyCode.A)?1:0);
             bool jump=input.Keys.Contains(KeyCode.Space),edge=jump&&!jumpWasDown;jumpWasDown=jump;
@@ -213,7 +241,7 @@ namespace MemoryWhitebox
             float floor=Floor(next.x);
             if(Velocity.y<=0 && before.y>=floor-.03f && next.y<=floor && floor>-5){next.y=floor;Velocity.y=0;Grounded=true;}
             Actor=next;
-            if(Actor.y< -3){Respawn();return;}
+            if(Actor.y< -3){FallCount++;Respawn();return;}
             if(Phase==0)
             {
                 if(Grounded && Actor.x>=6 && Actor.x<=9)MiddleCheckpoint=true;
@@ -225,7 +253,8 @@ namespace MemoryWhitebox
                 if(Grounded && Actor.x>=10.3f && Actor.y>=3.1f)HighCheckpoint=true;
                 if(Painted[3] && remount<=0 && !HighCheckpoint)for(int i=0;i<6;i++)if(Vector2.Distance(Actor,FlowerSeat(i))<.52f){Riding=i+1;Actor=FlowerSeat(i);Velocity=Vector2.zero;break;}
                 if(Actor.x>=doorX+.8f && Grounded && KeyInserted){Phase=2;WhiteTime=0;Riding=-1;Velocity=Vector2.zero;}
-                else if(!KeyInserted && Actor.x>doorX+.2f)Actor.x=doorX+.2f;
+                // Wait beside the missing piece, not directly in front of its silhouette.
+                else if(!KeyInserted && Actor.x>doorX-.5f)Actor.x=doorX-.5f;
             }
         }
         float Floor(float x)

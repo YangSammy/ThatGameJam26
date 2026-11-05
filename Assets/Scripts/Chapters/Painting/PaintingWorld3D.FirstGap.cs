@@ -4,22 +4,17 @@ namespace MemoryWhitebox
 {
     public sealed partial class PaintingWorld3D
     {
-        AudioSource pencilVoice;
-        AudioClip pencil;
         LineRenderer emptyHanger;
 
         float introTime, answerTime, closedTime, sheetY, seatHintTime;
-        bool openedOnce, introShown;
+        bool openedOnce, introShown, introSettleSound;
         int shortPresses;
         MemoryWhitebox.Art.AlbumWinterVisual observedSeat;
 
         void BeginFirstGap()
         {
-            if(!pencilVoice)
+            if(!emptyHanger)
             {
-                pencilVoice=Root.AddComponent<AudioSource>();
-                pencilVoice.playOnAwake=false;
-                pencil=Resources.Load<AudioClip>("ChapterFoley/Pencil");
                 // A broken pencil outline at the top pivot belongs only to the live page.
                 emptyHanger=Line("Unfinished suspension mark",new[]{new Vector3(-.32f,.15f,0),
                     new Vector3(0,.15f,0),new Vector3(0,-.05f,0),new Vector3(.12f,-.12f,0)}, "#81796A",.065f);
@@ -31,6 +26,7 @@ namespace MemoryWhitebox
             }
             bool fresh=State.Phase==0 && !State.MiddleCheckpoint && !State.Painted[0];
             introTime=fresh && !introShown?2.8f:0;
+            introSettleSound=introTime>0;
             introShown|=fresh;
             sheetY=introTime>0?-.16f:-.77f;
             answerTime=closedTime=seatHintTime=0;shortPresses=0;
@@ -38,15 +34,18 @@ namespace MemoryWhitebox
 
         void TurnPageForInput()
         {
+            ResetObservationPointer();
+            bool before=State.BookOpen;
             State.SetBook(!State.BookOpen);
+            if(State.BookOpen!=before){introSettleSound=false;WinterShot(State.BookOpen?38:138);}
             closedTime=0;answerTime=0;introTime=0;
             if(State.BookOpen)openedOnce=true;
             else if(State.Phase==0 && !State.Painted[0])seatHintTime=2;
         }
 
-        void ShapeRecorded()
+        void ShapeRecorded(int id)
         {
-            if(pencil!=null && (Host==null || !Host.Muted))pencilVoice.PlayOneShot(pencil,.48f);
+            WinterShot(id==4?146:39);
             answerTime=1.15f;closedTime=0;shortPresses=0;
         }
 
@@ -66,6 +65,8 @@ namespace MemoryWhitebox
             float peek=State.BookOpen?1:Mathf.Max(Mathf.SmoothStep(0,.94f,Mathf.Clamp01(introTime)),edge*.36f);
             if(answerTime>0 && !State.BookOpen)peek=Mathf.Max(peek,.53f*Mathf.Sin(Mathf.PI*answerTime/1.15f));
             sheetY=Mathf.MoveTowards(sheetY,Mathf.Lerp(-.77f,-.14f,peek),dt*2.6f);
+            if(introSettleSound && introTime<=0 && Mathf.Approximately(sheetY,-.77f))
+            {introSettleSound=false;WinterShot(138);}
         }
 
         public string Guidance

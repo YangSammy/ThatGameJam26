@@ -11,7 +11,8 @@ namespace MemoryWhitebox
     // handoff and consumption, so an exit cannot reach two controllers in one frame.
     public sealed class PlayerInputContext
     {
-        readonly PlayerInputReleaseGate release=new PlayerInputReleaseGate();
+        readonly PlayerInputReleaseGate release;
+        public PlayerInputContext(bool ignoreLocomotionForRelease=false){release=new PlayerInputReleaseGate(ignoreLocomotionForRelease);}
         bool initialized;
         int consumedFrame=-1;
         public InputContextId Current {get;private set;}

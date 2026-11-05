@@ -9,7 +9,7 @@ namespace MemoryWhitebox
         public bool MeterIsoMatchesFilm=>MeterIso==FilmIso;
         public Transform InstrumentLeftHandTarget=>HeldInstrumentTarget(true);
         public Transform InstrumentRightHandTarget=>HeldInstrumentTarget(false);
-        Transform apertureHandContact;
+        Transform apertureHandContact,meterHandContact;
         Quaternion presentationStart=Quaternion.identity,presentationGoal=Quaternion.identity;
         float presentationElapsed=.2f;
         int presentationFrame=-1;
@@ -38,6 +38,17 @@ namespace MemoryWhitebox
         }
         Transform HeldInstrumentTarget(bool left)
         {
+            if(photoMode==PhotographyMode.Meter && left && instrumentMeter!=null && instrumentMeter.grip!=null)
+            {
+                if(meterHandContact==null)
+                {
+                    meterHandContact=new GameObject("Meter hand contact").transform;
+                    meterHandContact.SetParent(instrumentMeter.grip,false);
+                }
+                meterHandContact.position=instrumentMeter.grip.position;
+                meterHandContact.rotation=view.transform.rotation;
+                return meterHandContact;
+            }
             if(instrumentCamera==null || !bodyRoot.gameObject.activeInHierarchy)return null;
             if(photoMode!=PhotographyMode.Body && photoMode!=PhotographyMode.Aperture && photoMode!=PhotographyMode.Shutter)return null;
             if(CameraRaising && cameraRaiseElapsed>=CameraRaiseSeconds*.6f)return null;
@@ -77,6 +88,7 @@ namespace MemoryWhitebox
         }
         void PlayInstrumentClick()
         {
+            if(!CanPlayPhotographySfx || PlayPhotographyCue(26))return;
             if(instrumentClick==null)
             {
                 const int rate=22050;var samples=new float[441];

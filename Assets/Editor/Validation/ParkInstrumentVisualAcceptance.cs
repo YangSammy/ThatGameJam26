@@ -91,7 +91,7 @@ namespace MemoryWhitebox.Editor
         }
         static void Freeze()
         {
-            Set(park,"applicationPaused",true);Set(park,"focused",true);Set(park,"inputGate",false);Set(park,"changingScene",false);Set(park,"<Paused>k__BackingField",false);
+            Set(park,"applicationPaused",true);Set(park,"focused",true);Set(park,"inputGate",false);Set(park,"changingScene",false);Set(park,"<CurrentPauseReason>k__BackingField",ParkPhotoPrototype.PauseReason.None);
             companion.Paused=true;companion.TravelPaused=true;
             var hands=camera.GetComponent<FirstPersonHands>();
             if(hands!=null){Set(hands,"handFocused",true);Set(hands,"handPaused",false);}

@@ -43,7 +43,7 @@ namespace MemoryWhitebox
         {
             if(initialized)return;
             house=host;view=host.playerCamera;Chapter=chapter;
-            if(animator==null || speaker==null || carrier==null || proxyTape==null || tapes==null || tapes.Length!=3)
+            if(animator==null || speaker==null || carrier==null || proxyTape==null || tapes==null || tapes.Length!=RadioTapeChapter.WorkTapeCount)
             { Debug.LogError("House radio is missing its authored references.",this);enabled=false;return; }
             proxyRenderers=proxyTape.GetComponentsInChildren<Renderer>(true);
             foreach(var r in proxyRenderers)r.enabled=false;
@@ -65,11 +65,12 @@ namespace MemoryWhitebox
                 speaker.Play();speaker.time=Mathf.Clamp(hiddenAudioPosition,0,Mathf.Max(0,speaker.clip.length-.001f));speaker.Pause();restoreHiddenAudio=false;
             }
         }
-        void OnDisable(){ClearTapeHover();if(sfx!=null)sfx.StopAll();if(initialized){SetStationActive(false);SettleDualDeck();}}
+        void OnDisable(){ClearTapeHover();ShowTapeDropPreview(null);if(sfx!=null)sfx.StopAll();if(initialized){SetStationActive(false);SettleDualDeck();}}
         bool SelectForDrag(int index)
         {
             if(!initialized || State!=Phase.Empty || index<0 || index>=tapes.Length)return false;
             if(!Chapter.AuditionComplete)return false;
+            if(Chapter.IsArchived(index) || RecordingOwnerLock(index)!=null)return false;
             Selected=index;State=Phase.Dragging;tapes[index].hit.enabled=true;Notice="";
             Chapter.Tape.Selected=index;Chapter.Tape.SourceVerified=Chapter.Tape.Candidates[index].Intact;
             return true;
@@ -77,6 +78,7 @@ namespace MemoryWhitebox
         public bool InsertDragged()
         {
             if(State!=Phase.Dragging || Selected<0)return false;
+            if(Chapter.IsArchived(Selected) || RecordingOwnerLock(Selected)!=null)return false;
             if(dualDeck!=null)return InsertDualTarget();
             OperationArea.ClearPlacement(tapes[Selected].root);
             Chapter.WorkingTapeIndex=Selected;
@@ -108,6 +110,7 @@ namespace MemoryWhitebox
             Selected=-1;State=Phase.Empty;Chapter.Tape.Selected=-1;if(clearWorkingTape)Chapter.WorkingTapeIndex=-1;
             if(dualDeck!=null)dualDeck.Snap(1,false);
             if(dualDeck==null && animator.isActiveAndEnabled){animator.Play("Ready_Open",0,0);animator.Update(0);}
+            RestoreFinishedTapes();
         }
         void Update()
         {
@@ -144,7 +147,7 @@ namespace MemoryWhitebox
         }
         Collider Pick(Ray ray)
         {
-            return StudyEntry.PickVisible(ray);
+            return PickWorkbenchTarget(ray);
         }
         public string GetHint(Ray ray)
         {

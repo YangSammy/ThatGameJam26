@@ -16,8 +16,6 @@ namespace MemoryWhitebox
         public SafeInspectionSubject[] inspectionSubjects;
         readonly List<GameObject> hidden=new List<GameObject>();
         BedroomColorResponse response;
-        Vector3 returnEye;
-        Quaternion returnRotation;
 
         // The hardware is visible for editing. Only day one activates it in Play.
         void Awake(){if(workspace!=null)workspace.SetActive(false);}
@@ -30,8 +28,6 @@ namespace MemoryWhitebox
 
         public void Enter(WBMain host)
         {
-            returnEye=host.Room.Camera.transform.position;
-            returnRotation=host.Room.Camera.transform.rotation;
             foreach(Transform child in host.houseShell.transform)Hide(child.gameObject);
             foreach(var root in host.gameObject.scene.GetRootGameObjects())if(root.name=="Lighting")Hide(root);
             SceneManager.SetActiveScene(gameObject.scene);
@@ -48,10 +44,8 @@ namespace MemoryWhitebox
             if(host.radioDeck!=null)host.DetachSpringTape(this);
             SceneManager.SetActiveScene(host.gameObject.scene);
             if(response){response.enabled=false;Destroy(response);}
-            foreach(var obj in hidden)if(obj)obj.SetActive(true);
-            host.Room.CreateShared(host.Room.Camera,host.houseShell);
-            host.Room.Camera.transform.SetPositionAndRotation(returnEye,returnRotation);
-            host.Room.EnableLook(true);Physics.SyncTransforms();host.SuspendHouseInput();
+            host.HideLegacyHousePresentation();
+            host.Room.StopMotion();Physics.SyncTransforms();host.SuspendHouseInput();
             SceneManager.UnloadSceneAsync(gameObject.scene);
         }
     }

@@ -17,17 +17,15 @@ namespace MemoryWhitebox
         public WinterAlbumWorkspace winterAlbum;
         public bool IsEntry(StudyEntry entry)=>entry!=null && (entry==chapterEntry ||
             (writingDesk!=null && (entry==writingDesk.paperEntry || entry==writingDesk.penEntry)));
-        readonly List<GameObject> houseObjects=new List<GameObject>();
+        readonly List<GameObject> chapterLighting=new List<GameObject>();
         readonly List<GameObject> artwork=new List<GameObject>();
         BedroomColorResponse grade;
         BedroomPaperCue discovery;
 
         public void Enter(WBMain host)
         {
-            foreach(Transform child in host.houseShell.transform)
-                if(child!=host.StudyEntries && child.gameObject.activeSelf)houseObjects.Add(child.gameObject);
             foreach(var root in host.gameObject.scene.GetRootGameObjects())
-                if(root.name=="Lighting" && root.activeSelf)houseObjects.Add(root);
+                if(root.name=="Lighting")chapterLighting.Add(root);
             foreach(var root in gameObject.scene.GetRootGameObjects())
                 if(root!=gameObject && root.activeSelf)artwork.Add(root);
             var obstacles=BedroomWalkBounds.Collect(gameObject.scene);
@@ -51,27 +49,28 @@ namespace MemoryWhitebox
         {
             if(station && discovery){Destroy(discovery.gameObject);discovery=null;}
             bool writing=station && chapterEntry.chapter==2;
-            bool showHouse=station && !writing;
-            SceneManager.SetActiveScene(showHouse?host.gameObject.scene:gameObject.scene);
-            foreach(var obj in houseObjects)obj.SetActive(showHouse);
-            foreach(var obj in artwork)obj.SetActive(!showHouse);
+            bool album=station && !writing;
+            SceneManager.SetActiveScene(gameObject.scene);
+            host.HideLegacyHousePresentation();
+            // The authored album uses its own observation/route/paper layers. Retain
+            // chapter lighting only; do not resurrect the old room around those views.
+            foreach(var obj in chapterLighting)obj.SetActive(album);
+            foreach(var obj in artwork)obj.SetActive(!album);
             chapterEntry.gameObject.SetActive(!station);
             host.StudyEntries.gameObject.SetActive(false);
             if(writingDesk!=null)writingDesk.Present(writing);
             if(winterAlbum!=null)winterAlbum.Present(station);
-            grade.enabled=!showHouse;
+            grade.enabled=!album;
             Physics.SyncTransforms();
         }
 
         public void Leave(WBMain host)
         {
             SceneManager.SetActiveScene(host.gameObject.scene);
-            foreach(var obj in houseObjects)obj.SetActive(true);
-            host.StudyEntries.gameObject.SetActive(true);
+            host.HideLegacyHousePresentation();
+            host.StudyEntries.gameObject.SetActive(false);
             grade.enabled=false;Destroy(grade);
-            host.Room.CreateShared(host.Room.Camera,host.houseShell);
-            if(host.playerSpawn!=null)host.playerSpawn.Apply(host.Room.Camera);
-            host.Room.EnableLook(true);host.SuspendHouseInput();
+            host.Room.StopMotion();host.SuspendHouseInput();
             SceneManager.UnloadSceneAsync(gameObject.scene);
         }
     }

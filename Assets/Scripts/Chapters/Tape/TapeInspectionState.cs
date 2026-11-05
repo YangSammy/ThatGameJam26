@@ -19,7 +19,16 @@ namespace MemoryWhitebox
             public int Scanned;
             public Candidate(params float[] breaks){Breaks=breaks;}
         }
-        public readonly Candidate[] Candidates={new Candidate(2.2f,5.8f),new Candidate(1.4f,6.3f),new Candidate()};
+        public readonly Candidate[] Candidates={
+            new Candidate(BreaksFor(0)),new Candidate(BreaksFor(1)),new Candidate(),
+            new Candidate(),new Candidate()
+        };
+        internal static float[] BreaksFor(int index)
+        {
+            if(index==0)return new[]{2.2f,5.8f};
+            if(index==1)return new[]{1.4f,6.3f};
+            return Array.Empty<float>();
+        }
         public int Selected=-1;
         public bool SourceVerified;
         int heldSpindle=-1;

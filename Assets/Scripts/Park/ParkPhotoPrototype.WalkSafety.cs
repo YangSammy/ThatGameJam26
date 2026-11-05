@@ -18,11 +18,11 @@ namespace MemoryWhitebox
             if(!GuidedCanTravel || GuidedPhotoAdjustment){walkStall.Reset();return;}
             healthyTravel+=playerDelta.magnitude;
             if(healthyTravel>=3){walkRetries=0;healthyTravel=0;}
-            bool girlExpected=!companion.AtPhotoNode && !companion.TravelPaused && Vector3.Distance(transform.position,companion.transform.position)<companion.waitDistance;
-            if(!walkStall.Tick(requested.sqrMagnitude>.01f,girlExpected,playerDelta.magnitude,girlDelta.magnitude,dt))return;
+            bool girlExpected=!companion.AtPhotoNode && !companion.TravelPaused && Vector3.Distance(transform.position,companion.transform.position)>companion.personalSpace+1 && Vector3.Distance(transform.position,companion.transform.position)<companion.waitDistance;
+            if(!walkStall.Tick(false,girlExpected,playerDelta.magnitude,girlDelta.magnitude,dt))return;
             walkStall.Reset();moveVelocity=Vector3.zero;walkRetries++;
             if(walkRetries==1){walkRetryHold=.5f;Notify("Path blocked. Taking a moment to continue.");}
-            else if(walkRetries==2){recoveryFade=0;recoverCurrentPhoto=false;}
+            else if(walkRetries==2){needsWalkRecovery=true;InputContext.Handoff();}
             else{needsWalkRecovery=true;InputContext.Handoff();}
         }
         bool TickGuidedRecovery(float dt)

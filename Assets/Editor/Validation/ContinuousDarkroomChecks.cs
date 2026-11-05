@@ -15,13 +15,35 @@ namespace MemoryWhitebox.Editor
             void Press(string id){world.Press(id,At(id),0);}
             void Click(string id){Press(id);world.Release(id,At(id));}
             void Drag(string item,string target){Press(item);world.Move(At(target));world.Release(target,At(target));}
+            void CarryFilmThroughSummerDoor(){
+                var summer=UnityEngine.Object.FindObjectOfType<SummerPhotoRoom>();
+                if(summer==null){Drag("exposed-film","bag");return;}
+                Press("exposed-film");var drag=Field<ObjectDragSession>("objectDrag");
+                Check(world.CarryingExposedFilm && drag.Active,"Hold the rewound cartridge");
+                var cam=host.Room.Camera.transform;var previous=cam.position;
+                var portal=summer.passageBarrier.transform.position;
+                void Carry(Vector3 point,string leg){Physics.SyncTransforms();drag.MoveTo(point);Check(!drag.Blocked,"Carry around bedroom "+leg+" from "+drag.Item.position+" to "+point);}
+                try{
+                    var from=drag.Item.position;float height=1.55f;
+                    Carry(new Vector3(from.x,height,from.z),"lift out of camera");
+                    Carry(new Vector3(portal.x,height,from.z),"to central aisle");
+                    Carry(new Vector3(portal.x,height,portal.z-.6f),"toward curtain");
+                    cam.position=new Vector3(portal.x,1.65f,portal.z-.6f);
+                    summer.TickCurtain(host,1f);Physics.SyncTransforms();
+                    Check(!summer.passageBarrier.gameObject.activeSelf,"Carried film opens the actual summer curtain");
+                    Carry(new Vector3(portal.x,height,portal.z+.64f),"through open doorway");
+                    var ray=At("bag");world.Move(ray);
+                    world.Release("bag",ray);
+                }
+                finally{cam.position=previous;}
+            }
             T Field<T>(string name)=>(T)world.GetType().GetField(name,BindingFlags.Instance|BindingFlags.NonPublic).GetValue(world);
             Check(world.DebugPrepareDarkroom(out var message),"Debug roll created without entering park");
             if(host.Curtain!=null&&!host.Curtain.IsOpen){host.Curtain.Toggle();host.Curtain.Advance(1);}
             host.PrepareContinuousDarkroom();world.SetDirectDarkroom(true);host.SyncInputContext();host.InputContext.ContinueGesture();
             Press("rewind");world.Scroll("rewind",8,At("rewind"));world.Release("rewind",At("rewind"));Click("back");
             Check(world.Photo.Phase==PhotoChapter.FilmPhase.Rewound,"Rewind exposed roll");
-            Drag("exposed-film","bag");Check(world.Photo.Phase==PhotoChapter.FilmPhase.DarkBag,"Exposed roll enters dark bag");
+            CarryFilmThroughSummerDoor();Check(world.Photo.Phase==PhotoChapter.FilmPhase.DarkBag,"Exposed roll enters dark bag");
             Press("bag");world.Scroll("bag",10,At("bag"));world.Release("bag",At("bag"));Click("tank-lid");
             Check(world.Photo.Phase==PhotoChapter.FilmPhase.Tank,"Load and seal developing tank");
             for(int chemistry=0;chemistry<3;chemistry++)

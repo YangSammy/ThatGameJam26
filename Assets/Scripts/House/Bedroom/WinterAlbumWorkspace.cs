@@ -15,6 +15,13 @@ namespace MemoryWhitebox
         public Collider pageHit;
         public Transform keySocket;
         public Transform wardSet, revealStart, revealCutoff;
+        public bool realtimeObservation;
+        [Header("Pendant discovery and door framing")]
+        public Transform pagePendantAnchor, recessOutline;
+        [Min(.5f)] public float doorViewSize=1.65f;
+        [Min(.1f)] public float doorViewSeconds=.75f;
+        public Vector2 doorViewOffset=new Vector2(-.35f,.12f);
+        [Range(.02f,.15f)] public float pendantDropRadius=.075f;
 
         public void Present(bool active)
         {

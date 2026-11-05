@@ -51,32 +51,8 @@ namespace MemoryWhitebox
         }
         void Update()
         {
-            if(SuccessOpen){successDismiss.interactable=successGate.Ready && deck.house.InputContext.Allows(InputContextId.Modal);return;}
-            bool show=deck!=null && deck.RecordingPanelVisible;
-            if(panel.activeSelf!=show)panel.SetActive(show);
-            if(!show)return;
-            bool loaded=deck.Selected>=0 && deck.State==HouseRadioDeck.Phase.Paused;
-            bool protectedTape=loaded && !deck.Chapter.Tape.Candidates[deck.Selected].Prepared;
-            string state=loaded?(protectedTape?"PROTECTED":deck.transport.TargetStatus):"EMPTY";
-            if(!protectedTape && deck.TargetKeyDown(0) && !deck.TargetKeyDown(1) && !deck.transport.TargetRunning)
-                state="REC HELD · HOLD PLAY";
-            status.text="B  COPY "+(deck.CurrentCopy+1).ToString("00")+"   ·   "+state+(loaded?"   "+deck.transport.TargetSeconds.ToString("0.0")+"s":"");
-            if(sourceStatus!=null)sourceStatus.text="A  ORIGINAL "+(deck.CurrentCopy+1).ToString("00")+" / 03   ·   "+(deck.Chapter.SourceLoaded?deck.transport.SourceStatus+"   "+deck.transport.SourceSeconds.ToString("0.0")+"s":"EMPTY");
-            if(prepareAction!=null)prepareAction.SetActive(!deck.Chapter.Completed);
-            bool hasCopy=loaded && deck.transport.RecordedSeconds>0;
-            if(listenAction!=null)listenAction.SetActive(false);
-            if(submitAction!=null)submitAction.SetActive(hasCopy && !deck.Chapter.Completed);
-            if(sourceButtons!=null)foreach(var button in sourceButtons)button.interactable=CanOperate && deck.Chapter.SourceLoaded;
-            for(int i=0;i<buttons.Length;i++)
-            {
-                // An empty B deck must not put disabled controls over desk cassettes.
-                buttons[i].gameObject.SetActive(loaded);
-                buttons[i].interactable=CanOperate && loaded && (i!=0 || !deck.Chapter.Completed);
-                var colors=idleColors[i];
-                if(deck.TargetKeyDown(i))
-                    colors.normalColor=colors.highlightedColor=colors.selectedColor=colors.pressedColor=new Color(.3f,.46f,.36f);
-                buttons[i].colors=colors;
-            }
+            if(panel.activeSelf)panel.SetActive(false);
+            if(SuccessOpen)successDismiss.interactable=successGate.Ready && deck.house.InputContext.Allows(InputContextId.Modal);
         }
         public void Hold(int command){if(CanOperate)deck.SetUITransportCommand(command);}
         public void Command(int command){if(CanOperate && command>=4)deck.SetUITransportCommand(command);}

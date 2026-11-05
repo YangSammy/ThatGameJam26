@@ -29,6 +29,24 @@ namespace MemoryWhitebox
             while((WBMain.Instance==null || !WBMain.Instance.HouseReady) && Time.realtimeSinceStartup<deadline)yield return null;
             var h=WBMain.Instance;
             if(h==null || !h.HouseReady){Debug.LogError("PLAYER_READBACK_FAIL House not ready");yield break;}
+#if DEVELOPMENT_BUILD && !UNITY_EDITOR
+            if(Environment.GetCommandLineArgs().Contains("-qa-boot-slot"))
+            {
+                // HouseReady precedes the additive bedroom load. Capture the actual
+                // player camera only after the seasonal room owns the active scene.
+                while(UnityEngine.SceneManagement.SceneManager.GetActiveScene().path==ParkFilmRoute.HouseScenePath &&
+                    Time.realtimeSinceStartup<deadline)yield return null;
+                while(!UnityEngine.Rendering.SplashScreen.isFinished && Time.realtimeSinceStartup<deadline)yield return null;
+                yield return new WaitForSecondsRealtime(1);
+                yield return new WaitForEndOfFrame();
+                var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+                Debug.Log("BEDROOM_BOOT scene="+scene.path+" day="+h.CurrentDay+" camera="+h.Room.Camera.transform.position);
+                System.IO.Directory.CreateDirectory(GameSavePaths.Root);
+                var screen=ScreenCapture.CaptureScreenshotAsTexture();
+                System.IO.File.WriteAllBytes(System.IO.Path.Combine(GameSavePaths.Root,"boot.png"),screen.EncodeToPNG());
+                Destroy(screen);
+            }
+#endif
             var w=h.DarkroomWorld;
             Debug.Log("PLAYER_READBACK phase="+w.Photo.Phase+" print="+w.CurrentPrintStage+" rewind="+w.RewindTurns+
                 " bag="+w.Photo.BagTurns+" hint="+w.ProgressHint.Replace('\n',' ') +" resolution="+Screen.width+"x"+Screen.height+" fullscreen="+Screen.fullScreenMode);

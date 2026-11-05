@@ -12,8 +12,8 @@ namespace MemoryWhitebox
         // Called with the exact collider selected for the workbench tooltip.
         public string PresentTapeHover(Collider hit,Vector2 point)
         {
-            if(workbenchVisuals==null || Chapter==null || !focused || movingOriginal || draggingTape ||
-                benchWaiting || preparationCameraMoving || radioCameraMoving || TapeUIAt(point) ||
+            if(workbenchVisuals==null || Chapter==null || storageDelivery!=null || !focused || movingOriginal || draggingTape ||
+                (WorkbenchMode && benchWaiting) || preparationCameraMoving || radioCameraMoving || TapeUIAt(point) ||
                 !(WorkbenchMode && house.InputContext.Allows(InputContextId.TapeWorkbench) || RecordingInputReady))
             {ClearTapeHover();return null;}
 
@@ -51,9 +51,14 @@ namespace MemoryWhitebox
             }
             if(surfaces==null && benchGesture==BenchGesture.None && hit)
             {
-                if(dualDeck!=null && dualDeck.Command(hit)!=null)
+                if(dualDeck!=null && (hit==sourceSlot || hit==slotHit || dualDeck.Command(hit)=="A_Door" || dualDeck.Command(hit)=="B_Door"))
+                {
+                    int side=hit==sourceSlot || dualDeck.Command(hit)=="A_Door"?0:1;
+                    if(!DeckBusy(side))surfaces=dualDeck.DoorOutline(side);
+                }
+                else if(dualDeck!=null && dualDeck.Command(hit)!=null)
                     surfaces=outline.Surfaces(hit.transform);
-                else if(hit==workbenchVisuals.lidHit && !workbenchVisuals.LidBusy)
+                else if(StorageSurface(hit) && !workbenchVisuals.LidBusy)
                     surfaces=outline.Surfaces(hit.transform);
                 else if(hit==adhesiveTab && WorkbenchMode && Chapter.AuditionComplete && !Chapter.LooseStripReady)
                     surfaces=outline.Surfaces(workbenchVisuals.head.parent.Find("A05_PullableTail"));
@@ -92,7 +97,7 @@ namespace MemoryWhitebox
         public void ClearTapeHover(){SetHoverSurfaces(null);HideHole();}
         void OnDestroy()
         {
-            ClearTapeHover();outline.Dispose();
+            ClearTapeHover();outline.Dispose();dropOutline.Dispose();
             if(holeInk)Destroy(holeInk);
         }
     }

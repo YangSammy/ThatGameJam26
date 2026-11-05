@@ -9,9 +9,10 @@ namespace MemoryWhitebox
         public void SyncInputContext(bool continueGesture=false)
         {
             var id=!houseFocused?InputContextId.Unfocused:
+                bedroomLoadFailed?InputContextId.Paused:
                 safeInspection!=null && safeInspection.Active?InputContextId.Inspection:
                 radioDeck!=null && radioDeck.SuccessPopupOpen?InputContextId.Modal:
-                transition>0?InputContextId.Transition:
+                transition>0 || loadingSpringRoom?InputContextId.Transition:
                 ShowHelp?InputContextId.Paused:
                 DirectDarkroomActive?(DarkroomWorld.ParkGalleryOpen?InputContextId.Gallery:InputContextId.Darkroom):
                 radioDeck!=null && radioDeck.WorkbenchMode?InputContextId.TapeWorkbench:

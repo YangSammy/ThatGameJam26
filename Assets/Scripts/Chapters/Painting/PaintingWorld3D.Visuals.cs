@@ -20,17 +20,22 @@ namespace MemoryWhitebox
         {
             winterSwing=layout.swing;winterBridge=layout.bridge;winterLoad=layout.counterweight;
             winterFlower=layout.wheel;winterDoor=layout.door;
+            foreach(var t in winterDoor.GetComponentsInChildren<Transform>(true))
+                if(t.name=="KeyVisual"){doorKeyVisual=t;break;}
             var a=PaintingVisualAssets.Load();
-            HideVisual(hole);HideVisual(key);
             winterCrate=VisualInstance(a.suitcase,route,Vector3.zero,1.4f);
             var keyVisual=VisualInstance(a.pendant,key,Vector3.zero,10);
             keyVisual.localRotation=Quaternion.Euler(0,180,0);
+            BindPagePendant();
             hole.position=layout.keySocket.position;
+            // E07's real carved cavity was boolean-cut from D02's contour (including
+            // the bail); its nested KeyVisual and this draggable key use a.pendant.
+            // hole is only a drop anchor, never a substitute rendered silhouette.
             State.BindLayout(layout);
             observedArt=layout.observationCarrier.GetComponentsInChildren<Renderer>(true);
             TintObservedArt(0);
-            var bridgeMesh=Resources.Load<Mesh>("AlbumBridgeHover");
-            if(bridgeMesh)
+            var bridgeMesh=layout.realtimeObservation?null:Resources.Load<Mesh>("AlbumBridgeHover");
+            if(bridgeMesh && !layout.realtimeObservation)
             {
                 var hover=new GameObject("Bridge observation outline",typeof(HoverOutlineProxy));
                 bridgeHover=hover.transform;bridgeHover.SetParent(layout.parkObservation,false);
@@ -39,6 +44,11 @@ namespace MemoryWhitebox
             }
             BindClue("shape-swing",layout.swingFocus);
             BindClue("shape-bridge",layout.bridgeFocus);
+            if(layout.realtimeObservation)
+            {
+                foreach(var hit in layout.observedBridge.GetComponentsInChildren<MeshCollider>(true))BindClue("shape-bridge",hit);
+                Nodes["shape-bridge"]=layout.bridgeFocus.gameObject;
+            }
             BindClue("shape-luggage",layout.luggageFocus);
             BindClue("shape-flower",layout.flowerFocus);
             BindClue("shape-pendant",layout.pendantFocus);
@@ -62,7 +72,7 @@ namespace MemoryWhitebox
             var anchor=act==0?layout.parkView:layout.roomView;
             fixedEye=Eye=anchor.position;fixedRotation=anchor.rotation;Look=Eye+anchor.forward;
             View.transform.SetPositionAndRotation(Eye,fixedRotation);
-            yaw=pitch=0;GazeTarget="";edgeArmed=false;pointer=new Vector2(.5f,.5f);
+            yaw=pitch=0;GazeTarget="";ResetObservationPointer();
             View.backgroundColor=act==0?new Color(.68f,.77f,.80f):RoomSky;
             Physics.SyncTransforms();
         }
@@ -79,9 +89,14 @@ namespace MemoryWhitebox
             if(actTransition==0){Host?.InputContext.Handoff();Host?.SyncInputContext();}
         }
         Renderer[] observedArt;
+        float observedWhite=-1;
         readonly MaterialPropertyBlock clueTint=new MaterialPropertyBlock();
         void TintObservedArt(float white)
         {
+            // Real scene geometry has many more renderers than the former panorama.
+            // A settled white-out must not rewrite every property block on every frame.
+            if(Mathf.Approximately(observedWhite,white))return;
+            observedWhite=white;
             foreach(var renderer in observedArt)
             {
                 var material=renderer.sharedMaterial;
@@ -102,6 +117,7 @@ namespace MemoryWhitebox
         void RefreshWinterVisuals()
         {
             if(layout==null)return;
+            layout.observedPendant.gameObject.SetActive(!State.Painted[4] && !State.KeyInserted);
             layout.routeOrigin.gameObject.SetActive(State.Phase<2);
             layout.observationCarrier.gameObject.SetActive(State.Phase<3);
             winterSwing.gameObject.SetActive(State.Phase==0 && State.Painted[0]);winterSwing.SetSwingAngleRadians(State.SwingAngle);
@@ -109,7 +125,7 @@ namespace MemoryWhitebox
             winterLoad.gameObject.SetActive(State.Phase==1);winterLoad.SetLoadProgress(State.PlatePressed?1:0);
             winterFlower.gameObject.SetActive(State.Phase==1 && State.Painted[3]);winterFlower.SetFlowerAngleRadians(State.FlowerAngle);
             winterDoor.gameObject.SetActive(State.Phase==1);
-            winterDoor.SetDoorState(State.KeyInserted?1:0,State.KeyInserted?1:0,State.KeyInserted?1:0,State.KeyInserted);
+            ApplyDoorPerformance();
             winterCrate.gameObject.SetActive(State.Phase==1 && State.Painted[2]);winterCrate.localPosition=new Vector3(State.CrateX,0,0);
         }
     }

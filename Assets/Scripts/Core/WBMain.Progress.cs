@@ -20,7 +20,7 @@ namespace MemoryWhitebox
         {
             if(story==null || !story.Available || index<0 || index>=5)return false;
 #if UNITY_EDITOR
-            if(unlockAllChaptersInEditor)return true;
+            if(unlockAllChaptersInEditor && !MainMenuSaveAccess.LaunchedFromMenu)return true;
 #endif
             return index<=(int)story.Day && story.CanEnter(index);
         }
@@ -54,7 +54,7 @@ namespace MemoryWhitebox
         void LoadStoryProgress()
         {
             #if UNITY_EDITOR
-            FiveDayProgress.DevelopmentSession=unlockAllChaptersInEditor;
+            FiveDayProgress.DevelopmentSession=!MainMenuSaveAccess.LaunchedFromMenu && unlockAllChaptersInEditor;
 #else
             FiveDayProgress.DevelopmentSession=false;
 #endif
@@ -75,6 +75,7 @@ namespace MemoryWhitebox
         public string LastSaveError {get;private set;}="";
         public bool SaveStableProgress()
         {
+            if(bedroomLoadFailed){LastSaveError="Bedroom binding failed; keeping the last stable save.";return false;}
             if(!houseReady || story==null || !story.Available){LastSaveError=story!=null?story.Error:"Story not ready.";return false;}
             if(radioDeck!=null && !radioDeck.SaveRecordingProgress()){LastSaveError="Recording could not be saved.";return false;}
             var photography=worlds[1] as PhotoWorld3D;
@@ -136,6 +137,6 @@ namespace MemoryWhitebox
             }
             houseFocused=!paused;SyncInputContext();SuspendHouseInput();RestoreHouseCursor();
         }
-        void OnApplicationQuit(){SaveStableProgress();}
+        void OnApplicationQuit(){ReleaseBedroomLoading();SaveStableProgress();}
     }
 }

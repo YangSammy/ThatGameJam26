@@ -122,7 +122,7 @@ namespace MemoryWhitebox.Editor
                     foreach(var field in new[]{"houseFromFov","houseToFov"})h.GetType().GetField(field,F).SetValue(h,d.view.fieldOfView);
                     h.GetType().GetField("transition",F).SetValue(h,.5f);
                 }
-                d.SubmitCurrentRecording();Check(d.SubmissionSucceeded && d.Chapter.CommissionIndex==commission+1,"Commit advances only current commission "+commission);
+                TapeStorageSubmissionChecks.EjectAndDrop(d);Check(d.SubmissionSucceeded && d.Chapter.CommissionIndex==commission+1,"Commit advances only current commission "+commission);
                 Check(h.InputContext.Current==InputContextId.Modal,"Success modal owns input even with a pending chapter transition "+commission);
                 if(commission==2)Check(!(bool)h.GetType().GetField("leaveCompletedChapter",F).GetValue(h),"Final tape completion retains recorder for replay");
                 d.transportPanel.GetType().GetMethod("CloseSuccess",F).Invoke(d.transportPanel,null);

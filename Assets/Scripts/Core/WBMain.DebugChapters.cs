@@ -8,7 +8,16 @@ namespace MemoryWhitebox
         {
             KeyCode[] row={KeyCode.Alpha1,KeyCode.Alpha2,KeyCode.Alpha3,KeyCode.Alpha4,KeyCode.Alpha5,KeyCode.Alpha6};
             KeyCode[] pad={KeyCode.Keypad1,KeyCode.Keypad2,KeyCode.Keypad3,KeyCode.Keypad4,KeyCode.Keypad5,KeyCode.Keypad6};
-            for(int i=0;i<6;i++)if(Input.GetKeyDown(row[i])||Input.GetKeyDown(pad[i])){DebugEnterChapter(i+1);return true;}
+            for(int i=0;i<6;i++)if(Input.GetKeyDown(row[i])||Input.GetKeyDown(pad[i]))
+            {
+#if UNITY_EDITOR
+                if(i<5 && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift))EditorCompleteStage(i+1);
+                else DebugEnterChapter(i+1);
+#else
+                DebugEnterChapter(i+1);
+#endif
+                return true;
+            }
             return false;
         }
         // Development saves only. Narrative shortcuts restart their selected test segment;
@@ -26,14 +35,10 @@ namespace MemoryWhitebox
                 CompleteHouseExit();Room.Camera.transform.SetPositionAndRotation(roomEye,roomRotation);Room.Camera.fieldOfView=roomFov;
             }
             transition=0;returningToRoom=awaitRelease=leaveCompletedChapter=false;ShowHelp=false;springPreview=false;
-            if(key!=1)LeaveSpringTapeRoom();
-            if(key!=2)LeaveSummerPhotoRoom();
             int narrativeIndex=key==3?2:key==4 || key==5?3:-1;
-            if(narrativeBedroom!=null && narrativeBedroom.chapterEntry.chapter!=narrativeIndex)LeaveNarrativeBedroom();
-            if(key!=6 && DepartureRoom!=null){DepartureRoom.Leave(this);DepartureRoom=null;}
             if(key==6 && DepartureRoom==null)
             {StartCoroutine(OpenDepartureBedroom(false,Vector3.zero,Quaternion.identity,key));return true;}
-            if(narrativeIndex>=0 && narrativeBedroom==null)
+            if(narrativeIndex>=0 && (narrativeBedroom==null || narrativeBedroom.chapterEntry.chapter!=narrativeIndex))
             {
                 StartCoroutine(OpenNarrativeBedroom((StoryDay)narrativeIndex,key));return true;
             }

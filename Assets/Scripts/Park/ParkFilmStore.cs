@@ -46,7 +46,17 @@ namespace MemoryWhitebox
     [Serializable] public sealed class ParkFilmRoll
     {
         public const int FrameCapacity=3;
-        public int Capacity=>version==1?4:FrameCapacity;
+        public int Capacity
+        {
+            get
+            {
+                if(version!=1)return FrameCapacity;
+                // Both historical capacities were saved as v1. A roll that is
+                // still loaded after four exposures has room for eight.
+                int count=frames?.Count??0;
+                return count>4 || (count==4 && state==ParkFilmState.Loaded)?8:4;
+            }
+        }
         public int version=3;
         public string chapterId=ChapterIds.Photography;
         public string id,createdUtc,updatedUtc;
@@ -362,11 +372,12 @@ namespace MemoryWhitebox
                 if(!MatchingExposureBytes(File.ReadAllBytes(negative),encodedImage))throw new InvalidOperationException("Duplicate exposure ID.");
             }
             else WriteAtomic(negative,encodedImage);
+            int capacity=stored.Capacity;
             stored.frames.Add(frame);stored.updatedUtc=DateTime.UtcNow.ToString("o");
             if(frame.taskId=="bridge" && stored.bridge!=null)stored.bridge.captured=true;
             if(frame.taskId=="entrance" && stored.entrance!=null)stored.entrance.captured=true;
             if(frame.taskId=="meadow" && stored.meadow!=null)stored.meadow.captured=true;
-            if(stored.Remaining==0)
+            if(stored.frames.Count==capacity)
             {
                 stored.state=ParkFilmState.AwaitingDevelopment;
                 // Persist an explicit initial stage: JsonUtility may materialize a null

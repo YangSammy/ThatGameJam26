@@ -148,14 +148,14 @@ namespace MemoryWhitebox
             if(!Printing)return false;
             if(PhysicalPrinting)return PressPhysicalPrint(id,ray);
             if(printProcessing)return true;
-            if(printStage==ParkPrintStage.NegativeDrying && (id=="tank" || id=="tank-lid"))printProcessing=true;
+            if(printStage==ParkPrintStage.NegativeDrying && (id=="tank" || id=="tank-lid")){printProcessing=true;PhotographySound(131,"tank");}
             else if(printStage==ParkPrintStage.ContactReady && id=="developed-photo")
-            {printStage=ParkPrintStage.Exposing;printRemaining=2;printProcessing=true;printHeld=true;}
+            {printStage=ParkPrintStage.Exposing;printRemaining=2;printProcessing=true;printHeld=true;PhotographySound(231,"developed-photo");}
             else if(printStage>=ParkPrintStage.PaperDeveloper && printStage<=ParkPrintStage.PaperFixer && id.StartsWith("chemical-"))BeginDrag(id,ray);
             else if(printStage==ParkPrintStage.PaperWash && id=="water")
-            {printRemaining=2;printProcessing=true;}
+            {printRemaining=2;printProcessing=true;PhotographySound(31,"water");}
             else if(printStage==ParkPrintStage.PaperDrying && id=="developed-photo")
-            {printRemaining=3;printProcessing=true;}
+            {printRemaining=3;printProcessing=true;PhotographySound(331,"developed-photo");}
             SaveProgress();return true;
         }
         void CancelPrintExposure()
@@ -167,7 +167,7 @@ namespace MemoryWhitebox
         void PourPrintChemical(int index)
         {
             if(!Printing || printProcessing || index!=(int)printStage-(int)ParkPrintStage.PaperDeveloper || index<0 || index>2)return;
-            printRemaining=index==0?3:index==1?1:2;printProcessing=true;
+            printRemaining=index==0?3:index==1?1:2;printProcessing=true;PhotographySound(30,"developed-photo");
         }
         void TickPrintWorkflow(float dt)
         {

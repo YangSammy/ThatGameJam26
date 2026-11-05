@@ -5,12 +5,15 @@ namespace MemoryWhitebox
     public sealed class PhotographyMeterDisplay : MonoBehaviour
     {
         public LightMeterVisual visual;
+        public Transform grip;
         Texture2D content;string lastText;
         public static PhotographyMeterDisplay Create(Transform parent,Vector3 position,float scale,int layer)
         {
             var go=new GameObject("Meter Visual Adapter");go.transform.SetParent(parent,false);go.transform.localPosition=position;go.transform.localScale=Vector3.one*scale;
             var d=go.AddComponent<PhotographyMeterDisplay>();d.visual=Instantiate(PhotographyVisualAssets.Load().meter,go.transform).GetComponent<LightMeterVisual>();
-            PhotographyCameraVisual.PrepareVisual(go,layer);d.visual.ClearReading();return d;
+            PhotographyCameraVisual.PrepareVisual(go,layer);
+            foreach(var node in d.visual.GetComponentsInChildren<Transform>(true))if(node.name=="GripAnchor"){d.grip=node;break;}
+            d.visual.ClearReading();return d;
         }
         Renderer[] isoSurfaces;
         internal Transform HoverControl(Ray ray)

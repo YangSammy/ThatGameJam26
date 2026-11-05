@@ -66,12 +66,13 @@ namespace MemoryWhitebox
 
         void BuildWritingVisuals()
         {
-            writingFoley=Root.AddComponent<AudioSource>();writingFoley.playOnAwake=false;
-            pencilStroke=Resources.Load<AudioClip>("ChapterFoley/Pencil");timerStart=Resources.Load<AudioClip>("ChapterFoley/Clock");
             visualAssets = WritingVisualAssets.Load();
             if (visualAssets == null) throw new InvalidOperationException("WritingVisualAssets configuration missing.");
             writingHandContact=Group("WritingHandContact",Vector3.zero);
             BuildCollectedVisuals();
+            BuildAutumnPerformance();
+            for(int i=0;i<4;i++){presentedCollected[i]=State.HasItem(i);pickupProgress[i]=State.HasItem(i)?1:0;}
+            UpdateCarryPresentation(0,true);
         }
 
         public void AttachDesk(AutumnWritingDesk layout)
@@ -81,6 +82,7 @@ namespace MemoryWhitebox
             crumpleVisual=desk.foldedPaper;paperBall=crumpleVisual.transform.parent;
             penHand=desk.penMotion;penTip=desk.penTip;penGrip=desk.penGrip;
             crumpleGrip=desk.crumpleGrip;timerVisual=desk.timer;
+            CacheLetterFraming();
             BindHit(desk.paper,"paper");
             foreach(var hit in desk.basketHits)BindHit(hit,hit.name);
             RestoreInk();desk.ShowDrafts(State.Draft);UpdateWritingVisuals(0,true);
@@ -114,8 +116,8 @@ namespace MemoryWhitebox
                     root.localScale = Vector3.one;
                     var v = CreateVisual(visualAssets.collectedItems[i], root);
                     bool carried = root == inventoryProps[i];
-                    FitVisual(v, sizes[i] * (carried ? .45f : 1), Vector3.zero, Vector3.zero);
-                    if (!carried) { HighlightPickup(v); AddPickupRing(root,i); }
+                    FitVisual(v, sizes[i], Vector3.zero, Vector3.zero);
+                    if (!carried && i==2) v.GetComponent<WritingPropVisual>().SetHandleProgress(1);
                     if (carried)
                     {
                         var driver = v.GetComponent<WritingPropVisual>();
@@ -124,60 +126,7 @@ namespace MemoryWhitebox
                     }
                 }
             }
-        }
-
-        readonly Dictionary<Material,Material> pickupMaterials=new Dictionary<Material,Material>();
-
-        void HighlightPickup(GameObject visual)
-        {
-            foreach(var r in visual.GetComponentsInChildren<Renderer>())
-            {
-                var slots=r.sharedMaterials;
-                for(int i=0;i<slots.Length;i++)
-                {
-                    var source=slots[i];
-                    if(source==null || source.renderQueue>=3000 || !source.HasProperty("_Color"))continue;
-                    if(!pickupMaterials.TryGetValue(source,out var glow))
-                    {
-                        glow=new Material(source);
-                        glow.color=Color.Lerp(source.color,new Color(1,.72f,.24f),.55f);
-                        if(glow.HasProperty("_EmissionColor"))
-                        {
-                            glow.EnableKeyword("_EMISSION");
-                            glow.SetColor("_EmissionColor",new Color(.38f,.16f,.025f));
-                        }
-                        pickupMaterials.Add(source,glow);
-                    }
-                    slots[i]=glow;
-                }
-                r.sharedMaterials=slots;
-            }
-        }
-
-        readonly LineRenderer[] pickupRings=new LineRenderer[4];
-        AudioSource writingFoley;
-        AudioClip pencilStroke,timerStart;
-        float nextPencil;
-
-        void PlayWritingCue(AudioClip clip)
-        {
-            if(clip!=null && (Host==null || !Host.Muted))writingFoley.PlayOneShot(clip,.42f);
-        }
-
-        void AddPickupRing(Transform item,int index)
-        {
-            var ring=Line("Pickup halo",new Vector3[0],"#FFC354",.038f);
-            ring.transform.SetParent(item,false);
-            ring.gameObject.layer=MemoryLayer;
-            ring.sharedMaterial.shader=Shader.Find("Unlit/Color");
-            pickupRings[index]=ring;
-            ring.loop=true;
-            ring.positionCount=40;
-            for(int i=0;i<ring.positionCount;i++)
-            {
-                float a=2*Mathf.PI*i/ring.positionCount;
-                ring.SetPosition(i,new Vector3(.30f*Mathf.Cos(a),.025f-item.localPosition.y,.30f*Mathf.Sin(a)));
-            }
+            inventoryProps[2].SetParent(memory,true);
         }
 
         void UpdateWritingVisuals(float dt, bool restoring = false)
@@ -189,20 +138,15 @@ namespace MemoryWhitebox
             timerVisual.SetTimerProgress(1 - Mathf.Clamp01(State.Remaining / Mathf.Max(.01f, duration)));
             for (int i = 0; i < 4; i++)
             {
-                bool near=State.InPickupRange(i);
-                var ring=pickupRings[i];
-                float radius=near?.58f:1;
-                ring.transform.localScale=Vector3.Lerp(ring.transform.localScale,new Vector3(radius,1,radius),restoring?1:Mathf.Clamp01(dt*14));
-                ring.startWidth=ring.endWidth=near?.055f:.038f;
-                ring.sharedMaterial.color=State.InkFresh && (near || State.Phase=="tutorial")?new Color(1,.97f,.64f):new Color(1,.7f,.24f);
                 bool collected = State.HasItem(i);
                 if (restoring) pickupProgress[i] = collected ? 1 : 0;
                 else if (collected && !presentedCollected[i]) pickupProgress[i] = 0;
-                else pickupProgress[i] = Mathf.MoveTowards(pickupProgress[i], collected ? 1 : 0, dt * 3);
+                else pickupProgress[i] = Mathf.MoveTowards(pickupProgress[i], collected ? 1 : 0, dt * 1.5f);
                 presentedCollected[i] = collected;
                 if (i == 1) carriedVisuals[i].SetPickupSettleProgress(pickupProgress[i]);
-                // Pendant chain remains supported by its miniature carry pose; no invented swinging physics.
             }
+            if(restoring)RestoreMemoryPresentation();
+            UpdateCarryPresentation(dt,restoring);
         }
 
     }

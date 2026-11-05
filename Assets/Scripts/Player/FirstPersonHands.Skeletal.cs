@@ -9,7 +9,7 @@ namespace MemoryWhitebox
         bool skeletalPrepared,handFocused=true,handPaused;
         Vector3 photoPalmLocal;
         public Vector3 PhotoPalmPosition=>skeletalRig!=null&&skeletalRig.Valid?skeletalRig.wrists[0].TransformPoint(photoPalmLocal):transform.position;
-        void Awake(){if(skeletalRig!=null)PrepareSkeletalRig();}
+        void Awake(){if(skeletalRig!=null)PrepareSkeletalRig();HideParkHandMeshes();}
         void PrepareSkeletalRig()
         {
             if(skeletalPrepared)return;
@@ -36,13 +36,16 @@ namespace MemoryWhitebox
             else if(house!=null)blocked|=house.ControlState==PlayerControlState.Paused || house.ControlState==PlayerControlState.Unfocused ||
                 house.ControlState==PlayerControlState.Transition || house.ControlState==PlayerControlState.Gallery || house.AwaitingHouseRelease ||
                 (house.safeInspection!=null && house.safeInspection.BlocksInput);
-            if(blocked){skeletalRig.ResetPose();return;}
+            if(blocked && park==null){skeletalRig.ResetPose();return;}
+            // Park input gates suspend gestures, not the player's body. Keep the same
+            // authored rest/holding targets visible, including the first entry frame.
+            if(blocked){dt=0;immediate=true;}
             var left=default(FirstPersonArmRig.Pose);var right=left;
             if(park!=null)
             {
                 VisibleSet=0;
                 bool holding=park.PhotoMode!=ParkPhotoPrototype.PhotographyMode.Exploration;
-                var targets=holding?parkAimTargets:parkRestTargets;
+                var targets=holding && park.PhotoMode!=ParkPhotoPrototype.PhotographyMode.Meter?parkAimTargets:parkRestTargets;
                 left=TargetPose(targets,0,holding?1:0);right=TargetPose(targets,1,holding?1:0);
                 var heldLeft=park.InstrumentLeftHandTarget;var heldRight=park.InstrumentRightHandTarget;
                 if(heldLeft!=null)left=FirstPersonArmRig.Pose.At(heldLeft.position,heldLeft.rotation,1);

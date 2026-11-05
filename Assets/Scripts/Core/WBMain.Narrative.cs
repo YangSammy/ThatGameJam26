@@ -18,6 +18,9 @@ namespace MemoryWhitebox
         {
             if(!InStation || ChapterIndex!=3)return;
             ((PaintingWorld3D)worlds[3]).FreezeFinalFrame();
+            // Memory cuts off here; do not expose a frame of the old room before
+            // the next Update starts the day-five bedroom handoff.
+            if(bedroomCover!=null)bedroomCover.SetAlpha(1);
             CurrentWorld.CancelPointerGesture();CurrentWorld.Deactivate();
             InStation=false;ShowHelp=false;awaitRelease=false;transition=0;returningToRoom=false;leaveCompletedChapter=false;
             SetStudyPresentation(-1);Room.Camera.transform.SetPositionAndRotation(roomEye,roomRotation);Room.Camera.fieldOfView=roomFov;

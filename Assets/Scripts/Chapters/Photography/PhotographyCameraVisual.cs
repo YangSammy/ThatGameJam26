@@ -6,6 +6,7 @@ namespace MemoryWhitebox
     {
         public Transform body,lens,back,lift,rewindKnob,takeUp,advanceLever,shutter,dial,focusRing,apertureRing;
         public Transform insert,eyepiece,grip,support;
+        Transform eyepieceOutline,chamberOutline;
         public Transform[] blades;
         public GameObject[] cartridges;
         public Transform LeaderTip {get;private set;}
@@ -50,6 +51,10 @@ namespace MemoryWhitebox
         {
             switch(id)
             {
+                case "eyepiece":
+                    return OutlineRegion(ref eyepieceOutline,eyepiece,"Eyepiece hover outline",new Vector3(.022f,.016f,.004f));
+                case "chamber":
+                    return OutlineRegion(ref chamberOutline,insert,"Film chamber hover outline",new Vector3(.023f,.044f,.012f));
                 case "rewind": return rewindKnob;
                 case "back": return back;
                 case "spool": return takeUp;
@@ -66,6 +71,19 @@ namespace MemoryWhitebox
                     break;
             }
             return null;
+        }
+        Transform OutlineRegion(ref Transform cached,Transform anchor,string name,Vector3 size)
+        {
+            if(cached!=null)return cached;
+            // These details are combined into Body_Mesh; outline their local region,
+            // never the whole body. No visible mesh, collider or gameplay identity.
+            var region=GameObject.CreatePrimitive(PrimitiveType.Cube);region.name=name;
+            cached=region.transform;cached.SetParent(anchor,false);cached.localScale=size;
+            region.layer=anchor.gameObject.layer;
+            var collider=region.GetComponent<Collider>();collider.enabled=false;
+            if(Application.isPlaying)Destroy(collider);else DestroyImmediate(collider);
+            region.GetComponent<Renderer>().enabled=false;region.AddComponent<HoverOutlineProxy>();
+            return cached;
         }
         public void Apply(bool open,bool hasFilm,int iso,int filmStage,float progress,float focus,float aperture,float shutterSeconds,float shutterPress,float dt,bool instant=false)
         {

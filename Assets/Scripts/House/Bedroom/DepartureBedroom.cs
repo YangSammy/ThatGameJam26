@@ -110,12 +110,10 @@ namespace MemoryWhitebox
         {
             host.Room.ExitOpen=false;host.Room.ExitThreshold=null;
             SceneManager.SetActiveScene(host.gameObject.scene);
-            foreach(var obj in hidden)if(obj)obj.SetActive(true);
+            host.HideLegacyHousePresentation();
             finalPage.SetPageTexture(null);
             if(grade){grade.enabled=false;Destroy(grade);}
-            host.Room.CreateShared(host.Room.Camera,host.houseShell);
-            if(host.playerSpawn!=null)host.playerSpawn.Apply(host.Room.Camera);
-            host.Room.EnableLook(true);host.SuspendHouseInput();
+            host.Room.StopMotion();host.SuspendHouseInput();
             gameObject.SetActive(false);SceneManager.UnloadSceneAsync(gameObject.scene);
         }
         void OnDestroy(){foreach(var texture in photos)if(texture!=null)Destroy(texture);}

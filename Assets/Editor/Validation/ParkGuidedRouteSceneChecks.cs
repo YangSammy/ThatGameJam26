@@ -30,7 +30,7 @@ namespace MemoryWhitebox.Editor
             try
             {
                 set("roll",new ParkFilmRoll{cameraLoading=ParkCameraLoading.AtStep(7,400)});set("inputGate",false);set("focused",true);set("applicationPaused",false);set("changingScene",false);set("taskRoutingReady",true);
-                type.GetField("<Paused>k__BackingField",Fields).SetValue(p,false);set("photoMode",ParkPhotoPrototype.PhotographyMode.Exploration);
+                type.GetField("<CurrentPauseReason>k__BackingField",Fields).SetValue(p,ParkPhotoPrototype.PauseReason.None);set("photoMode",ParkPhotoPrototype.PhotographyMode.Exploration);
                 p.InputContext.Select(InputContextId.Exploration,PlayerControlState.Exploration,true);p.InputContext.ContinueGesture();
                 float dt=Mathf.Clamp(Time.deltaTime,.001f,.05f);
                 for(int leg=0;leg<points.Count;leg++)

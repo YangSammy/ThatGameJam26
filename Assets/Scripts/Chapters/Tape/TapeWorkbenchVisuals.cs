@@ -8,7 +8,9 @@ namespace MemoryWhitebox
         public WorkbenchAssetView[] sources,intact,broken,sourceProxies;
         public WorkbenchAssetView targetProxy;
         public Collider lidHit,finishedHit;
-        public Collider[] candidateGrips=new Collider[3];
+        [Tooltip("Box interior footprint; nearby desk tapes must not count as stored.")]
+        public Renderer storageFloor;
+        public Collider[] candidateGrips=new Collider[RadioTapeChapter.WorkTapeCount];
         public Transform roll,head,cutLine;
         public SkinnedMeshRenderer loosePiece;
         public Transform[] slots;
@@ -21,7 +23,7 @@ namespace MemoryWhitebox
         public float PullLength {get;private set;}
         float lid;
         float recoil;
-        readonly float[] reelL=new float[3],reelR=new float[3];
+        readonly float[] reelL=new float[RadioTapeChapter.WorkTapeCount],reelR=new float[RadioTapeChapter.WorkTapeCount];
         public void ToggleLid(){if(!LidBusy)LidOpen=!LidOpen;}
         public void Tick(float dt)
         {
@@ -56,11 +58,18 @@ namespace MemoryWhitebox
         public void CancelPull()
         {PullLength=0;dispenser.Sample("A05_Pull_Sample",0);dispenser.Sample("A05_CutState",0);UpdateRoll();strip.gameObject.SetActive(true);}
         void UpdateRoll(){roll.localRotation=Quaternion.AngleAxis(-(UsedLength+PullLength)/.026f*Mathf.Rad2Deg,Vector3.right);}
-        public bool InStorage(Transform tape)=>storage!=null && Vector3.Distance(tape.position,storage.transform.position)<.23f;
+        public bool InStorage(Transform tape)
+        {
+            if(storage==null || tape==null)return false;
+            if(storageFloor==null)return Vector3.Distance(tape.position,storage.transform.position)<.23f;
+            var bounds=storageFloor.bounds;var p=tape.position;
+            return p.x>=bounds.min.x-.005f && p.x<=bounds.max.x+.005f &&
+                p.z>=bounds.min.z-.005f && p.z<=bounds.max.z+.005f && Mathf.Abs(p.y-bounds.center.y)<.12f;
+        }
         public string Tooltip(Collider hit)
         {
             if(hit==lidHit)return LidBusy?"Wait for the lid":LidOpen?"Close storage box":"Open storage box · Choose a tape inside";
-            if(hit==finishedHit)return "Finished copies · SUBMIT COPY checks and saves your recording";
+            if(hit==finishedHit)return "Finished compartment · Drop the ejected B tape here";
             return null;
         }
     }

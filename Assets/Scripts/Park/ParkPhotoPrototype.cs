@@ -50,7 +50,9 @@ namespace MemoryWhitebox
         public ParkFilmState FilmState=>roll!=null?roll.state:ParkFilmState.Loaded;
         public IReadOnlyList<ParkPhotoRecord> Records=>roll!=null?(IReadOnlyList<ParkPhotoRecord>)roll.frames.AsReadOnly():Array.Empty<ParkPhotoRecord>();
         public bool Aiming {get;private set;}
-        public bool Paused {get;private set;}
+        public enum PauseReason { None, Manual, FilmComplete }
+        public PauseReason CurrentPauseReason {get;private set;}
+        public bool Paused=>CurrentPauseReason!=PauseReason.None;
         public float MovementSpeed=>motor!=null?new Vector2(motor.velocity.x,motor.velocity.z).magnitude:0;
         public float ShutterPulse=>flash;
         ParkFilmRoll roll;
@@ -59,8 +61,9 @@ namespace MemoryWhitebox
         string notice="",filmError="";
         bool inputGate=true,focused=true;
         bool returnUiGate,changingScene;
-        readonly PlayerInputReleaseGate handoff=new PlayerInputReleaseGate();
+        readonly PlayerInputReleaseGate handoff=new PlayerInputReleaseGate(ignoreLocomotion:true);
         Vector3 moveVelocity;
+        PlayerFootsteps footsteps;
         float aimBlend;
         public PlayerControlState ControlState=>!focused?PlayerControlState.Unfocused:changingScene?
             PlayerControlState.Transition:Paused?PlayerControlState.Paused:Aiming?PlayerControlState.Operation:PlayerControlState.Exploration;
@@ -86,24 +89,28 @@ namespace MemoryWhitebox
             view.fieldOfView=controls.parkWalkingFov;handoff.Arm();
             try{roll=ParkFilmStore.LoadOrCreate();if(roll.frames.Count>0)focusDistance=Mathf.Clamp(roll.frames[roll.frames.Count-1].focusDistance,minimumFocus,maximumFocus);}
             catch(Exception ex){filmError="Film unavailable. Shooting paused; records kept.";Debug.LogWarning("Park film load: "+ex.Message);}
-            InitializePhotographyModes();InitializeBridge();ResumeUnfinishedMemory();InitializeGuidedWalk();InitializePhotoFeedback();
-            SetCursor(false);Notify(roll!=null && roll.state!=ParkFilmState.Loaded?"Film sealed. Develop in the darkroom.": "Film: " + RollCapacity + " frames. E: raise or lower camera.",7);
+            InitializePhotographyModes();InitializeBridge();ResumeUnfinishedMemory();InitializeGuidedWalk();InitializePhotoFeedback();UpdateRegionalMetering();
+            SetCursor(false);Notify(roll!=null && roll.state!=ParkFilmState.Loaded?"Film sealed. Develop in the darkroom.":OpeningPhotoInstruction(),7);
             if(CanReturnToDarkroom)OpenFilmReturnPanel();
         }
         void SetCursor(bool free){PlayerInputPolicy.SetCursor(free);}
         void Notify(string text,float seconds=4){notice=text;noticeUntil=Time.unscaledTime+seconds;}
-        public void Resume(){SetPhotographyMode(PhotographyMode.Exploration);Paused=false;ReleaseGuidedDeparture();inputGate=true;moveVelocity=Vector3.zero;handoff.Arm();SyncParkInput();InputContext.Handoff();}
+        public void Resume(){SetPhotographyMode(PhotographyMode.Exploration);CurrentPauseReason=PauseReason.None;ReleaseGuidedDeparture();inputGate=true;moveVelocity=Vector3.zero;handoff.Arm();SyncParkInput();InputContext.Handoff();}
         void PauseControls()
         {
+            footsteps.Reset();
+            PausePhotographySfx();
             SavePhotoSettings();
-            Paused=true;SetPhotographyMode(PhotographyMode.Exploration);Aiming=false;moveVelocity=Vector3.zero;verticalSpeed=0;handoff.Arm();inputGate=true;
+            CurrentPauseReason=automaticFilmPanelPause?PauseReason.FilmComplete:PauseReason.Manual;SetPhotographyMode(PhotographyMode.Exploration);Aiming=false;moveVelocity=Vector3.zero;verticalSpeed=0;handoff.Arm();inputGate=true;
             if(companion!=null)companion.Paused=true;
             if(focusEffect!=null)focusEffect.activeFocus=false;SetCursor(true);
             SyncParkInput();InputContext.Handoff();
         }
         void OpenFilmReturnPanel()
         {
-            PauseControls();returnUiGate=true;inputGate=true;
+            automaticFilmPanelPause=true;
+            try{PauseControls();returnUiGate=true;inputGate=true;}
+            finally{automaticFilmPanelPause=false;}
         }
         public void ReturnToDarkroom()
         {
@@ -141,13 +148,26 @@ namespace MemoryWhitebox
             }
             catch(Exception ex){changingScene=false;Notify("Return unavailable. Film progress kept.",6);Debug.LogWarning("Park memory return: "+ex.Message);return false;}
         }
+        // Focus suspension is not a user pause. Keep the chosen instrument and stable
+        // loading step; refocusing must never create a new pause menu.
         void OnApplicationFocus(bool value)
-        {focused=value;if(!value)PauseControls();else {handoff.Arm();InputContext.Handoff();}SyncParkInput();}
+        {focused=value;RefreshApplicationSuspension();}
         void OnApplicationPause(bool value)
-        {applicationPaused=value;if(value)PauseControls();else {inputGate=true;handoff.Arm();InputContext.Handoff();}SyncParkInput();}
+        {applicationPaused=value;RefreshApplicationSuspension();}
+        void RefreshApplicationSuspension()
+        {
+            moveVelocity=Vector3.zero;footsteps.Reset();
+            if(!focused || applicationPaused)
+            {
+                StopPhotographySfx();CancelInstrumentDrag();CancelCameraRaise();SavePhotoSettings();
+                if(companion!=null){companion.Paused=true;companion.TravelPaused=true;}
+            }
+            inputGate=true;handoff.Arm();InputContext.Handoff();SyncParkInput();
+        }
         void Update()
         {
             TickExposureEncoding();
+            TickPhotographySfx(Mathf.Min(Time.unscaledDeltaTime,.1f));
             SyncParkInput();
             if(!focused || applicationPaused || changingScene)return;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -159,12 +179,13 @@ namespace MemoryWhitebox
             var controls=PlayerControlSettings.Current;
             float dt=Mathf.Min(Time.deltaTime,.1f);shotCooldown=Mathf.Max(0,shotCooldown-dt);flash=Mathf.Max(0,flash-dt*4);
             if(ExitParkContext())return;
+            UpdateRegionalMetering();
             TickLoweredDeparture();
             companion.Paused=Paused || (photoMode!=PhotographyMode.Exploration && photoMode!=PhotographyMode.Viewfinder);
             companion.TravelPaused=!GuidedCanTravel;
             SyncCameraPreview();
             if(Paused)return;
-            if(TickGuidedRecovery(dt))return;
+            if(TickGuidedRecovery(dt)){footsteps.Reset();return;}
             if(TickCameraRaise(dt))return;
             if(!InputContext.Ready){moveVelocity=Vector3.zero;return;}
             if(inputGate){if(handoff.Ready)inputGate=false;return;}
@@ -181,6 +202,7 @@ namespace MemoryWhitebox
             moveVelocity=controls.ApproachVelocity(moveVelocity,requestedMove,dt);
             // Bounded moves keep gravity/ground contact stable over bridge seams
             // and on slower frames. Ground geometry remains authored in ParkScene.
+            var beforeMove = transform.position;
             float moveRemaining=dt;
             while(moveRemaining>0)
             {
@@ -190,13 +212,21 @@ namespace MemoryWhitebox
                 var collisions=motor.Move(ConstrainGuidedMove((moveVelocity+Vector3.up*verticalSpeed)*step));
                 if((collisions & CollisionFlags.Above)!=0 && verticalSpeed>0)verticalSpeed=0;
             }
-            if(transform.position.y< -3)RecoverGuidedWalk();
+            if(transform.position.y< -3)
+            {
+                footsteps.Reset();
+                RecoverGuidedWalk();
+            }
+            else if (motor.isGrounded)
+                footsteps.Advance(beforeMove, transform.position, transform.position);
+            else
+                footsteps.Reset();
             TickGuidedSafety(dt,requestedMove);
             view.fieldOfView=Mathf.Lerp(controls.parkWalkingFov,controls.parkAimingFov,Mathf.SmoothStep(0,1,aimBlend));
             TickBridge(dt);
             if(Aiming)
             {
-                focusDistance=ParkCameraResponse.ScrollFocus(focusDistance,Input.mouseScrollDelta.y,focusStep,minimumFocus,maximumFocus);
+                StepFocusControl(Input.mouseScrollDelta.y);
                 SyncCameraPreview();
                 TickBridge(0); // Recheck a wheel change before accepting this frame's shutter.
                 TickPhotoFeedback(dt);
@@ -289,6 +319,7 @@ namespace MemoryWhitebox
             }
             catch(Exception ex){if(image!=null)Destroy(image);Notify("Shot not saved. Frame kept; try again.");Debug.LogWarning("Park capture: "+ex.Message);return;}
             finally{view.targetTexture=previousTarget;view.cullingMask=previousMask;RenderTexture.active=previousActive;if(target!=null)RenderTexture.ReleaseTemporary(target);}
+            PlayOpticalShutterSfx();
             try{BeginExposureEncoding(record,image.GetRawTextureData<byte>().ToArray(),image.width,image.height);}
             catch(Exception ex){Notify("Shot could not be encoded. Frame kept; press shutter to retry.",6);Debug.LogWarning("Park image encoding: "+ex.Message);return;}
             finally{if(image!=null)Destroy(image);}
@@ -297,25 +328,25 @@ namespace MemoryWhitebox
         {
             if(roll.Remaining>0)HoldGuidedDeparture();else InitializeBridge();
             flash=1;Notify(roll.Remaining==0?"Frame " + RollCapacity + " exposed. Roll complete.":"Frame "+record.frameNumber+" exposed  /  Remaining "+roll.Remaining+" frames",4);
-            if(sound!=null && shutter!=null)sound.PlayOneShot(shutter,.6f);
             if(roll.Remaining==0)OpenFilmReturnPanel();
             PhotoTaken?.Invoke(record);
             if(roll.Remaining==0)FilmFilled?.Invoke(roll.id);
         }
-        void OnDisable(){CancelCameraRaise();SavePhotoSettings();CancelInstrumentDrag();moveVelocity=Vector3.zero;InputContext.Select(InputContextId.Unfocused,PlayerControlState.Unfocused);InputContext.Handoff();if(companion!=null)companion.Paused=true;if(focusEffect!=null)focusEffect.activeFocus=false;}
-        void OnDestroy(){CancelExposureEncoding();DisposePhotographyModes();DisposePhotoFeedback();if(bridgeReference!=null)Destroy(bridgeReference);if(font!=null)Destroy(font);}
+        void OnDisable(){StopPhotographySfx();CancelCameraRaise();SavePhotoSettings();CancelInstrumentDrag();moveVelocity=Vector3.zero;InputContext.Select(InputContextId.Unfocused,PlayerControlState.Unfocused);InputContext.Handoff();if(companion!=null)companion.Paused=true;if(focusEffect!=null)focusEffect.activeFocus=false;}
+        void OnDestroy(){StopPhotographySfx();CancelExposureEncoding();DisposePhotographyModes();DisposePhotoFeedback();if(bridgeReference!=null)Destroy(bridgeReference);if(font!=null)Destroy(font);}
         void OnGUI()
         {
             if(view==null || companion==null)return;
             CaptureBodyPointer(Event.current);
             if(font==null)font=Font.CreateDynamicFontFromOSFont(new[]{"Microsoft YaHei","Arial"},18);
             var text=new GUIStyle(GUI.skin.label){font=font,fontSize=18,wordWrap=true};var small=new GUIStyle(text){fontSize=15};var button=new GUIStyle(GUI.skin.button){font=font,fontSize=17};
+            if(!focused || applicationPaused)return;
             if(Paused)
             {
 
                 InteractionUI.Label(new Rect(Screen.width*.5f-150,Screen.height*.5f-50,300,50),CanReturnToDarkroom?"Roll complete  " + RollCapacity + " / " + RollCapacity + " frames\nDevelop to view.":"Paused",text);
                 bool previousEnabled=GUI.enabled;GUI.enabled=previousEnabled && !returnUiGate && !changingScene && InputContext.Allows(InputContextId.Paused);
-                if(InteractionUI.Button(new Rect(Screen.width*.5f-100,Screen.height*.5f+10,200,40),"Resume  /  Esc",button))InputContext.RequestExit(InputContextId.Paused,null,Resume);
+                if(InteractionUI.Button(new Rect(Screen.width*.5f-100,Screen.height*.5f+10,200,40),CurrentPauseReason==PauseReason.FilmComplete?"Stay in park":"Resume  /  Esc",button))InputContext.RequestExit(InputContextId.Paused,null,Resume);
                 if(CanReturnToDarkroom && InteractionUI.Button(new Rect(Screen.width*.5f-145,Screen.height*.5f+66,290,40),"Return to darkroom",button))ReturnToDarkroom();
                 if(!CanReturnToDarkroom && InteractionUI.Button(new Rect(Screen.width*.5f-145,Screen.height*.5f+66,290,40),"Leave memory",button))LeaveParkMemory();
                 if(HasPendingExposure && InteractionUI.Button(new Rect(Screen.width*.5f-145,Screen.height*.5f+116,290,40),"Retry saving photograph",button))RetryPendingExposure();
@@ -333,8 +364,9 @@ namespace MemoryWhitebox
                 photoMode==PhotographyMode.Aperture?"f/"+Aperture:
                 photoMode==PhotographyMode.Shutter?"1/"+Mathf.RoundToInt(1f/ShutterSeconds)+" s":
                 guidedDeparturePending?"Photograph saved. Lower the camera to continue walking.":
-                !companion.AtPhotoNode?"Walking with your companion. E: camera.":
-                photoMode==PhotographyMode.Exploration?"E: raise the camera.":
+                roll!=null && !roll.ReadyForPark?OpeningPhotoInstruction():
+                !companion.AtPhotoNode?(companion.Waiting?"Your companion is waiting. Walk closer.":"WASD: walk with your companion. E: camera."):
+                photoMode==PhotographyMode.Exploration?"E: inspect camera. Click eyepiece to compose.":
                 PhotographyNextAction();
             InteractionUI.Label(new Rect(24,Screen.height*.24f+32,Screen.width-48,48),step,small);
             InteractionUI.Label(new Rect(Screen.width-190,20,170,28),"Film "+ExposedFrames+" / "+RollCapacity,small);

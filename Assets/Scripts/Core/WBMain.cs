@@ -15,7 +15,7 @@ namespace MemoryWhitebox
         public bool ShowHelp,Muted;
         public bool InStation {get;private set;}
         public RoomWorld Room {get;private set;}
-        public bool IsTransitioning=>transition>0;
+        public bool IsTransitioning=>transition>0 || loadingSpringRoom;
         readonly Chapter[] chapters=new Chapter[5];
         readonly WorldChapter3D[] worlds=new WorldChapter3D[5];
         AudioSource audioSource;
@@ -27,7 +27,7 @@ namespace MemoryWhitebox
         static readonly KeyCode[] keys={KeyCode.W,KeyCode.A,KeyCode.S,KeyCode.D,KeyCode.E,KeyCode.F,KeyCode.J,KeyCode.L,KeyCode.Quote,KeyCode.LeftArrow,KeyCode.RightArrow,KeyCode.UpArrow,KeyCode.DownArrow,KeyCode.Space,KeyCode.LeftShift};
         public void Select(int index){EnterHouseStation(index);}
         public void LeaveStation(){ExitHouseStation();}
-        public void ChapterComplete(Chapter chapter){int index=System.Array.IndexOf(chapters,chapter);if(index>=0 && CommitStoryCompletion(index))Tone(660,.24f);}
+        public void ChapterComplete(Chapter chapter){int index=System.Array.IndexOf(chapters,chapter);if(index>=0 && CommitStoryCompletion(index) && index!=3)Tone(660,.24f);}
         public static void Tone(float hz,float duration=.12f)
         {
             if(Instance==null || Instance.Muted || IsQA || Instance.audioSource==null)return;
@@ -37,7 +37,7 @@ namespace MemoryWhitebox
             Instance.audioSource.PlayOneShot(clip);Destroy(clip,duration+1);
         }
         void Update(){UpdateHouse();}
-        void OnGUI(){CaptureDarkroomPointerPress();CaptureWinterPointerPress();DrawHouse();}
+        void OnGUI(){if(loadingSpringRoom)return;CaptureDarkroomPointerPress();CaptureWinterPointerPress();DrawHouse();}
         public void SetHelpVisible(bool visible)
         {
             if(ShowHelp==visible)return;
@@ -59,6 +59,6 @@ namespace MemoryWhitebox
             else if(ChapterIndex==0)radioDeck?.SuspendInput();else CurrentWorld?.CancelPointerGesture();
             radioDeck?.SuspendInput();SaveStableProgress();
         }
-        void OnDestroy(){SaveStableProgress();foreach(var world in worlds)world?.Dispose();if(Instance==this)Instance=null;}
+        void OnDestroy(){ReleaseBedroomLoading();SaveStableProgress();foreach(var world in worlds)world?.Dispose();if(Instance==this)Instance=null;}
     }
 }

@@ -173,7 +173,7 @@ namespace MemoryWhitebox
                 CaptureBridgeReference();return;
             }
             var reference=CurrentTask;
-            sceneEv100=reference.ev100;
+            UpdateRegionalMetering();
             bool focus=ParkCameraResponse.IsSharp(TaskFocusDepth(reference),focusDistance,Aperture);
             bool exposure=Mathf.Abs(ExposureError)<=bridgeExposureTolerance;
             bool visible=SubjectVisible();TickPhotoVisibility(visible,dt);
@@ -186,6 +186,7 @@ namespace MemoryWhitebox
                     var next=JsonUtility.FromJson<BridgePhotoCheckpoint>(JsonUtility.ToJson(reference));next.aligned=true;
                     try{roll=ParkFilmStore.SaveTask(roll.id,CurrentTaskId,next);}
                     catch(Exception e){Debug.LogWarning("Alignment not saved: "+e.Message);alignedFor=0;}
+                    if(CurrentTask.aligned && CurrentTaskId!="entrance")StorySfx.Shot(36,companion.chest.position);
                     if(CurrentTaskId=="bridge" && CurrentTask.aligned)GameScore.Instance?.PhotoAnswered();
                 }
             }
@@ -247,7 +248,7 @@ namespace MemoryWhitebox
         {
             if(filmError!="")return filmError;
             if(guidedDeparturePending)return "Photograph saved. Lower the camera to continue walking.";
-            if(companion.AtPhotoNode && !guidedDocked)return "Lower the camera to approach the photo spot.";
+            if(roll!=null && !roll.ReadyForPark)return OpeningPhotoInstruction();
             if(!string.IsNullOrEmpty(PhotoRouteError))return "Photo route unavailable. Film kept.";
             if(!companion.AtPhotoNode)return "Follow your companion to the next photo spot.";
             var task=CurrentTask;

@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 namespace MemoryWhitebox
 {
     // Music follows committed gameplay states; it never supplies tape samples or advances a chapter.
-    public sealed class GameScore : MonoBehaviour
+    public sealed partial class GameScore : MonoBehaviour
     {
         public static GameScore Instance {get; private set;}
         [SerializeField] GameScoreSettings score;
@@ -13,6 +13,7 @@ namespace MemoryWhitebox
         [SerializeField] int active;
         WBMain house;
         ParkPhotoPrototype park;
+        PaintingChapter wardNarrativeOwner;
         [SerializeField] bool paused;
         bool focused=true, finishedObserved, finale, waitingAtDoor;
         float gainScale;
@@ -31,6 +32,7 @@ namespace MemoryWhitebox
             if(!score){enabled=false;return;}
             beds=new[]{Voice("Music A"),Voice("Music B")};
             response=Voice("Photography response");
+            InitializeLayers();
         }
         void OnEnable()
         {
@@ -39,7 +41,7 @@ namespace MemoryWhitebox
         void BindScenes()
         {
             var next=FindObjectOfType<WBMain>();
-            if(house!=next){finishedObserved=false;finale=false;waitingAtDoor=false;}
+            if(house!=next){finishedObserved=false;finale=false;waitingAtDoor=false;wardNarrativeOwner=null;}
             house=next;park=FindObjectOfType<ParkPhotoPrototype>();
         }
         void SceneLoaded(Scene scene,LoadSceneMode mode){BindScenes();}
@@ -48,6 +50,7 @@ namespace MemoryWhitebox
             SceneManager.sceneLoaded-=SceneLoaded;
             if(Instance==this)Instance=null;
             PauseVoices(true);
+            wardNarrativeOwner=null;StopWardVoices();
         }
         void OnApplicationFocus(bool value){focused=value;if(!value)PauseVoices(true);}
         void PauseVoices(bool value)
@@ -56,16 +59,37 @@ namespace MemoryWhitebox
             paused=value;
             foreach(var a in beds){if(value)a.Pause();else a.UnPause();}
             if(value)response.Pause();else response.UnPause();
+            PauseLayers(value);
         }
         public void PhotoAnswered()
         {
             if(!isActiveAndEnabled || park==null || park.Paused || !focused || paused || score.photoResponse==null)return;
             response.volume=score.gain;response.clip=score.photoResponse;response.Play();
         }
+        public void BeginWardNarrative(PaintingChapter chapter)
+        {
+            // Only the live white-to-ward edge can arm the one-shot music onset.
+            if(chapter!=null && chapter.Phase==3)wardNarrativeOwner=chapter;
+        }
+        public void CutWardNarrative(PaintingChapter chapter)
+        {
+            if(wardNarrativeOwner!=chapter)return;
+            wardNarrativeOwner=null;
+            // Synchronous stop: no fade, delayed callback, or paper-SFX bus mutation.
+            StopWardVoices();
+        }
         void Update()
         {
+            if(wardNarrativeOwner!=null && (wardNarrativeOwner.Phase!=3 || house==null || !house.InStation || house.Current!=wardNarrativeOwner))
+            {wardNarrativeOwner=null;StopWardVoices();}
             PauseVoices(!focused || (park!=null && park.Paused) || (house!=null && (house.ShowHelp || house.Muted)));
-            if(paused)return;
+            if(paused)
+            {
+                // A cut during pause must not resume an obsolete ward tail later.
+                if(wardNarrativeOwner==null && score.ward!=null)
+                    StopWardVoices();
+                return;
+            }
             bool loop;
             gainScale=1;
             var next=Select(out loop);
@@ -76,15 +100,16 @@ namespace MemoryWhitebox
                 active=1-active;
                 var a=beds[active];
                 a.Stop();a.clip=next;a.loop=loop;a.volume=0;
-                if(next!=null)a.Play();
+                ScheduleArrangement(next,loop);
             }
             var dt=Time.unscaledDeltaTime;
+            UpdateLayers(dt);
             float volume=score.gain*(response.isPlaying?.42f:gainScale);
             for(int i=0;i<beds.Length;i++)
             {
                 var a=beds[i];bool playing=i==active && next!=null;
                 float seconds=playing?(IsRoom(next)?2.5f:.55f):(a.clip==score.ward || cut?.10f:.55f);
-                a.volume=Mathf.MoveTowards(a.volume,playing?volume:0,dt*Mathf.Max(.001f,score.gain)/seconds);
+                a.volume=score.gain<=0?0:Mathf.MoveTowards(a.volume,playing?volume:0,dt*score.gain/seconds);
                 if(!playing && a.volume<=0 && a.clip!=null){a.Stop();a.clip=null;}
             }
             if(park==null && response.isPlaying)response.Stop();
@@ -100,7 +125,7 @@ namespace MemoryWhitebox
                 // Only score a live crossing. A cold load of an already-finished save stays quiet.
                 if(!finishedObserved)return null;
                 loop=false;
-                if(!finale && beds[active].clip==score.springDoor && beds[active].isPlaying)return score.springDoor;
+                if(!finale && beds[active].clip==score.springDoor && (beds[active].isPlaying || AudioSettings.dspTime<scheduledStart))return score.springDoor;
                 finale=true;return score.theme;
             }
             finishedObserved=true;finale=false;
@@ -127,6 +152,7 @@ namespace MemoryWhitebox
                 if(album.Phase>=4)return null;
                 if(album.Phase>=2)
                 {
+                    if(album.Phase!=3 || wardNarrativeOwner!=album)return null;
                     loop=false;
                     gainScale=.45f+.45f*Mathf.Clamp01(album.WardRevealHeight/Mathf.Max(.01f,album.NoseHeight));
                     return score.ward;

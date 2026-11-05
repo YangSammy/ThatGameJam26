@@ -3,7 +3,7 @@ namespace MemoryWhitebox
 {
     public sealed partial class ParkPhotoPrototype
     {
-        public PlayerInputContext InputContext {get;}=new PlayerInputContext();
+        public PlayerInputContext InputContext {get;}=new PlayerInputContext(ignoreLocomotionForRelease:true);
         bool applicationPaused;
         void SyncParkInput()
         {

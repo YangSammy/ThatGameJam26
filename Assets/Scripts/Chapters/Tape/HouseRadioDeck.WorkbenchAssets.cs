@@ -9,6 +9,9 @@ namespace MemoryWhitebox
         public LineRenderer preparationDropPreview;
         public Transform preparationTabsPose;
         public SceneViewAnchor radioCloseView;
+        public SceneViewAnchor storageCloseView;
+        SceneViewAnchor activeCloseView;
+        bool openStorageOnArrival;
         bool radioFocused,radioCameraMoving;
         float radioCameraTime,radioStartFov,radioReturnFov;
         Vector3 radioStartPosition,radioReturnPosition;
@@ -29,20 +32,31 @@ namespace MemoryWhitebox
             if(RecordingMode)FocusRadio(true);
         }
         Rect RadioBackRect=>new Rect(24,100,150,30);
-        public void FocusRadio(bool focus)
+        public void FocusRadio(bool focus){FocusCloseView(focus,radioCloseView);}
+        void FocusCloseView(bool focus,SceneViewAnchor anchor)
         {
-            if(view==null || radioCloseView==null || focus==radioFocused || preparationCameraMoving || benchDrag.Active)return;
+            if(!focus)openStorageOnArrival=false;
+            if(focus && radioFocused && activeCloseView!=anchor)RestoreRadioCamera();
+            if(view==null || anchor==null || focus==radioFocused || preparationCameraMoving || benchDrag.Active)return;
             if(focus){RestorePreparationCamera();radioReturnPosition=view.transform.position;radioReturnRotation=view.transform.rotation;radioReturnFov=view.fieldOfView;}
             radioStartPosition=view.transform.position;radioStartRotation=view.transform.rotation;radioStartFov=view.fieldOfView;
-            radioFocused=focus;radioCameraMoving=true;radioCameraTime=0;
+            activeCloseView=anchor;radioFocused=focus;radioCameraMoving=true;radioCameraTime=0;
         }
         void TickRadioCamera(float dt)
         {
             if(!radioCameraMoving || house.safeInspection.Active)return;
             radioCameraTime+=dt;float t=Mathf.SmoothStep(0,1,Mathf.Clamp01(radioCameraTime/preparationViewDuration));
-            view.transform.SetPositionAndRotation(Vector3.Lerp(radioStartPosition,radioFocused?radioCloseView.transform.position:radioReturnPosition,t),Quaternion.Slerp(radioStartRotation,radioFocused?radioCloseView.transform.rotation:radioReturnRotation,t));
-            view.fieldOfView=Mathf.Lerp(radioStartFov,radioFocused?radioCloseView.fieldOfView:radioReturnFov,t);
-            if(t>=1)radioCameraMoving=false;
+            view.transform.SetPositionAndRotation(Vector3.Lerp(radioStartPosition,radioFocused?activeCloseView.transform.position:radioReturnPosition,t),Quaternion.Slerp(radioStartRotation,radioFocused?activeCloseView.transform.rotation:radioReturnRotation,t));
+            view.fieldOfView=Mathf.Lerp(radioStartFov,radioFocused?activeCloseView.fieldOfView:radioReturnFov,t);
+            if(t>=1)
+            {
+                radioCameraMoving=false;
+                if(openStorageOnArrival)
+                {
+                    openStorageOnArrival=false;
+                    if(!workbenchVisuals.LidOpen)ToggleStorageLidWithSound();
+                }
+            }
         }
         void RestoreRadioCamera()
         {
@@ -52,7 +66,7 @@ namespace MemoryWhitebox
                 view.transform.SetPositionAndRotation(radioReturnPosition,radioReturnRotation);
                 view.fieldOfView=radioReturnFov;
             }
-            radioFocused=radioCameraMoving=false;
+            radioFocused=radioCameraMoving=openStorageOnArrival=false;
         }
         public SceneViewAnchor preparationView;
         [Min(.1f)] public float preparationViewDuration=.45f;
@@ -180,7 +194,9 @@ namespace MemoryWhitebox
         }
         string WorkTapeLockReason(int index)
         {
+            if(Chapter.IsArchived(index))return "Finished copy "+(Chapter.FinishedCommission(index)+1).ToString("00")+" · Saved. Choose a new work tape for the next copy.";
             if(Chapter.Completed)return "All copies complete";
+            var ownerLock=RecordingOwnerLock(index);if(ownerLock!=null)return ownerLock;
             if(StorageClosed(tapes[index].root))return "Open the storage box first";
             if(!Chapter.AuditionComplete)return "Listen to A first";
             if(State==Phase.Loading || State==Phase.Returning || DeckBusy(1))return "Wait for B to finish loading";
@@ -190,11 +206,14 @@ namespace MemoryWhitebox
         public string WorkbenchObjectTooltip(Collider hit)
         {
             if(workbenchVisuals==null || Chapter==null || hit==null)return null;
+            if(FinishedSurface(hit))return "Finished compartment · Drop the ejected B tape here";
+            if(StorageSurface(hit))return workbenchVisuals.Tooltip(workbenchVisuals.lidHit);
             var source=SourceHint(hit);if(source!=null)return source;
             int candidate=CandidateForHit(hit);
             if(candidate>=0)
             {
                 var reason=WorkTapeLockReason(candidate);if(reason!=null)return reason;
+                if(workbenchVisuals.InStorage(tapes[candidate].root))return "Click to place this work tape on the desk";
                 var tape=tapes[candidate];
                 if(hit==tape.leftSpindleHit || hit==tape.rightSpindleHit)
                     return (hit==tape.leftSpindleHit?"Left reel":"Right reel")+" · Hold LMB + Scroll";
@@ -212,16 +231,42 @@ namespace MemoryWhitebox
             }
             return null;
         }
+        void ToggleStorageLidWithSound()
+        {
+            if(workbenchVisuals==null || workbenchVisuals.LidBusy)return;
+            bool wasOpen=workbenchVisuals.LidOpen;
+            workbenchVisuals.ToggleLid();
+            if(workbenchVisuals.LidOpen!=wasOpen)TapeSound(4,workbenchVisuals.storage.transform.position);
+        }
         bool StorageClick(Collider hit)
         {
-            if(workbenchVisuals==null)return false;
-            if(hit==workbenchVisuals.lidHit){if(!workbenchVisuals.LidBusy)TapeSound(4,workbenchVisuals.storage.transform.position);workbenchVisuals.ToggleLid();return true;}
-            if(hit==workbenchVisuals.finishedHit){OpenRecording();return true;}
+            if(workbenchVisuals==null || hit==null)return false;
+            if(storageDelivery!=null || radioCameraMoving)return true;
+            if(StorageSurface(hit))
+            {
+                if(!WorkbenchMode && !RecordingMode)OpenWorkbench();
+                if(!radioFocused || activeCloseView!=storageCloseView)
+                {FocusCloseView(true,storageCloseView);openStorageOnArrival=!workbenchVisuals.LidOpen;}
+                else ToggleStorageLidWithSound();
+                return true;
+            }
+            if(TryDeliverStoredTape(hit))return true;
+            if(FinishedSurface(hit)){ShowTapePointerNotice("Eject B, then drag the recorded tape into this compartment.");return true;}
             return false;
         }
         bool StorageClosed(Transform tape)=>workbenchVisuals!=null && workbenchVisuals.InStorage(tape) && (!workbenchVisuals.LidOpen || workbenchVisuals.LidBusy);
+        bool StorageSurface(Collider hit)=>hit!=null && workbenchVisuals!=null &&
+            hit!=workbenchVisuals.finishedHit && hit.transform.IsChildOf(workbenchVisuals.storage.transform);
+        bool FinishedSurface(Collider hit)
+        {
+            if(hit==null || workbenchVisuals==null)return false;
+            if(hit==workbenchVisuals.finishedHit)return true;
+            if(completedCopies!=null)foreach(var copy in completedCopies)if(copy!=null && hit.transform.IsChildOf(copy.transform))return true;
+            return false;
+        }
         string PatchLockReason(int index)
         {
+            if(index>=0 && Chapter.IsArchived(index))return "This finished copy is sealed and saved.";
             if(index<0 || index!=BenchIndex || Selected==index || !OnPreparationMat(tapes[index].root))
                 return "Place a work tape on the preparation mat.";
             var data=Chapter.Tape.Candidates[index];
@@ -259,7 +304,7 @@ namespace MemoryWhitebox
         void TickWorkbenchAssets(float dt)
         {
             if(workbenchVisuals==null || Chapter==null)return;
-            workbenchVisuals.Tick(dt);
+            workbenchVisuals.Tick(dt);TickStorageDelivery(dt);
             // A06's torn piece is offset inside the legacy strip root. Keep its
             // grab region on the visible piece without moving the authored rest pose.
             if(adhesiveStrip!=null && adhesiveStrip.gameObject.activeInHierarchy &&

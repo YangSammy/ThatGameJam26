@@ -13,20 +13,23 @@ namespace MemoryWhitebox
         public DepartureBedroom DepartureRoom {get;private set;}
 
         IEnumerator OpenDepartureBedroom(bool keepView,Vector3 eye,Quaternion rotation,int debugKey=0)
+            => ChangeBedroom(SpringTapeRoom.ScenePath,()=>LoadDepartureBedroom(keepView,eye,rotation),debugKey);
+
+        IEnumerator LoadDepartureBedroom(bool keepView,Vector3 eye,Quaternion rotation)
         {
-            loadingSpringRoom=true;
-            yield return SceneManager.LoadSceneAsync(SpringTapeRoom.ScenePath,LoadSceneMode.Additive);
-            var scene=SceneManager.GetSceneByPath(SpringTapeRoom.ScenePath);
-            loadingSpringRoom=false;
-            foreach(var root in scene.GetRootGameObjects())
-                if(root.TryGetComponent<DepartureBedroom>(out var room)){DepartureRoom=room;break;}
-            if(DepartureRoom==null){Debug.LogError("Missing departure doorway in the spring bedroom");SceneManager.UnloadSceneAsync(scene);yield break;}
-            var ending=(EndingWorld3D)worlds[4];
-            ending.RestoreDoorPose();
-            DepartureRoom.Enter(this,ending.Ending,(PaintingWorld3D)worlds[3],keepView,eye,rotation);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if(debugKey!=0)DebugEnterChapter(debugKey);
-#endif
+            if(!Application.CanStreamedLevelBeLoaded(SpringTapeRoom.ScenePath))throw new System.InvalidOperationException("Missing spring bedroom in Build Settings.");
+            using(bedroomTrace?.Measure("scene-load"))yield return SceneManager.LoadSceneAsync(SpringTapeRoom.ScenePath,LoadSceneMode.Additive);
+            bedroomCover.ShowLoading("Preparing objects");
+            using(bedroomTrace?.Measure("departure-bind-and-camera"))
+            {
+                var scene=SceneManager.GetSceneByPath(SpringTapeRoom.ScenePath);
+                foreach(var root in scene.GetRootGameObjects())
+                    if(root.TryGetComponent<DepartureBedroom>(out var room)){DepartureRoom=room;break;}
+                if(DepartureRoom==null)throw new System.InvalidOperationException("Missing departure doorway in the spring bedroom");
+                var ending=(EndingWorld3D)worlds[4];
+                ending.RestoreDoorPose();
+                DepartureRoom.Enter(this,ending.Ending,(PaintingWorld3D)worlds[3],keepView,eye,rotation);
+            }
         }
 
         NarrativeBedroom narrativeBedroom;
@@ -36,23 +39,25 @@ namespace MemoryWhitebox
         static bool HasNarrativeBedroom(StoryDay day)=>day==StoryDay.AutumnWriting || day==StoryDay.WinterPainting;
 
         IEnumerator OpenNarrativeBedroom(StoryDay day,int debugKey=0)
+            => ChangeBedroom(day==StoryDay.AutumnWriting?NarrativeBedroom.AutumnScene:NarrativeBedroom.WinterScene,()=>LoadNarrativeBedroom(day),debugKey);
+
+        IEnumerator LoadNarrativeBedroom(StoryDay day)
         {
             string path=day==StoryDay.AutumnWriting?NarrativeBedroom.AutumnScene:NarrativeBedroom.WinterScene;
-            if(!Application.CanStreamedLevelBeLoaded(path)){Debug.LogError("Missing bedroom in Build Settings: "+path);yield break;}
-            loadingSpringRoom=true;
-            yield return SceneManager.LoadSceneAsync(path,LoadSceneMode.Additive);
-            var scene=SceneManager.GetSceneByPath(path);
-            foreach(var root in scene.GetRootGameObjects())
-                if(root.TryGetComponent<NarrativeBedroom>(out narrativeBedroom))break;
-            loadingSpringRoom=false;
-            if(narrativeBedroom==null){Debug.LogError("Missing bedroom chapter entry in "+path);SceneManager.UnloadSceneAsync(scene);yield break;}
-            foreach(var entry in StudyEntries.GetComponentsInChildren<StudyEntry>(true))
-                if(entry.chapter==narrativeBedroom.chapterEntry.chapter){narrativeInspection=safeInspection?.ForEntry(entry);break;}
-            if(narrativeBedroom.writingDesk!=null)((WritingWorld3D)worlds[2]).AttachDesk(narrativeBedroom.writingDesk);
-            narrativeBedroom.Enter(this);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if(debugKey!=0)DebugEnterChapter(debugKey);
-#endif
+            if(!Application.CanStreamedLevelBeLoaded(path))throw new System.InvalidOperationException("Missing bedroom in Build Settings: "+path);
+            using(bedroomTrace?.Measure("scene-load"))yield return SceneManager.LoadSceneAsync(path,LoadSceneMode.Additive);
+            bedroomCover.ShowLoading("Preparing objects");
+            using(bedroomTrace?.Measure("narrative-bind-and-camera"))
+            {
+                var scene=SceneManager.GetSceneByPath(path);
+                foreach(var root in scene.GetRootGameObjects())
+                    if(root.TryGetComponent<NarrativeBedroom>(out narrativeBedroom))break;
+                if(narrativeBedroom==null)throw new System.InvalidOperationException("Missing bedroom chapter entry in "+path);
+                foreach(var entry in StudyEntries.GetComponentsInChildren<StudyEntry>(true))
+                    if(entry.chapter==narrativeBedroom.chapterEntry.chapter){narrativeInspection=safeInspection?.ForEntry(entry);break;}
+                if(narrativeBedroom.writingDesk!=null)((WritingWorld3D)worlds[2]).AttachDesk(narrativeBedroom.writingDesk);
+                narrativeBedroom.Enter(this);
+            }
         }
 
         void LeaveNarrativeBedroom()
@@ -77,51 +82,46 @@ namespace MemoryWhitebox
 
         void StartSeasonBedroom(bool keepParkView)
         {
-            if(gameObject.scene.path!=ParkFilmRoute.HouseScenePath || !story.Available)return;
+            if(gameObject.scene.path!=ParkFilmRoute.HouseScenePath)return;
+            if(!story.Available){FailBedroomTransition("Story unavailable: "+story.Error);return;}
             if(CurrentDay==StoryDay.SpringDeparture){StartCoroutine(OpenDepartureBedroom(false,Vector3.zero,Quaternion.identity));return;}
             if(HasNarrativeBedroom(CurrentDay)){StartCoroutine(OpenNarrativeBedroom(CurrentDay));return;}
             bool summer=CurrentDay==StoryDay.SummerPhoto;
-            if(!summer && CurrentDay!=StoryDay.SpringTape)return;
-            if(!summer)
-            {
-                try{var film=ParkFilmStore.LoadActive();summer=film!=null && film.state!=ParkFilmState.Developed && film.HasPhotographyProgress;}
-                catch(System.Exception ex){Debug.LogWarning("Bedroom deferred: "+ex.Message);return;}
-            }
-            StartCoroutine(OpenSeasonBedroom(summer,keepParkView));
+            if(!summer && CurrentDay!=StoryDay.SpringTape){FailBedroomTransition("Unknown story day: "+CurrentDay);return;}
+            // A legacy film can outlive the story that created it. Route by story day
+            // or an explicit return from the park, independently of film recovery.
+            StartCoroutine(OpenSeasonBedroom(summer || keepParkView,keepParkView));
         }
 
         IEnumerator OpenSeasonBedroom(bool summer,bool keepView,int debugKey=0)
+            => ChangeBedroom(summer?SummerPhotoRoom.ScenePath:SpringTapeRoom.ScenePath,()=>LoadSeasonBedroom(summer,keepView),debugKey);
+
+        IEnumerator LoadSeasonBedroom(bool summer,bool keepView)
         {
             var path=summer?SummerPhotoRoom.ScenePath:SpringTapeRoom.ScenePath;
             if(!Application.CanStreamedLevelBeLoaded(path))
-            {Debug.LogError("Missing bedroom in Build Settings: "+path);yield break;}
-            loadingSpringRoom=true;
-            yield return SceneManager.LoadSceneAsync(path,LoadSceneMode.Additive);
-            var scene=SceneManager.GetSceneByPath(path);
-            loadingSpringRoom=false;
-            if(summer)
+                throw new System.InvalidOperationException("Missing bedroom in Build Settings: "+path);
+            using(bedroomTrace?.Measure("scene-load"))
+                if(!SceneManager.GetSceneByPath(path).isLoaded)yield return SceneManager.LoadSceneAsync(path,LoadSceneMode.Additive);
+            bedroomCover.ShowLoading("Preparing objects");
+            using(bedroomTrace?.Measure("season-bind-and-camera"))
             {
+                var scene=SceneManager.GetSceneByPath(path);
+                if(summer)
+                {
+                    foreach(var root in scene.GetRootGameObjects())
+                        if(root.TryGetComponent<SummerPhotoRoom>(out summerPhotoRoom))break;
+                    if(summerPhotoRoom==null)throw new System.InvalidOperationException("Missing summer room bindings.");
+                    summerPhotoRoom.Enter(this,keepView);
+                    yield break;
+                }
                 foreach(var root in scene.GetRootGameObjects())
-                    if(root.TryGetComponent<SummerPhotoRoom>(out summerPhotoRoom))break;
-                if(summerPhotoRoom==null){Debug.LogError("Missing summer room bindings.");SceneManager.UnloadSceneAsync(scene);yield break;}
-                summerPhotoRoom.Enter(this,keepView);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                if(debugKey!=0)DebugEnterChapter(debugKey);
-#endif
-                yield break;
+                    if(root.TryGetComponent<SpringTapeRoom>(out springTapeRoom))break;
+                if(springTapeRoom==null)
+                    throw new System.InvalidOperationException("Spring bedroom has no tape layout.");
+                springTapeRoom.Enter(this);
+                summerPreloadRequested=false;
             }
-            foreach(var root in scene.GetRootGameObjects())
-                if(root.TryGetComponent<SpringTapeRoom>(out springTapeRoom))break;
-            if(springTapeRoom==null)
-            {
-                Debug.LogError("Spring bedroom has no tape layout.");
-                SceneManager.UnloadSceneAsync(scene);
-                yield break;
-            }
-            springTapeRoom.Enter(this);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if(debugKey!=0)DebugEnterChapter(debugKey);
-#endif
         }
 
         void FinishSpringBedroomIfReady()
@@ -129,15 +129,15 @@ namespace MemoryWhitebox
             if(springTapeRoom!=null && radioDeck!=null && CurrentDay!=StoryDay.SpringTape && !InStation &&
                 transition<=0 && !radioDeck.WorkbenchMode && !radioDeck.RecordingMode && !radioDeck.SuccessPopupOpen)
             {
-                LeaveSpringTapeRoom();
                 if(CurrentDay==StoryDay.SummerPhoto)StartCoroutine(OpenSeasonBedroom(true,false));
+                return;
             }
             if(narrativeBedroom!=null && !InStation && transition<=0 && narrativeBedroom.chapterEntry.chapter!=(int)CurrentDay)
             {
                 var eye=Room.Camera.transform.position;var rotation=Room.Camera.transform.rotation;
-                LeaveNarrativeBedroom();
                 if(CurrentDay==StoryDay.SpringDeparture)StartCoroutine(OpenDepartureBedroom(true,eye,rotation));
                 else if(HasNarrativeBedroom(CurrentDay))StartCoroutine(OpenNarrativeBedroom(CurrentDay));
+                return;
             }
             if(summerPhotoRoom==null)return;
             summerPhotoRoom.Refresh(this);
@@ -145,7 +145,6 @@ namespace MemoryWhitebox
             if(summerGallerySeen && !DarkroomWorld.ParkGalleryOpen && CurrentDay>=StoryDay.AutumnWriting)
             {
                 summerGallerySeen=false;
-                LeaveSummerPhotoRoom();
                 if(HasNarrativeBedroom(CurrentDay))StartCoroutine(OpenNarrativeBedroom(CurrentDay));
             }
         }

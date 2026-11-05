@@ -17,7 +17,7 @@ namespace MemoryWhitebox
         public static bool ActionsReleased
         {get{foreach(var key in Actions)if(Input.GetKey(key))return false;return true;}}
         public static Vector2 LookDelta=>Time.frameCount<=ignoreLookThrough?Vector2.zero:
-            new Vector2(Input.GetAxisRaw("Mouse X"),Input.GetAxisRaw("Mouse Y"));
+            new Vector2(Input.GetAxisRaw("Mouse X"),Input.GetAxisRaw("Mouse Y"))*GamePreferences.LookMultiplier;
         public static void SuppressLook(){ignoreLookThrough=Time.frameCount+1;}
         public static void SetCursor(bool free)
         {
@@ -39,10 +39,14 @@ namespace MemoryWhitebox
     {
         int pending,armedFrame=-10;
         bool waiting;
+        readonly bool ignoreLocomotion;
+        public PlayerInputReleaseGate(bool ignoreLocomotion=false){this.ignoreLocomotion=ignoreLocomotion;}
+        internal bool RequiresRelease(KeyCode key)=>!ignoreLocomotion || !(key==KeyCode.W || key==KeyCode.A || key==KeyCode.S || key==KeyCode.D ||
+            key==KeyCode.LeftArrow || key==KeyCode.RightArrow || key==KeyCode.UpArrow || key==KeyCode.DownArrow || key==KeyCode.LeftShift || key==KeyCode.RightShift);
         public void Arm()
         {
             pending=0;armedFrame=Time.frameCount;waiting=true;
-            for(int i=0;i<PlayerInputPolicy.Actions.Length;i++)if(Input.GetKey(PlayerInputPolicy.Actions[i]))pending|=1<<i;
+            for(int i=0;i<PlayerInputPolicy.Actions.Length;i++)if(RequiresRelease(PlayerInputPolicy.Actions[i]) && Input.GetKey(PlayerInputPolicy.Actions[i]))pending|=1<<i;
             PlayerInputPolicy.SuppressLook();
         }
         public void AdoptGesture(){pending=0;waiting=false;armedFrame=-10;PlayerInputPolicy.SuppressLook();}
@@ -54,7 +58,7 @@ namespace MemoryWhitebox
                 // Include presses made while waiting, preventing a fresh hold from
                 // leaking into the next mode on the release frame of the old key.
                 pending=0;
-                for(int i=0;i<PlayerInputPolicy.Actions.Length;i++)if(Input.GetKey(PlayerInputPolicy.Actions[i]))pending|=1<<i;
+                for(int i=0;i<PlayerInputPolicy.Actions.Length;i++)if(RequiresRelease(PlayerInputPolicy.Actions[i]) && Input.GetKey(PlayerInputPolicy.Actions[i]))pending|=1<<i;
                 if(pending!=0 || Time.frameCount<=armedFrame+1)return false;
                 waiting=false;return true;
             }

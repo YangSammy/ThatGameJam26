@@ -23,11 +23,12 @@ namespace MemoryWhitebox.Editor
                 t.SourceCommand(1);t.TargetCommand(true,true,0,false);Pump(t,3);
                 var mapping=t.SnapshotMapping();Require(mapping.Length==7,"Resume overwrote/truncated previous audio");
                 for(int i=0;i<7;i++)Require(mapping[i]==i,"Resume changed existing samples");
-                Pump(t,20);Require(t.RecordedSeconds==1 && !t.Writing && !t.SourcePlaying,"Source EOF appended blank audio");
+                Pump(t,5);Require(Mathf.Abs(t.RecordedSeconds-1.2f)<.0001f && t.Writing && !t.SourcePlaying,"A EOF incorrectly stopped independent B");
+                t.TargetCommand(false,false,0,false);
                 Set(t,"b",0);t.TargetCommand(true,false,0,false);Pump(t,20);
-                Require(t.TargetSeconds==1,"Playback advanced beyond recorded end");
-                t.TargetCommand(true,false,0,false);Pump(t,20);Require(t.TargetSeconds==1,"Held PLAY restarted beyond end");
-                return "PASS: append after listening; no trailing EOF silence; playback stops at length; held PLAY stays stopped.";
+                Require(Mathf.Abs(t.TargetSeconds-1.2f)<.0001f,"Playback advanced beyond recorded end");
+                t.TargetCommand(true,false,0,false);Pump(t,20);Require(Mathf.Abs(t.TargetSeconds-1.2f)<.0001f,"Held PLAY restarted beyond end");
+                return "PASS: append after listening; independent B remains latched at A EOF; playback stops at length; held PLAY stays stopped.";
             }
             finally{Set(t,"configured",false);UnityEngine.Object.DestroyImmediate(go);}
         }

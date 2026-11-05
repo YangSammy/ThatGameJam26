@@ -32,7 +32,8 @@ namespace MemoryWhitebox
             if(hit==originalHit && StorageClosed(originalTape))return "Open the storage box first";
             if(hit==originalHit && DeckBusy(0))return "Wait for A to finish loading";
             if(hit!=originalHit && hit!=sourceSlot)return "Use Original "+(CurrentCopy+1).ToString("00")+" first";
-            return Chapter.SourceLoaded?"LMB  Open A controls":"LMB drag  Original "+(CurrentCopy+1).ToString("00")+" into A";
+            if(hit==originalHit && !Chapter.SourceLoaded && workbenchVisuals.InStorage(originalTape))return "Click to place Original "+(CurrentCopy+1).ToString("00")+" on the desk";
+            return Chapter.SourceLoaded?"LMB  Eject A tape · B stays independent":"LMB drag  Original "+(CurrentCopy+1).ToString("00")+" into A";
         }
         // Both exploration and the recorder UI must hand a source drag to the same input owner.
         public bool TryBeginOriginalInteraction(Ray ray)
@@ -40,6 +41,7 @@ namespace MemoryWhitebox
             if(movingOriginal || benchGesture!=BenchGesture.None || TapeUIAt(view.WorldToScreenPoint(ray.GetPoint(1))))return false;
             var hit=StudyEntry.PickVisible(ray);
             if(StorageClick(hit))return true;
+            if(hit==sourceSlot && Chapter.SourceLoaded){EjectDualDeck(0);return true;}
             if(!SourceHit(hit))return false;
             if(hit!=sourceSlot && (hit!=originalHit || Chapter.Completed || DeckBusy(0) || StorageClosed(originalTape)))
             {ShowTapePointerNotice(SourceHint(hit));return true;}
@@ -60,7 +62,7 @@ namespace MemoryWhitebox
                 }
                 var current=originals[CurrentCopy];originalTape=current.tape;originalHome=current.home;originalHit=current.hit;originalReels=current.reels;
             }
-            if(completedCopies!=null)for(int i=0;i<completedCopies.Length;i++)if(completedCopies[i]!=null)completedCopies[i].SetActive(i<Chapter.CommissionIndex);
+            RestoreFinishedTapes();
             if(originalTape==null || Chapter==null)return;
             var anchor=Chapter.SourceLoaded?sourceSocket:originalHome;
             originalTape.SetPositionAndRotation(anchor.position,anchor.rotation);
@@ -77,7 +79,18 @@ namespace MemoryWhitebox
         }
         public void SourceControl(int command)
         {
-            if(SuccessPopupOpen || !RecordingMode || recordingWait || !Chapter.SourceLoaded)return;
+            if(SuccessPopupOpen || !(RecordingMode && !recordingWait || WorkbenchMode && !benchWaiting))return;
+            if(command==2 || command==4)
+            {
+                if(transport.Writing){SubmissionMessage="Pause B recording with S before winding.";return;}
+                bool a=Chapter.SourceLoaded && (dualDeck==null || dualDeck.Closed(0));
+                bool b=Selected>=0 && State==Phase.Paused && (dualDeck==null || dualDeck.Closed(1));
+                if(!a && !b){SubmissionMessage="Load a tape and close its door first.";return;}
+                UITransportCommand=-1;
+                if(!transport.ToggleSharedWinding(command==2?-1:1,a,b,house.Muted))SubmissionMessage="Could not wind: "+transport.SaveError;
+                return;
+            }
+            if(!Chapter.SourceLoaded)return;
             if(command==3)
             {
                 if(dualDeck!=null){dualDeck.Press(0,"Eject");EjectDualDeck(0);return;}
@@ -85,9 +98,9 @@ namespace MemoryWhitebox
             }
             if(dualDeck!=null && !dualDeck.Closed(0))return;
             TickAudition();
-            if(dualDeck!=null && command!=1)dualDeck.Press(0,command==2?"Rewind":"Stop");
-            if(command==2 && !Chapter.AuditionComplete)Chapter.AuditionSeconds=0;
-            transport.SourceCommand(command);lastAuditionPosition=transport.SourceSeconds;
+            if(command==0){transport.SourceCommand(0);dualDeck?.Press(0,"Stop");}
+            else if(command==1)transport.ToggleSourcePlayback();
+            lastAuditionPosition=transport.SourceSeconds;
         }
         void TickAudition()
         {
@@ -97,7 +110,7 @@ namespace MemoryWhitebox
             // The audio thread keeps playing during slow render frames. Count its
             // actual forward travel, not only frames shorter than half a second.
             // Initialize/rewind rebases the cursor; muted ticks still advance the baseline.
-            if(delta>0)Chapter.AuditionSeconds+=delta;
+            if(delta>0 && (transport.SourcePlaying || transport.SourceStatus=="END"))Chapter.AuditionSeconds+=Mathf.Min(delta,Time.unscaledDeltaTime+.1f);
             float duration=Mathf.Max(0,transport.SourceDuration-.1f);
             if(CurrentCopy==0)duration=Mathf.Min(auditionDuration,duration);
             if(Chapter.AuditionSeconds>=duration)
@@ -107,6 +120,7 @@ namespace MemoryWhitebox
         {
             if(type==EventType.MouseDown && button==0 && !movingOriginal && benchGesture==BenchGesture.None)
             {
+                if(StorageClick(StudyEntry.PickVisible(ray)))return true;
                 var hit=StudyEntry.PickVisible(ray);
                 if(SourceHit(hit) && hit!=sourceSlot && (hit!=originalHit || Chapter.Completed || DeckBusy(0) || StorageClosed(originalTape)))
                 {ShowTapePointerNotice(SourceHint(hit));return true;}
@@ -138,7 +152,7 @@ namespace MemoryWhitebox
             // Compatibility entry for older authored UI: prepare B only, never
             // stop A or latch PLAY on the player's behalf.
             UITransportCommand=-1;transport.RewindTarget();
-            SubmissionMessage="Stop A, then hold F to listen to B.";
+            SubmissionMessage="Stop A with '. Click B PLAY to listen to your copy.";
         }
     }
 }

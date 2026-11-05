@@ -43,6 +43,7 @@ namespace MemoryWhitebox
         {
             var shell=host.houseShell.transform;
             var camera=host.StudyEntries.Find("Camera - photo chapter");
+            host.StudyEntries.gameObject.SetActive(true);
             foreach(Transform child in shell)
                 if(child!=host.StudyEntries)Hide(child.gameObject);
             foreach(Transform child in host.StudyEntries)if(child!=camera)Hide(child.gameObject);
@@ -170,10 +171,9 @@ namespace MemoryWhitebox
             SceneManager.SetActiveScene(host.gameObject.scene);
             if(grade){grade.enabled=false;Destroy(grade);}
             foreach(var reset in restore)reset();
-            foreach(var obj in hidden)if(obj)obj.SetActive(true);
-            host.Room.CreateShared(host.Room.Camera,host.houseShell);
-            if(host.playerSpawn!=null)host.playerSpawn.Apply(host.Room.Camera);
-            host.Room.EnableLook(true);host.SuspendHouseInput();
+            host.StudyEntries.gameObject.SetActive(false);
+            host.HideLegacyHousePresentation();
+            host.Room.StopMotion();host.SuspendHouseInput();
             SceneManager.UnloadSceneAsync(gameObject.scene);
         }
         void OnDestroy(){foreach(var image in images)if(image!=null)Destroy(image);}

@@ -41,7 +41,16 @@ namespace MemoryWhitebox
             Ending.Tick(dt,idle);
             bool handled=false;
             if(click && !Ending.DoorOpen && (bedroom!=null?bedroom.HitHandle(ray):HitDoor(ray)))
-            {Ending.OpenDoor();Host.SaveStableProgress();handled=true;}
+            {
+                Ending.OpenDoor();
+                if (Ending.DoorOpen)
+                {
+                    var handle = bedroom != null ? bedroom.handle.transform : binding.doorHandle;
+                    StorySfx.Shot(50, handle != null ? handle.position : binding.entranceDoor.position);
+                }
+                Host.SaveStableProgress();
+                handled=true;
+            }
             opening=Mathf.MoveTowards(opening,Ending.DoorOpen?1:0,dt*1.5f);
             if(bedroom!=null)
             {
@@ -56,7 +65,11 @@ namespace MemoryWhitebox
             var threshold=bedroom!=null?bedroom.threshold:binding.threshold;
             Host.Room.ExitThreshold=threshold;if(bedroom==null)Host.Room.ExitHalfWidth=binding.doorwayHalfWidth;Host.Room.ExitOpen=opening>.9f;
             Vector3 at=threshold.InverseTransformPoint(Host.Room.Camera.transform.position);
-            if(hadPosition && Host.Room.ExitOpen && previousSide>=0 && at.z<0 && Mathf.Abs(at.x)<Host.Room.ExitHalfWidth)Ending.CrossThreshold();
+            if(hadPosition && Host.Room.ExitOpen && previousSide>=0 && at.z<0 && Mathf.Abs(at.x)<Host.Room.ExitHalfWidth && !Ending.Completed)
+            {
+                StorySfx.Shot(150, threshold.position);
+                Ending.CrossThreshold();
+            }
             previousSide=at.z;hadPosition=true;return handled || Ending.Completed;
         }
         public void RestoreDoorPose(){opening=Ending.DoorOpen?1:0;hadPosition=false;}

@@ -10,6 +10,8 @@ namespace MemoryWhitebox
         public float WritingProgress,Remaining=60;
         public int Draft=1,Row,Collected;
         public bool Started,AwaitingReturn;
+        public bool MissingItemHintUsed { get; private set; }
+        public bool TimedOut => Draft>=2 && Phase=="crumple" && Remaining<=0;
         public bool Carried=>Collected!=0;
         public bool DoorHeld=>Phase=="farewell";
         public bool DoorOpen=>true;
@@ -27,22 +29,24 @@ namespace MemoryWhitebox
         public IReadOnlyList<float> InkRows=>rows;
         public bool InPickupRange(int i)=>!HasItem(i) && Vector2.Distance(Player,ItemPositions[i])<46;
         public bool NearPickup=>InPickupRange(0)||InPickupRange(1)||InPickupRange(2)||InPickupRange(3);
-        string TutorialHint=>NearPickup?"Keep writing + hold E":WritingProgress<=0?"Drag right across the letter":"WASD  Approach a gold ring";
+        string TutorialHint=>NearPickup?"Keep writing + hold E":WritingProgress<=0?"Drag right across the letter":"WASD  Approach an object";
         public string TaskHint=>Phase=="crumple"?"Drag paper to the bin":Phase=="tutorial"?TutorialHint:Phase=="arrival"?"Keep writing + hold E to say goodbye":Phase=="farewell"?"": "Write + hold E to collect / Return to the entrance";
         public override string DebugState=>CaptureCheckpoint();
         [Serializable] sealed class Checkpoint
         {
-            public int version=2,draft=1,collected,row;public string phase;
+            public int version=3,draft=1,collected,row;public string phase;
+            public bool missingItemHintUsed;
             public bool crumple,started,awaitingReturn;
             public float remaining=60,writingProgress;public Vector2 player;public float[] rows;
         }
-        public override string CaptureCheckpoint()=>JsonUtility.ToJson(new Checkpoint{draft=Draft,phase=Phase,collected=Collected,started=Started,remaining=Remaining,player=Player,row=Row,rows=rows.ToArray(),writingProgress=WritingProgress,awaitingReturn=AwaitingReturn});
+        public override string CaptureCheckpoint()=>JsonUtility.ToJson(new Checkpoint{draft=Draft,phase=Phase,collected=Collected,started=Started,remaining=Remaining,player=Player,row=Row,rows=rows.ToArray(),writingProgress=WritingProgress,awaitingReturn=AwaitingReturn,missingItemHintUsed=MissingItemHintUsed});
         public override void RestoreCheckpoint(string json)
         {
             CancelInput();if(string.IsNullOrEmpty(json))return;
             var n=JsonUtility.FromJson<Checkpoint>(json);
-            if(n==null || n.version<1 || n.version>2 || n.draft<1)throw new System.IO.InvalidDataException("Invalid writing checkpoint.");
+            if(n==null || n.version<1 || n.version>3 || n.draft<1)throw new System.IO.InvalidDataException("Invalid writing checkpoint.");
             Draft=n.draft;
+            MissingItemHintUsed=n.version>=3 && n.missingItemHintUsed;
             if(n.version==1){Phase=n.crumple?"crumple":Draft>=2?"collect":"tutorial";return;}
             if(Array.IndexOf(new[]{"tutorial","crumple","collect","arrival","farewell","complete"},n.phase)<0 || n.collected<0 || n.collected>15 || !Finite(n.remaining) || n.remaining<0 || !Finite(n.player.x) || !Finite(n.player.y))throw new System.IO.InvalidDataException("Invalid autumn state.");
             if((n.phase=="arrival" || n.phase=="farewell" || n.phase=="complete") && n.collected!=15)throw new System.IO.InvalidDataException("Missing autumn delivery.");
@@ -53,6 +57,14 @@ namespace MemoryWhitebox
         }
         static bool Finite(float v)=>!float.IsNaN(v)&&!float.IsInfinity(v);
         public void CancelInput(){pressed=havePointer=dragging=false;lastInk=-100;handover=0;}
+#if UNITY_EDITOR
+        public void EditorBeginFarewell()
+        {
+            if(Completed || Phase=="farewell")return;
+            CancelInput();Draft=Mathf.Max(2,Draft);Collected=15;
+            Player=new Vector2(300,565);Phase="farewell";farewellTime=0;
+        }
+#endif
         public override void PointerDown(Vector2 p,int button)
         {
             if(button!=0 || Completed)return;pressed=true;pointer=p;havePointer=true;
@@ -79,6 +91,7 @@ namespace MemoryWhitebox
         void RestartDraft()
         {
             Draft=Mathf.Max(2,Draft+1);Phase="collect";Collected=0;Started=false;Remaining=NarrativeDefinition.Resolve(this)?.writingSeconds??60;
+            MissingItemHintUsed=false;
             Player=new Vector2(160,505);rows.Clear();rows.Add(0);Row=0;WritingProgress=0;AwaitingReturn=false;CancelInput();
         }
         public override void Tick(float dt,WBInput input)
@@ -106,6 +119,9 @@ namespace MemoryWhitebox
                 {Collected|=1<<i;if(Phase=="tutorial"){Phase="crumple";CancelInput();return;}}
             }
             if(Phase!="collect" || !Started)return;
+            // Only a return with exactly one missing possession merits the girl's one cue.
+            if(!MissingItemHintUsed && Player.y>=555 && Player.x>=260 && Player.x<=410 &&
+                (Collected==7 || Collected==11 || Collected==13 || Collected==14))MissingItemHintUsed=true;
             // Arrival wins an exact deadline tie; movement is limited to the remaining time.
             if(Collected==15 && Player.y>=555 && Player.x>=260 && Player.x<=410){Remaining=Mathf.Max(0,Remaining-step);Phase="arrival";CancelInput();return;}
             Remaining=Mathf.Max(0,Remaining-dt);

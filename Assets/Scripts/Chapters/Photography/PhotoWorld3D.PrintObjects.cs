@@ -27,6 +27,7 @@ namespace MemoryWhitebox
 
         public void DetachDarkroom()
         {
+            StopPhotographySound();
             if(!sceneProcessing)return;
             SetDirectDarkroom(false);
             ClearDarkroomHighlight();guideRenderers.Clear();RestoreSceneProcessing();RestorePrintPoses();
@@ -121,7 +122,7 @@ namespace MemoryWhitebox
             if(printStage==ParkPrintStage.NegativeDrying && !printObjectsState.negativeRemoved)
             {
                 if(id=="tank" || id=="tank-lid")
-                {printObjectsState.negativeRemoved=true;SaveProgress();SyncProps();DarkroomNotice("Negative removed. Hang it to dry.");}
+                {printObjectsState.negativeRemoved=true;PhotographySound(129,"tank-lid");SaveProgress();SyncProps();DarkroomNotice("Negative removed. Hang it to dry.");}
                 else DarkroomNotice("Open the tank lid to take out the negative.");
                 return true;
             }
@@ -129,17 +130,19 @@ namespace MemoryWhitebox
             {
                 if(printStage>=ParkPrintStage.ContactReady && printStage<=ParkPrintStage.PaperDeveloper)
                 {
+                    bool before=printObjectsState.frameClosed;
                     if(printObjectsState.frameClosed)printObjectsState.frameClosed=false;
                     else if(printObjectsState.negative.locationId=="print-frame" && printObjectsState.paper.locationId=="print-frame")printObjectsState.frameClosed=true;
                     else DarkroomNotice("Place paper and negative in the frame first.");
+                    if(before!=printObjectsState.frameClosed)PhotographySound(231,"print-frame-lid");
                     SaveProgress();SyncPhysicalPrint();
                 }
                 return true;
             }
             if(id=="print-exposure" && printStage==ParkPrintStage.ContactReady && printObjectsState.frameClosed && printObjectsState.negative.locationId=="print-frame" && printObjectsState.paper.locationId=="print-frame")
-            {printStage=ParkPrintStage.Exposing;if(printRemaining<=0)printRemaining=PrintDuration(printStage);printProcessing=printHeld=true;SyncPhysicalPrint();return true;}
+            {printStage=ParkPrintStage.Exposing;if(printRemaining<=0)printRemaining=PrintDuration(printStage);printProcessing=printHeld=true;PhotographySound(231,"print-exposure");SyncPhysicalPrint();return true;}
             if(id=="print-tap" && printStage==ParkPrintStage.PaperWash && printObjectsState.paper.locationId=="print-wash")
-            {StartPhysicalProcess();return true;}
+            {PhotographySound(31,"print-tap");StartPhysicalProcess();return true;}
             bool negative=id=="print-negative" && (printStage==ParkPrintStage.NegativeDrying || printStage==ParkPrintStage.ContactReady);
             bool paper=id=="print-paper" && printStage>=ParkPrintStage.ContactReady && printStage<=ParkPrintStage.PaperDrying;
             if(!negative && !paper){if(!string.IsNullOrEmpty(id))DarkroomNotice("Follow the highlighted item.");return true;}
@@ -182,13 +185,13 @@ namespace MemoryWhitebox
                 OperationArea.ClearPlacement(Nodes[item].transform);
                 var record=item=="print-negative"?printObjectsState.negative:printObjectsState.paper;record.locationId=expected;
                 if(printStage==ParkPrintStage.NegativeDrying || (printStage>=ParkPrintStage.PaperDeveloper && printStage!=ParkPrintStage.PaperWash))StartPhysicalProcess();
-                WBMain.Tone(260,.05f);
+                if(!PhotographySound(item=="print-negative"?131:331,expected))WBMain.Tone(260,.05f);
             }
             else if(placed)
             {
                 var record=item=="print-negative"?printObjectsState.negative:printObjectsState.paper;
                 record.locationId="area/"+OperationArea.For(Nodes[item].transform).areaId;
-                DarkroomNotice("Placed on work area.");
+                PhotographySound(item=="print-negative"?131:331,item);DarkroomNotice("Placed on work area.");
             }
             else {WBMain.Tone(110,.05f);DarkroomNotice(rejection);}
             SyncPhysicalPrint();SaveProgress();Host.SaveStableProgress();return true;

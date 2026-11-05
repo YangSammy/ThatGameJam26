@@ -4,6 +4,33 @@ namespace MemoryWhitebox
 {
     public sealed partial class PhotoWorld3D
     {
+#if UNITY_EDITOR
+        public bool EditorCompleteDarkroom(out string message)
+        {
+            if(!DebugPrepareDarkroom(out message))return false;
+            if(ParkPrintsReady){message="Prints already ready. Click a hanging print to view.";return true;}
+            CancelInteraction();
+            // Advance to the final stable physical operation, then let normal drying,
+            // SaveDevelopment and the gallery/season transition publish completion.
+            darkroomWorkflow=3;tankSealed=true;needsDrain=false;
+            Photo.Phase=PhotoChapter.FilmPhase.Tank;Photo.Chemistry=3;
+            Photo.ProcessingTime=0;Photo.BagTurns=1;Photo.Agitated=true;
+            RewindTurns=1;RewoundBackOpen=true;clockDuration=0;
+            printObjectsState=new DarkroomPrintState{negativeRemoved=true};
+            printObjectsState.negative.locationId="print-frame";
+            printObjectsState.paper.locationId="print-photo-clip";
+            printStage=ParkPrintStage.PaperDrying;printRemaining=.8f;printProcessing=true;printHeld=false;
+            lastSavedState="";
+            if(!SaveProgress())
+            {
+                parkFilm=null;lastSavedState="";LoadParkFilm();SyncProps();
+                message="Print completion not saved. Previous checkpoint restored; retry after fixing storage.";return false;
+            }
+            LoadContactTexture();SyncProps();
+            message="Prints drying. Click the hanging print when ready.";
+            return true;
+        }
+#endif
         public bool DebugPrepareDarkroom(out string message)
         {
             // Save the live timer/placements before touching disk. Repeated use never rewinds a roll.

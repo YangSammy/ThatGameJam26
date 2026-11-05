@@ -12,7 +12,7 @@ namespace MemoryWhitebox
         public TapeAcceptanceRules Rules;
         public string Reject(int[] recording)
         {
-            if(recording==null || recording.Length==0)return "No recording. Play A, then hold F + S on a prepared B.";
+            if(recording==null || recording.Length==0)return "No recording. Play A with F, then press S to record onto prepared B.";
             var seen=new bool[CleanCount];int noise=0,silence=0,previous=-1,clean=0;
             bool repeated=false;
             foreach(int source in recording)

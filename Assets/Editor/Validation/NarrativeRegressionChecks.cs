@@ -73,10 +73,35 @@ namespace MemoryWhitebox.Editor
                     var p=new PaintingChapter();p.Painted[0]=true;p.Painted[1]=true;p.MiddleCheckpoint=true;p.Riding=0;p.Velocity=new Vector2(4,5);
                     var copy=new PaintingChapter();copy.RestoreCheckpoint(p.CaptureCheckpoint());Require(copy.Riding<0&&copy.Actor==new Vector2(6.8f,.7f)&&copy.Velocity==Vector2.zero&&copy.Painted[0],"Unsafe carrier restoration");
                 });
-                Case("Ward reveal monotonic, resumable and nose-cut",()=>{
+                Case("Distance ward reveal freezes, preserves retreat and cuts at the end",()=>{
                     var p=new PaintingChapter();p.RestoreCheckpoint("{\"version\":2,\"phase\":3,\"shapes\":[true,true,true,true,true],\"key\":true,\"crate\":4}");
-                    Frames(p,20,KeyCode.D);float height=p.WardRevealHeight;Frames(p,20);Require(p.WardRevealHeight==height,"Idle revealed ward");Frames(p,10,KeyCode.A);Require(p.WardRevealHeight==height,"Retreat hid ward");
-                    var copy=new PaintingChapter();copy.RestoreCheckpoint(p.CaptureCheckpoint());Require(Mathf.Abs(copy.WardRevealHeight-height)<.001f,"Reveal lost on load");Frames(copy,300,KeyCode.D);Require(copy.Completed&&copy.Phase==4&&copy.WardRevealHeight==copy.NoseHeight,"Nose cut incorrect");
+                    Frames(p,20,KeyCode.D);
+                    float height=p.WardRevealHeight, peak=p.WardDistance;
+                    Require(Mathf.Abs(height-p.NoseHeight*peak/p.WardWalkDistance)<.001f,"Reveal did not follow distance");
+                    Frames(p,20);
+                    Require(p.WardRevealHeight==height && p.Actor.x==peak,"Idle changed reveal");
+                    Frames(p,10,KeyCode.A);
+                    float retreated=p.Actor.x;
+                    Require(retreated<peak && p.WardDistance==peak && p.WardRevealHeight==height,"Retreat erased reveal");
+                    var copy=new PaintingChapter();copy.RestoreCheckpoint(p.CaptureCheckpoint());
+                    Require(Mathf.Abs(copy.Actor.x-retreated)<.001f && Mathf.Abs(copy.WardDistance-peak)<.001f &&
+                        Mathf.Abs(copy.WardRevealHeight-height)<.001f,"Reload lost retreated position or reveal");
+                    Frames(copy,5,KeyCode.D);
+                    Require(copy.Actor.x>retreated && copy.Actor.x<peak && copy.WardRevealHeight==height,"Returning under peak advanced reveal");
+                    copy.Tick(60,Keys());Require(!copy.Completed,"Idle completed ward");
+                    copy.Tick(copy.WardWalkDistance/copy.WardWalkSpeed,Keys(KeyCode.D));
+                    Require(copy.Completed && copy.Phase==4 && copy.WardRevealHeight==copy.NoseHeight,"Distance cutoff did not finish in same tick");
+                });
+                Case("Legacy ward checkpoints retain recorded distance and completion",()=>{
+                    const string partial="{\"version\":2,\"phase\":3,\"shapes\":[true,true,true,true,true],\"key\":true,\"ward\":1.5}";
+                    var p=new PaintingChapter();p.RestoreCheckpoint(partial);
+                    Require(p.Actor.x==1.5f && p.WardDistance==1.5f && p.Phase==3,"Legacy ward did not restore its recorded distance");
+                    Require(Mathf.Abs(p.WardTime/PaintingChapter.WardRevealSeconds-1.5f/p.WardWalkDistance)<.001f,"Legacy distance did not migrate to equivalent reveal time");
+                    var completed=new PaintingChapter();
+                    completed.RestoreCheckpoint(partial.Replace("\"phase\":3","\"phase\":4"));
+                    Require(completed.Actor.x==1.5f && completed.WardRevealHeight==completed.NoseHeight,"Legacy completed ward did not restore its final reveal");
+                    completed.Tick(.02f,Keys());
+                    Require(completed.Completed,"Legacy final phase did not complete on tick");
                 });
                 Case("Spring requires open door then crossing, no item gate",()=>{
                     var e=new EndingChapter();e.CrossThreshold();Require(!e.Completed,"Closed doorway completed");e.OpenDoor();Require(!e.Completed,"Click alone completed");var copy=new EndingChapter();copy.RestoreCheckpoint(e.CaptureCheckpoint());Require(copy.DoorOpen&&!copy.Completed,"Open door restore failed");copy.CrossThreshold();Require(copy.Completed,"Crossing failed");

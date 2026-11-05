@@ -1,0 +1,230 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4dc94a6c4c5428e4d84caa831c523524, type: 3}
+  m_Name: StorySfxBank
+  m_EditorClassIdentifier: 
+  cues:
+  - id: 3
+    clip: {fileID: 8300000, guid: e2279da79b694b099c8aa501d2934c90, type: 3}
+    start: 0
+    duration: 0.230000
+    volume: 0.2
+  - id: 103
+    clip: {fileID: 8300000, guid: 96a89ce7a6cd4b259b721eacbe00858a, type: 3}
+    start: 0
+    duration: 0.840000
+    volume: 0.15
+  - id: 19
+    clip: {fileID: 8300000, guid: e0a33e1e902b4ea086ba0b211b3997aa, type: 3}
+    start: 0
+    duration: 0.720000
+    volume: 0.27
+  - id: 32
+    clip: {fileID: 8300000, guid: fdd73f2796b046c299003be8bf486679, type: 3}
+    start: 0
+    duration: 1.140000
+    volume: 0.22
+  - id: 33
+    clip: {fileID: 8300000, guid: 93502de793334c8ca712fb881a171e2b, type: 3}
+    start: 0
+    duration: 0.820000
+    volume: 0.3
+  - id: 133
+    clip: {fileID: 8300000, guid: 86199770244e4493bc0b5e4dd17b7292, type: 3}
+    start: 0
+    duration: 0.570000
+    volume: 0.25
+  - id: 233
+    clip: {fileID: 8300000, guid: c6a43ab78d6b4d06a89a42256c6327db, type: 3}
+    start: 0
+    duration: 0.480000
+    volume: 0.24
+  - id: 34
+    clip: {fileID: 8300000, guid: e185bb0f2af645d2b1d3f9366e8b08ec, type: 3}
+    start: 0
+    duration: 0.410000
+    volume: 0.25
+  - id: 35
+    clip: {fileID: 8300000, guid: 46c9f6c99cf74745aeb27436efe75ab6, type: 3}
+    start: 0
+    duration: 0.220000
+    volume: 0.2
+  - id: 135
+    clip: {fileID: 8300000, guid: cf9e4f08eb9f49f68f46bbe335355286, type: 3}
+    start: 0
+    duration: 0.240000
+    volume: 0.29
+  - id: 235
+    clip: {fileID: 8300000, guid: 08c7c07cdf0b44f5991b979b760ac254, type: 3}
+    start: 0
+    duration: 1.900000
+    volume: 0.33
+  - id: 36
+    clip: {fileID: 8300000, guid: c2786cb7cadc4249b1c4a5228ce70dbf, type: 3}
+    start: 0
+    duration: 0.340000
+    volume: 0.19
+  - id: 136
+    clip: {fileID: 8300000, guid: 39e85060af0e41af961d567740bbe583, type: 3}
+    start: 0
+    duration: 0.230000
+    volume: 0.19
+  - id: 37
+    clip: {fileID: 8300000, guid: 015c8da56f6e46faab87f64bd4d56bf7, type: 3}
+    start: 0
+    duration: 0.520000
+    volume: 0.2
+  - id: 137
+    clip: {fileID: 8300000, guid: cc6d71a717c44bb98e6ef5c96256ced3, type: 3}
+    start: 0
+    duration: 0.450000
+    volume: 0.23
+  - id: 38
+    clip: {fileID: 8300000, guid: 10cf90f764bb41d696086107fb4ecc79, type: 3}
+    start: 0
+    duration: 0.260000
+    volume: 0.28
+  - id: 138
+    clip: {fileID: 8300000, guid: 2c922daca3bc4d88a1f298772812ec79, type: 3}
+    start: 0
+    duration: 0.340000
+    volume: 0.21
+  - id: 39
+    clip: {fileID: 8300000, guid: 91bc273dc5ac4ea58c304caeae532d70, type: 3}
+    start: 0
+    duration: 2.800000
+    volume: 0.31
+  - id: 40
+    clip: {fileID: 8300000, guid: 3d36fd3a581d4d67822f3ecb45bef750, type: 3}
+    start: 0
+    duration: 0.200000
+    volume: 0.23
+  - id: 140
+    clip: {fileID: 8300000, guid: 5a44a14fb7a34a63bfbf74e26e0ed848, type: 3}
+    start: 0
+    duration: 0.210000
+    volume: 0.28
+  - id: 240
+    clip: {fileID: 8300000, guid: 0c8c734782484df7ae092e21af716218, type: 3}
+    start: 0
+    duration: 0.450000
+    volume: 0.29
+  - id: 41
+    clip: {fileID: 8300000, guid: f90b28ffea4047e9902e71b0facfb29d, type: 3}
+    start: 0
+    duration: 0.560000
+    volume: 0.27
+  - id: 141
+    clip: {fileID: 8300000, guid: de8914c23459438b870a6225969ab1c8, type: 3}
+    start: 0
+    duration: 1.950000
+    volume: 0.26
+  - id: 42
+    clip: {fileID: 8300000, guid: eea383e0dcb6416393beb01d025db1d1, type: 3}
+    start: 0
+    duration: 0.320000
+    volume: 0.31
+  - id: 142
+    clip: {fileID: 8300000, guid: 24800119874542f3a30624b81ed04c59, type: 3}
+    start: 0
+    duration: 0.290000
+    volume: 0.24
+  - id: 43
+    clip: {fileID: 8300000, guid: dd3779d29e994664b0162ea5cbee98c0, type: 3}
+    start: 0
+    duration: 3.250000
+    volume: 0.25
+  - id: 44
+    clip: {fileID: 8300000, guid: e65aecce55074c42bf37e982c95cd473, type: 3}
+    start: 0
+    duration: 0.950000
+    volume: 0.32
+  - id: 45
+    clip: {fileID: 8300000, guid: 7aa50969bf654a41a0f12e2831148bb1, type: 3}
+    start: 0
+    duration: 0.660000
+    volume: 0.31
+  - id: 145
+    clip: {fileID: 8300000, guid: f9d5afb8f09a45a884256ff070ea3280, type: 3}
+    start: 0
+    duration: 2.000000
+    volume: 0.27
+  - id: 245
+    clip: {fileID: 8300000, guid: e1a9ddb6612d4538b7f052ab5ed5234d, type: 3}
+    start: 0
+    duration: 0.850000
+    volume: 0.31
+  - id: 46
+    clip: {fileID: 8300000, guid: c678846358f1438da8624b645ba867a8, type: 3}
+    start: 0
+    duration: 1.180000
+    volume: 0.23
+  - id: 146
+    clip: {fileID: 8300000, guid: 375de8d8dd5948df8f9a259878add93c, type: 3}
+    start: 0
+    duration: 0.830000
+    volume: 0.25
+  - id: 47
+    clip: {fileID: 8300000, guid: 48cdb254392849939349a270edd0b65a, type: 3}
+    start: 0
+    duration: 0.440000
+    volume: 0.28
+  - id: 48
+    clip: {fileID: 8300000, guid: f780990607ec42a4bfd914d2bcc649e7, type: 3}
+    start: 0
+    duration: 0.710000
+    volume: 0.29
+  - id: 148
+    clip: {fileID: 8300000, guid: 9e7ca883c90745a081284b02692ed20b, type: 3}
+    start: 0
+    duration: 0.720000
+    volume: 0.26
+  - id: 49
+    clip: {fileID: 8300000, guid: 702b15bf313e48408610968be825c892, type: 3}
+    start: 0
+    duration: 0.880000
+    volume: 0.26
+  - id: 149
+    clip: {fileID: 8300000, guid: 05addc78f41e4cb8b42fbfaf9ab7e667, type: 3}
+    start: 0
+    duration: 0.640000
+    volume: 0.27
+  - id: 249
+    clip: {fileID: 8300000, guid: e0a233b57f3945ef9121f650768a2dfc, type: 3}
+    start: 0
+    duration: 0.750000
+    volume: 0.18
+  - id: 50
+    clip: {fileID: 8300000, guid: 27a1fcaf13d34dbdb713eaba2432a579, type: 3}
+    start: 0
+    duration: 0.940000
+    volume: 0.3
+  - id: 150
+    clip: {fileID: 8300000, guid: 67e644b5469345c0a14c5e6ff4c46ff0, type: 3}
+    start: 0
+    duration: 0.480000
+    volume: 0.27
+  - id: 134
+    clip: {fileID: 8300000, guid: aa813981e2555020af9907487bfdde6d, type: 3}
+    start: 0
+    duration: 0.320000
+    volume: 0.27
+  - id: 246
+    clip: {fileID: 8300000, guid: 4801f6abe6675e7aa18b45ef6e722b04, type: 3}
+    start: 0
+    duration: 0.340000
+    volume: 0.2
+  - id: 234
+    clip: {fileID: 8300000, guid: f47a453ac36f51efa1f64526ff862f4b, type: 3}
+    start: 0
+    duration: 2.000000
+    volume: 0.28

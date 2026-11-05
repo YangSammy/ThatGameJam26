@@ -3,6 +3,24 @@ using UnityEngine;
 
 namespace MemoryWhitebox
 {
+    internal struct PlayerFootsteps
+    {
+        const float StrideDistance = .62f;
+        float distance;
+
+        public void Reset() => distance = 0;
+
+        public void Advance(Vector3 from, Vector3 to, Vector3 soundPosition)
+        {
+            var displacement = to - from;
+            displacement.y = 0;
+            distance += displacement.magnitude;
+            if (distance < StrideDistance) return;
+            distance %= StrideDistance;
+            StorySfx.Shot(3, soundPosition);
+        }
+    }
+
     public class RoomWorld
     {
         public Camera Camera;
@@ -23,7 +41,8 @@ namespace MemoryWhitebox
         Vector3 velocity;
         public float WalkSpeed=1.8f,LookSensitivity=2.1f;
         public Vector3 Velocity => velocity;
-        public void StopMotion(){velocity=Vector3.zero;}
+        PlayerFootsteps footsteps;
+        public void StopMotion(){velocity=Vector3.zero;footsteps.Reset();}
         public Transform ExitThreshold;
         public float ExitHalfWidth=.52f;
         public bool ExitOpen;
@@ -180,6 +199,7 @@ namespace MemoryWhitebox
             Camera.transform.rotation=Quaternion.Euler(pitch,yaw,0);
             axes=Vector2.ClampMagnitude(axes,1);
             Vector3 wanted=Quaternion.Euler(0,yaw,0)*new Vector3(axes.x,0,axes.y)*Mathf.Max(.1f,WalkSpeed);
+            var before = Camera.transform.position;
             float remaining=Mathf.Clamp(dt,0,.1f);
             while(remaining>0)
             {
@@ -192,6 +212,8 @@ namespace MemoryWhitebox
                 if(Clear(next))pos=next;else velocity.z=0;
                 Camera.transform.position=pos;
             }
+            var after = Camera.transform.position;
+            footsteps.Advance(before, after, after - Vector3.up * PlayerControlSettings.Current.eyeHeight);
             UpdateAim();
         }
         public bool CanWalkAt(Vector3 position){return (bedroomZones!=null || !shared || InExitCorridor(position) || (position.x>=-3.45f && position.x<=3.45f && position.z>=-4.05f && position.z<=4.05f)) && Clear(position);}
@@ -231,6 +253,7 @@ namespace MemoryWhitebox
         public void WarpTo(int index)
         {
             if (Camera == null || StationPositions == null) return;
+            footsteps.Reset();
             index = Mathf.Clamp(index, 0, StationPositions.Length - 1);
             Vector3 at = StationPositions[index], inward = new Vector3(-at.x, 0, -at.z).normalized;
             Camera.transform.position = shared?HouseLayout.Approaches[index]:new Vector3(at.x + inward.x * 1.7f, 1.65f, at.z + inward.z * 1.7f);

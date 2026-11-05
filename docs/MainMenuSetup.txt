@@ -1,0 +1,24 @@
+﻿主菜单接入说明（2026-11-05）
+
+场景：Assets/Scenes/MainMenuScene.unity，已设为 Build Settings 第一项；GameBuild 的 Windows 打包入口同步包含主菜单。HouseScene 仍负责游戏内部加载，不作为包体启动画面。之前已经生成的独立包没有自动更新，需要下次重新打包。
+
+Hierarchy：MenuCanvas / Content 下包含 Home、Settings、Credits、Confirmation、Loading，均为场景内真实 UI，可直接调布局。MenuCanvas 上 MainMenuController 的 Credits Copy 为制作名单正文，支持多行、滚动；目前只有明确的待补名单说明，没有虚构人员。
+
+功能：Continue / New Game / Settings / Credits / Quit。新档或不可用存档时 Continue 禁用；完整结局后提示重开。New Game 如有进度会先确认，然后把当前已知章节 JSON、录音 PCM、摄影进度及 ParkFilm 目录移入当前存档根的 ArchivedGames/时间-GUID；不删除原数据，不改存档格式。部分移动失败会回滚并留在菜单。归档不会读取为继续存档，手动恢复须在关闭游戏后把一份完整归档还原到原位置，先备份当前档。Continue 沿用 FiveDayProgress，包括现有有效 .bak 恢复机制；菜单查询本身不修改文件。
+
+设置：总音量、转头灵敏度倍率、画质、全屏、VSync。Apply 后通过独立 PlayerPrefs 键 MemoryWhitebox.Preferences.v1 持久化；Back 不应用未确认更改；Defaults 先填入推荐值，Apply 才保存。灵敏度乘在共用 LookDelta 上，不修改场景镜头、定位或 PlayerControlSettings 资产。
+
+游戏在 Unity 中直接打开 HouseScene Play 的开发方式保持不变。从 MainMenuScene 启动时使用正式五日顺序及正式槽文件名，但仍处于 Editor 的隔离目录。项目原有每次 Play 重置测试存档设置保持原样；开启该设置时每次 Play 菜单没有旧档是预期行为，包体不受影响。
+
+本次验证：
+- Unity Editor 编译及无 UNITY_EDITOR 的 Development Player 程序集编译通过。
+- 自动检查空档、损坏档、有效备份、只读探测、归档保留 PCM/照片、无关文件隔离、重复归档、锁文件中途失败回滚。
+- Scene 引用完整，EditorBuildSettings 与 GameBuild 启动入口一致。
+- 实际 Play 中调用已绑定的 Button.onClick，验证 New Game 确认/取消、从主菜单进入春季、保存后继续进入春季、音量和灵敏度设置并跨 Play 恢复、Credits 页面及 Quit 确认取消。没有用真实鼠标逐项点击，不等同鼠标命中验收。
+- 菜单不创建 WBMain 或环境音，进入游戏创建一个环境音实例，再次进入没有重复。
+- 保存了实际运行画面，测试后原 Editor 存档、启动场景覆盖及设置键已恢复。
+- 未重新生成独立包；不同分辨率、独立包内画质/全屏及完整五日读档回归未验证。
+
+证据：output/QA/MainMenu_20261105/ 下 static-checks.txt、menu-runtime.txt、menu-home.png、menu-settings-final.png、continue-spring.png。
+
+人工检查：打开 MainMenuScene Play；无档 Continue 灰色；设置拖动后 Apply/Back 对照；Credits 可改文案并滚动；New Game 进入春季；有档再次打开菜单点击 New Game，Cancel 保留、Confirm 重开；包体下一次构建后验证启动主菜单、Continue 正确回到对应季节、Quit 关闭程序。

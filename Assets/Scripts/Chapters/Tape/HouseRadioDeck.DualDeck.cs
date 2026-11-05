@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 namespace MemoryWhitebox
 {
     public sealed partial class HouseRadioDeck
@@ -11,15 +11,16 @@ namespace MemoryWhitebox
             if(string.IsNullOrEmpty(command) || Chapter==null || transport==null)return null;
             int side=command[0]=='A'?0:1;
             string key=command.Substring(2),prefix=side==0?"A · ":"B · ";
+            if(side==0 && (key=="Rewind" || key=="Forward"))return transport.Writing?"Pause B recording with S before winding":key=="Rewind"?"J · Rewind loaded A / B tapes · Click again to stop":"L · Fast-forward loaded A / B tapes · Click again to stop";
             if(DeckBusy(side))return prefix+"Loading / unloading — please wait";
-            if(key=="Door")return prefix+(dualDeck!=null && dualDeck.IsOpen(side)?"Close door":"Open door · Stops this deck only");
-            if(key=="Stop" || key=="Pause")return side==0?"A · Stop original · B stays independent":transport.Writing?"B · Stop recording · A keeps playing":"B · Stop copy · A keeps playing";
+            if(key=="Door")return prefix+"Click slot to eject · Other deck stays independent";
+            if(key=="Stop" || key=="Pause")return side==0?"A · ['] Stop original · B stays independent":transport.Writing?"B · Stop recording · A keeps playing":"B · Stop copy · A keeps playing";
             if(key=="Eject")return prefix+"Eject tape · Other deck keeps playing";
-            if(side==0 && key=="Forward")return "A · Fast-forward unavailable";
+
             if(side==0 && !Chapter.SourceLoaded)return "A · Load the original tape first";
             if(side==1 && Selected<0)return "B · Load a work tape first";
             if(dualDeck!=null && !dualDeck.Closed(side))return prefix+"Close the door first";
-            if(side==0)return key=="Rewind"?"A · Return original to start":"A · Play original · Listen for noise";
+            if(side==0)return key=="Rewind"?"A · J · Toggle rewind":key=="Forward"?"A · L · Toggle fast-forward":"A · F · Toggle playback";
             if(key=="Record")
             {
                 if(Chapter.Completed)return "B · All copies saved · Playback available";
@@ -28,13 +29,13 @@ namespace MemoryWhitebox
                 if(!Chapter.Tape.Candidates[Selected].Intact)return "B · Eject and check both reels first";
                 if(!Chapter.Tape.Candidates[Selected].Prepared)return "B · Eject and cover both upper-edge holes";
                 if(dualDeck!=null && !dualDeck.Closed(0))return "B · Close A before recording";
-                if(transport.SourceStatus=="END" && transport.RecordedSeconds>0)return "B · Original ended · Listen to your copy";
-                if(transport.Writing)return "B · Recording · STOP B before noise";
-                return "B · Hold S + F to record · Start A separately";
+
+                if(transport.Writing)return "B · S · Pause recording · A keeps playing";
+                return "B · S · Start / resume recording · Press again to pause";
             }
-            if(key=="Play")return "B · Hold F to play · Hold S too to record";
-            if(key=="Rewind")return "B · Hold J to rewind · Release to stop";
-            if(key=="Forward")return "B · Hold L to advance · Release to stop";
+            if(key=="Play")return "B · Toggle playback of your copy · Stop A to listen";
+            if(key=="Rewind")return "B · Toggle rewind · Click again to stop";
+            if(key=="Forward")return "B · Toggle fast-forward · Click again to stop";
             return null;
         }
         public bool DeckBusy(int deck)=>dualDeck!=null&&dualDeck.Busy(deck);
@@ -54,8 +55,16 @@ namespace MemoryWhitebox
             ShowTapeDropPreview(drag.Blocked?null:receiver);
         }
         void VisibleCassette(Transform item,bool visible)
-        {if(item==null)return;foreach(var r in item.GetComponentsInChildren<Renderer>(true))r.enabled=visible;foreach(var c in item.GetComponentsInChildren<Collider>(true))c.enabled=visible;}
-        void StopTargetOnly(){ClearKeyFeedback();UITransportCommand=-1;wasWriting=false;stopLatch=true;transport?.TargetCommand(false,false,0,house!=null&&house.Muted);transport?.Save();}
+        {
+            if(item==null)return;
+            // A returned tape is placed in the same frame. Retired whitebox surfaces must
+            // remain excluded now, not wait for the next workbench visual tick to hide them.
+            foreach(var r in item.GetComponentsInChildren<Renderer>(true))
+                r.enabled=visible && (workbenchVisuals==null || System.Array.IndexOf(workbenchVisuals.legacyRenderers,r)<0);
+            foreach(var c in item.GetComponentsInChildren<Collider>(true))
+                c.enabled=visible && (workbenchVisuals==null || System.Array.IndexOf(workbenchVisuals.legacyColliders,c)<0);
+        }
+        void StopTargetOnly(){ClearKeyFeedback();UITransportCommand=-1;wasWriting=false;transport?.TargetCommand(false,false,0,house!=null&&house.Muted);transport?.Save();}
         void HandoffToWorkbench()
         {internalDeckHandoff=true;try{OpenWorkbench();}finally{internalDeckHandoff=false;}}
         void FinishWorkbenchTransfer(){internalDeckHandoff=dualDeck!=null;try{CloseWorkbench();}finally{internalDeckHandoff=false;}}
@@ -76,12 +85,13 @@ namespace MemoryWhitebox
                 transport.SourceCommand(0);
                 if(!Chapter.SourceLoaded)return dualDeck.Door(0,!dualDeck.IsOpen(0));
                 transferA=true;
-                return dualDeck.Transfer(0,false,()=>{transferA=false;Chapter.SourceLoaded=false;RestoreSource();dualDeck.Snap(0,false,true);house.SaveStableProgress();});
+                return dualDeck.Transfer(0,false,()=>{transferA=false;Chapter.SourceLoaded=false;RestoreSource();ReturnTapeToDesk(originalTape,CurrentCopy);dualDeck.Snap(0,false,true);house.SaveStableProgress();});
             }
             StopTargetOnly();
             if(Selected<0)return dualDeck.Door(1,!dualDeck.IsOpen(1));
             transferB=true;
-            return dualDeck.Transfer(1,false,()=>{transferB=false;ResetDeck();dualDeck.Snap(1,false,true);house.SaveStableProgress();});
+            int removed=Selected;
+            return dualDeck.Transfer(1,false,()=>{transferB=false;ResetDeck();ReturnTapeToDesk(tapes[removed].root,3+removed);dualDeck.Snap(1,false,true);house.SaveStableProgress();});
         }
         public bool ToggleDualDoor(int deck)
         {
@@ -93,19 +103,20 @@ namespace MemoryWhitebox
         {
             if(dualDeck==null||string.IsNullOrEmpty(command))return false;
             int deck=command[0]=='A'?0:1;string key=command.Substring(2);
+            if(deck==0 && (key=="Rewind" || key=="Forward")){SourceControl(key=="Rewind"?2:4);return true;}
             if(dualDeck.Busy(deck))return true;
-            if(key=="Door"){ToggleDualDoor(deck);return true;}
+            if(key=="Door"){EjectDualDeck(deck);return true;}
             if(key=="Eject"){dualDeck.Press(deck,key);EjectDualDeck(deck);return true;}
             if(key=="Stop"||key=="Pause")dualDeck.Press(deck,key);
             if(!dualDeck.Closed(deck))return true;
-            if(!RecordingMode)OpenRecording();
+            if(!RecordingMode){OpenRecording();recordingWait=false;}
             if(deck==0)
             {
                 if(!Chapter.SourceLoaded)return true;
-                if(key=="Play")transport.SourceCommand(1);
-                else if(key=="Rewind"){transport.SourceCommand(2);dualDeck.Press(0,key);}
-                else if(key=="Stop"||key=="Pause")transport.SourceCommand(0);
-                else if(key=="Forward")Notice="Source fast-forward is not available.";
+                if(key=="Play")SourceControl(1);
+                else if(key=="Rewind")SourceControl(2);
+                else if(key=="Stop"||key=="Pause")SourceControl(0);
+                else if(key=="Forward")SourceControl(4);
             }
             else
             {
@@ -122,7 +133,7 @@ namespace MemoryWhitebox
             if(!paused)
             {
                 string pressed=TargetKeyDown(2)?"Rewind":TargetKeyDown(3)?"Forward":TargetKeyDown(1)?"Play":null;
-                dualDeck.Tick(Time.unscaledDeltaTime,Chapter.SourceLoaded&&transport.SourcePlaying,Selected>=0?transport.TargetStatus:"EMPTY",transport.Writing,TargetKeyDown(0),pressed);
+                dualDeck.Tick(Time.unscaledDeltaTime,Chapter.SourceLoaded&&transport.SourcePlaying,Selected>=0?transport.TargetStatus:"EMPTY",transport.Writing,TargetKeyDown(0),pressed,transport.SourceStatus);
             }
             if(Chapter.SourceLoaded)VisibleCassette(originalTape,false);
             if(Selected>=0&&(State==Phase.Loading||State==Phase.Paused))VisibleCassette(tapes[Selected].root,false);

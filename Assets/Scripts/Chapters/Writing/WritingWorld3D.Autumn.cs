@@ -4,7 +4,44 @@ namespace MemoryWhitebox
     public sealed partial class WritingWorld3D
     {
         readonly Transform[] collectionProps=new Transform[4],inventoryProps=new Transform[4];
-        Transform farewellArm;
+        float farewellTravel=-1;
+
+        Vector3 TimerSoundPosition=>desk.timer!=null?desk.timer.transform.position:PaperCenter;
+        // The memory view uses a separate miniature set. Keep its foley beside the main listener.
+        Vector3 MemorySoundPosition=>PaperCenter-sheet.transform.right*.25f;
+
+        static int TimerCue(float before,float after)
+        {
+            if(after>=before)return 0;
+            if(after<=0)return 235;
+            int second=Mathf.CeilToInt(after);
+            if(second>=Mathf.CeilToInt(before))return 0;
+            return second<=15?135:35;
+        }
+
+        void PlayWritingStateEdges(int previousItems,string previousPhase,bool clockRunning,float remaining)
+        {
+            int acquired=State.Collected & ~previousItems;
+            for(int i=0;i<collectionProps.Length;i++)
+            {
+                if((acquired & (1<<i))==0)continue;
+                StorySfx.Shot(i==3?134:34,MemorySoundPosition);
+                if(i==0)StorySfx.Shot(19,MemorySoundPosition);
+            }
+            if(clockRunning && (State.Phase=="collect" || State.Phase=="crumple"))
+            {
+                int cue=TimerCue(remaining,State.Remaining);
+                if(cue!=0)StorySfx.Shot(cue,TimerSoundPosition);
+            }
+            if(previousPhase==State.Phase)return;
+            StorySfx.Stop(32);
+            if(State.Phase=="farewell")
+            {
+                farewellTravel=0;
+                StorySfx.Shot(36,MemorySoundPosition);
+            }
+            else farewellTravel=-1;
+        }
         void BuildAutumnProps()
         {
             npc.localPosition=new Vector3(3.3f,0,.28f);
@@ -18,9 +55,6 @@ namespace MemoryWhitebox
                 inventoryProps[i]=Child(player,"held-"+WritingChapter.ItemIds[i],new Vector3((i-1.5f)*.15f,.55f,-.23f),sizes[i]*.45f,colors[i]).transform;
             }
             Child(memory,"entrance-mat",new Vector3(3.1f,.01f,.35f),new Vector3(1.7f,.02f,.7f),"#d4c3a3");
-            // Hair covers the prototype head at every viewpoint; shoulder/arm motion carries farewell.
-            Child(npc,"hair",new Vector3(0,1.15f,0),new Vector3(.34f,.36f,.33f),"#2e302e",PrimitiveType.Sphere);
-            farewellArm=Child(npc,"farewell-arm",new Vector3(.28f,.85f,0),new Vector3(.1f,.45f,.1f),"#c2ad91",PrimitiveType.Capsule).transform;
             SetLayer(memory,MemoryLayer);
         }
         void UpdateAutumnActors(float dt)
@@ -29,10 +63,22 @@ namespace MemoryWhitebox
             if(direction.sqrMagnitude>.00001f)player.localRotation=Quaternion.LookRotation(direction);
             player.localPosition=next;lastMemoryPlayer=next;
             float departure=State.Phase=="farewell" || State.Completed?1:0;
-            npc.localPosition=Vector3.Lerp(npc.localPosition,new Vector3(3.3f,0,departure>0?-.45f:.28f),Mathf.Clamp01(dt*.7f));
+            var before=npc.localPosition;
+            npc.localPosition=Vector3.Lerp(before,new Vector3(3.3f,0,departure>0?-.45f:.28f),Mathf.Clamp01(dt*.7f));
+            if(State.Phase=="farewell" && farewellTravel>=0)
+            {
+                farewellTravel+=Vector3.Distance(before,npc.localPosition);
+                if(farewellTravel>=.15f)
+                {
+                    farewellTravel=-1;
+                    StorySfx.Shot(136,MemorySoundPosition);
+                }
+            }
             npc.localRotation=Quaternion.Euler(0,180,0);
-            farewellArm.localRotation=Quaternion.Euler(0,0,departure>0?100+Mathf.Sin(time*3)*12:15);
-            for(int i=0;i<4;i++){collectionProps[i].gameObject.SetActive(!State.HasItem(i));inventoryProps[i].gameObject.SetActive(State.HasItem(i));}
+            farewellSeconds=departure>0?Mathf.Min(2,farewellSeconds+dt):0;
+            if(farewellVisual!=null)farewellVisual.Present(time,farewellSeconds,departure>0);
+            UpdateMemoryRestoration(dt);
+            for(int i=0;i<4;i++)collectionProps[i].gameObject.SetActive(!State.HasItem(i));
             scarf.gameObject.SetActive(false);npcBox.gameObject.SetActive(false);doorHand.gameObject.SetActive(false);
             door.localRotation=Quaternion.Euler(0,-100,0);
             float warmth=State.Completed?1:State.InkFresh?.85f:.35f;
