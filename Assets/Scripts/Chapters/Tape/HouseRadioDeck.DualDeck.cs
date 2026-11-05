@@ -55,7 +55,7 @@ namespace MemoryWhitebox
         }
         void VisibleCassette(Transform item,bool visible)
         {if(item==null)return;foreach(var r in item.GetComponentsInChildren<Renderer>(true))r.enabled=visible;foreach(var c in item.GetComponentsInChildren<Collider>(true))c.enabled=visible;}
-        void StopTargetOnly(){UITransportCommand=-1;wasWriting=false;stopLatch=true;transport?.TargetCommand(false,false,0,house!=null&&house.Muted);transport?.Save();}
+        void StopTargetOnly(){ClearKeyFeedback();UITransportCommand=-1;wasWriting=false;stopLatch=true;transport?.TargetCommand(false,false,0,house!=null&&house.Muted);transport?.Save();}
         void HandoffToWorkbench()
         {internalDeckHandoff=true;try{OpenWorkbench();}finally{internalDeckHandoff=false;}}
         void FinishWorkbenchTransfer(){internalDeckHandoff=dualDeck!=null;try{CloseWorkbench();}finally{internalDeckHandoff=false;}}
@@ -119,7 +119,11 @@ namespace MemoryWhitebox
         {
             if(dualDeck==null||Chapter==null||transport==null)return;
             bool paused=!focused || (house!=null&&(house.ShowHelp||house.safeInspection!=null&&house.safeInspection.BlocksInput));
-            if(!paused)dualDeck.Tick(Time.unscaledDeltaTime,Chapter.SourceLoaded&&transport.SourcePlaying,Selected>=0?transport.TargetStatus:"EMPTY",transport.Writing);
+            if(!paused)
+            {
+                string pressed=TargetKeyDown(2)?"Rewind":TargetKeyDown(3)?"Forward":TargetKeyDown(1)?"Play":null;
+                dualDeck.Tick(Time.unscaledDeltaTime,Chapter.SourceLoaded&&transport.SourcePlaying,Selected>=0?transport.TargetStatus:"EMPTY",transport.Writing,TargetKeyDown(0),pressed);
+            }
             if(Chapter.SourceLoaded)VisibleCassette(originalTape,false);
             if(Selected>=0&&(State==Phase.Loading||State==Phase.Paused))VisibleCassette(tapes[Selected].root,false);
         }

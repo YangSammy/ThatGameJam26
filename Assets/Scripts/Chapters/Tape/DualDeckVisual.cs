@@ -49,7 +49,7 @@ namespace MemoryWhitebox
             });};
             if(open[deck])move();else Play(p+"door",p+"Open",move);return true;
         }
-        public void Tick(float dt,bool aPlaying,string bStatus,bool writing)
+        public void Tick(float dt,bool aPlaying,string bStatus,bool writing,bool recordPressed=false,string transportPressed=null)
         {
             finished.Clear();foreach(var pair in motions){var m=pair.Value;m.time=Mathf.Min(m.clip.length,m.time+dt);m.clip.SampleAnimation(gameObject,m.time);if(m.time>=m.clip.length)finished.Add(pair.Key);}
             foreach(var key in finished){var done=motions[key].complete;motions.Remove(key);done?.Invoke();}
@@ -57,11 +57,24 @@ namespace MemoryWhitebox
             for(int i=0;i<2;i++)if(Closed(i)&&(i==0?aPlaying:bPlaying))
             {float speed=i==1&&bStatus=="REWINDING"?-4:i==1&&bStatus=="FAST FORWARD"?4:1;reelTime[i]=Mathf.Repeat(reelTime[i]+dt*speed,2);Pose(Prefix(i)+"PlaybackLoop",reelTime[i]);}
             Latch(0,aPlaying?"Play":null);
-            Latch(1,bStatus=="REWINDING"?"Rewind":bStatus=="FAST FORWARD"?"Forward":bPlaying?"Play":null);
-            if(recordHeld!=writing){recordHeld=writing;Play("record-key","B_Key_Record_"+(writing?"Latch":"Release"));}
+            Latch(1,transportPressed??(bStatus=="REWINDING"?"Rewind":bStatus=="FAST FORWARD"?"Forward":bPlaying?"Play":null));
+            if(recordHeld!=recordPressed){recordHeld=recordPressed;Play("record-key","B_Key_Record_"+(recordPressed?"Latch":"Release"));}
             EndPose(writing?"B_RecordLight_On":"B_RecordLight_Off");
         }
         bool recordHeld;
+        // When the game loses focus there may be no further tick to finish a release.
+        public void ReleaseStoppedTarget()
+        {
+            foreach(string key in targetTransportKeys)
+            {
+                if(motions.Remove("B_"+key) || latched[1]==key)EndPose("B_Key_"+key+"_Release");
+            }
+            latched[1]=null;
+            if(motions.Remove("record-key") || recordHeld)EndPose("B_Key_Record_Release");
+            recordHeld=false;
+            EndPose("B_RecordLight_Off");
+        }
+        static readonly string[] targetTransportKeys={"Play","Rewind","Forward"};
         void Latch(int deck,string key)
         {
             if(latched[deck]==key)return;string p=Prefix(deck);

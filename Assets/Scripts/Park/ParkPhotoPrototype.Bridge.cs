@@ -13,10 +13,10 @@ namespace MemoryWhitebox
     public sealed partial class ParkPhotoPrototype
     {
         [Header("Photography task alignment (all three frames)")]
-        [Min(.1f)] public float bridgePositionTolerance=.6f;
-        [Range(1,30)] public float bridgeAngleTolerance=6;
-        [Range(.1f,2)] public float bridgeExposureTolerance=.7f;
-        [Min(.1f)] public float bridgeAlignmentSeconds=.6f;
+        [Min(.1f)] public float bridgePositionTolerance=1f;
+        [Range(1,30)] public float bridgeAngleTolerance=10;
+        [Range(.1f,2)] public float bridgeExposureTolerance=1f;
+        [Min(.1f)] public float bridgeAlignmentSeconds=.35f;
         ParkPhotoWaypoint bridgeNode;
         Texture2D bridgeReference;
         float alignedFor,referenceRetry;
@@ -25,7 +25,20 @@ namespace MemoryWhitebox
             CurrentTaskId=="meadow" && CurrentTask?.aligned==true && !CurrentTask.handJoined;
         bool HandInReach=>Vector3.Distance(view.transform.position,PhotoHandPosition)<=2f;
         bool PhotoHandPointerActive=>Aiming && HandOffered && HandInReach && InView(PhotoHandPosition) && Visible(PhotoHandPosition);
-        bool PointerOnHand=>Vector2.Distance(view.WorldToViewportPoint(PhotoHandPosition),virtualPointer)<=.1f;
+        bool PointerOnHand=>PhotoHandPointerActive && PalmHit(view,PhotoHandPosition);
+        float handJoinTransition;
+        internal static bool PalmHit(Camera camera,Vector3 contact)
+        {
+            Vector3 screen=camera.WorldToScreenPoint(contact);
+            return screen.z>0 && Vector2.Distance(screen,camera.pixelRect.center)<=PalmRadiusPixels(camera,contact);
+        }
+        internal static float PalmRadiusPixels(Camera camera,Vector3 contact)
+        {
+            Vector3 screen=camera.WorldToScreenPoint(contact);
+            float shortSide=Mathf.Min(camera.pixelWidth,camera.pixelHeight);
+            var edge=camera.WorldToScreenPoint(contact+camera.transform.up*.12f);
+            return Mathf.Clamp(Vector2.Distance(screen,edge),shortSide*.015f,shortSide*.05f);
+        }
         string CurrentTaskId=>roll!=null && roll.version>=3?roll.NextTask:"bridge";
         BridgePhotoCheckpoint CurrentTask=>roll!=null?roll.Task(CurrentTaskId):null;
         bool BridgePending=>bridgeNode!=null && roll!=null && roll.state==ParkFilmState.Loaded && (CurrentTask==null || !CurrentTask.captured);
@@ -44,7 +57,7 @@ namespace MemoryWhitebox
             yaw=point.eulerAngles.y;pitch=PlayerControlSettings.Current.ClampPitch(Mathf.DeltaAngle(0,point.eulerAngles.x));
             transform.rotation=Quaternion.Euler(0,yaw,0);view.transform.localRotation=Quaternion.Euler(pitch,0,0);
             verticalSpeed=0;moveVelocity=Vector3.zero;alignedFor=0;bridgeReady=false;
-            companion.ResumeAtPhotoNode(bridgeNode);
+            guidedResumedAtPhoto=companion.ResumeAtPhotoNode(bridgeNode);
             handoff.Arm();inputGate=true;
         }
         public string PhotoRouteError {get;private set;}="";
@@ -79,6 +92,7 @@ namespace MemoryWhitebox
 
         void InitializeBridge()
         {
+            obstructedFor=clearFor=palmBlockedFor=palmClearFor=0;subjectObstructionCue=palmObstructionCue=false;
             bridgeNode=null;taskRoutingReady=false;alignedFor=referenceRetry=0;
             companion.photoLookBack=false;companion.photoOfferHand=false;
             if(bridgeReference!=null){Destroy(bridgeReference);bridgeReference=null;}
@@ -109,15 +123,18 @@ namespace MemoryWhitebox
             }
             companion.photoHoldNode=BridgePending?bridgeNode:null;
         }
+        bool settingsSaveFailed;
         bool SavePhotoSettings()
         {
+            if(leavingSavedOnly)return true;
+            if(HasPendingExposure)return false;
             if(roll==null || filmError!="")return false;
             if(roll.state!=ParkFilmState.Loaded || (CurrentTask!=null && CurrentTask.captured))return true;
             if(CurrentTask!=null && CurrentTask.savedFocus==focusDistance && CurrentTask.savedAperture==Aperture && CurrentTask.savedShutter==ShutterSeconds)return true;
             var next=CurrentTask!=null?JsonUtility.FromJson<BridgePhotoCheckpoint>(JsonUtility.ToJson(CurrentTask)):new BridgePhotoCheckpoint();
             next.savedFocus=focusDistance;next.savedAperture=Aperture;next.savedShutter=ShutterSeconds;
-            try{roll=ParkFilmStore.SaveTask(roll.id,CurrentTaskId,next);return true;}
-            catch(Exception e){Notify("Camera settings not saved. Stay here and retry.",6);Debug.LogWarning("Camera settings not saved: "+e.Message);return false;}
+            try{roll=ParkFilmStore.SaveTask(roll.id,CurrentTaskId,next);settingsSaveFailed=false;return true;}
+            catch(Exception e){settingsSaveFailed=true;Notify("Camera settings not saved. Stay here and retry.",6);Debug.LogWarning("Camera settings not saved: "+e.Message);return false;}
         }
         float TaskFocusDepth(BridgePhotoCheckpoint task)
         {
@@ -139,6 +156,7 @@ namespace MemoryWhitebox
         void TickBridge(float dt)
         {
             bridgeReady=false;
+            if(guidedDeparturePending)return;
             if(!BridgePending){companion.photoHoldNode=null;companion.photoLookBack=false;companion.photoOfferHand=false;return;}
             companion.photoHoldNode=bridgeNode;
             if(!companion.AtPhotoNode)return;
@@ -158,7 +176,8 @@ namespace MemoryWhitebox
             sceneEv100=reference.ev100;
             bool focus=ParkCameraResponse.IsSharp(TaskFocusDepth(reference),focusDistance,Aperture);
             bool exposure=Mathf.Abs(ExposureError)<=bridgeExposureTolerance;
-            bool match=Aiming && TaskFramed(reference) && focus && exposure;
+            bool visible=SubjectVisible();TickPhotoVisibility(visible,dt);
+            bool match=Aiming && TaskFramed(reference) && focus && exposure && visible;
             if(!reference.aligned)
             {
                 alignedFor=match?alignedFor+dt:0;
@@ -175,7 +194,7 @@ namespace MemoryWhitebox
             companion.photoHandTarget=PhotoHandPosition;
             Vector3 towardPlayer=view.transform.position-companion.transform.position;towardPlayer.y=0;
             // Recheck player settings/position, but never compare the turned pose to the old silhouette.
-            bridgeReady=CurrentTask.aligned && match && (CurrentTaskId=="entrance" || Vector3.Angle(companion.transform.forward,towardPlayer)<10) && Visible(companion.chest.position);
+            bridgeReady=handJoinTransition<=0 && CurrentTask.aligned && match && (CurrentTaskId=="entrance" || Vector3.Angle(companion.transform.forward,towardPlayer)<10);
         }
         void CaptureBridgeReference()
         {
@@ -221,19 +240,24 @@ namespace MemoryWhitebox
         {
             if(!PhotoHandPointerActive || !PointerOnHand)return false;
             var next=JsonUtility.FromJson<BridgePhotoCheckpoint>(JsonUtility.ToJson(CurrentTask));next.handJoined=true;
-            try{roll=ParkFilmStore.SaveTask(roll.id,CurrentTaskId,next);shotCooldown=.5f;GameScore.Instance?.PhotoAnswered();Notify("Hands joined. LMB to take the photograph. No frame used.");return true;}
+            try{roll=ParkFilmStore.SaveTask(roll.id,CurrentTaskId,next);handJoinTransition=.45f;shotCooldown=.5f;GameScore.Instance?.PhotoAnswered();Notify("Hands joined. LMB to take the photograph. No frame used.");return true;}
             catch(Exception e){Notify("Hand response not saved. Click the offered hand to retry. No frame used.");Debug.LogWarning("Hand response not saved: "+e.Message);return true;}
         }
         string PhotographyNextAction()
         {
+            if(filmError!="")return filmError;
+            if(guidedDeparturePending)return "Photograph saved. Lower the camera to continue walking.";
+            if(companion.AtPhotoNode && !guidedDocked)return "Lower the camera to approach the photo spot.";
             if(!string.IsNullOrEmpty(PhotoRouteError))return "Photo route unavailable. Film kept.";
             if(!companion.AtPhotoNode)return "Follow your companion to the next photo spot.";
             var task=CurrentTask;
             if(task==null || !task.hasReference)return "Wait for your companion to settle.";
+            if(subjectObstructionCue)return "Your companion is blocked. Shift within the photo area.";
+            if(palmObstructionCue)return "The offered hand is blocked. Shift to see the palm.";
             if(HandOffered)
             {
                 if(!HandInReach)return "Step closer to the offered hand.";
-                return PhotoHandPointerActive?"Click the offered hand.":"Bring the offered hand into view.";
+                return PhotoHandPointerActive?"Aim the centre at the offered palm and click.":"Bring the offered hand into view.";
             }
             if(CurrentTaskId=="meadow" && task.handJoined)
             {

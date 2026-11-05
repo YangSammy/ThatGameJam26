@@ -29,7 +29,7 @@ namespace MemoryWhitebox
         {
             if(!sceneProcessing)return;
             SetDirectDarkroom(false);
-            ClearDarkroomHighlight();RestoreSceneProcessing();RestorePrintPoses();
+            ClearDarkroomHighlight();guideRenderers.Clear();RestoreSceneProcessing();RestorePrintPoses();
             foreach(var prop in printObjects.props)
             {Nodes.Remove(prop.id);homes.Remove(prop.id);homeRotations.Remove(prop.id);}
             chemistry.Clear();bag=null;bagGrip=tankBody=tankLid=clockHand=null;

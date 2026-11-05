@@ -86,17 +86,17 @@ namespace MemoryWhitebox
             view.fieldOfView=controls.parkWalkingFov;handoff.Arm();
             try{roll=ParkFilmStore.LoadOrCreate();if(roll.frames.Count>0)focusDistance=Mathf.Clamp(roll.frames[roll.frames.Count-1].focusDistance,minimumFocus,maximumFocus);}
             catch(Exception ex){filmError="Film unavailable. Shooting paused; records kept.";Debug.LogWarning("Park film load: "+ex.Message);}
-            InitializePhotographyModes();InitializeBridge();ResumeUnfinishedMemory();
-            SetCursor(false);Notify(roll!=null && roll.state!=ParkFilmState.Loaded?"Film sealed. Develop in the darkroom.": "Film: " + RollCapacity + " frames. Move to the bottom-right edge to raise the camera.",7);
+            InitializePhotographyModes();InitializeBridge();ResumeUnfinishedMemory();InitializeGuidedWalk();InitializePhotoFeedback();
+            SetCursor(false);Notify(roll!=null && roll.state!=ParkFilmState.Loaded?"Film sealed. Develop in the darkroom.": "Film: " + RollCapacity + " frames. E: raise or lower camera.",7);
             if(CanReturnToDarkroom)OpenFilmReturnPanel();
         }
         void SetCursor(bool free){PlayerInputPolicy.SetCursor(free);}
         void Notify(string text,float seconds=4){notice=text;noticeUntil=Time.unscaledTime+seconds;}
-        public void Resume(){SetPhotographyMode(PhotographyMode.Exploration);Paused=false;inputGate=true;moveVelocity=Vector3.zero;handoff.Arm();SyncParkInput();InputContext.Handoff();}
+        public void Resume(){SetPhotographyMode(PhotographyMode.Exploration);Paused=false;ReleaseGuidedDeparture();inputGate=true;moveVelocity=Vector3.zero;handoff.Arm();SyncParkInput();InputContext.Handoff();}
         void PauseControls()
         {
             SavePhotoSettings();
-            SetPhotographyMode(PhotographyMode.Exploration);Paused=true;Aiming=false;moveVelocity=Vector3.zero;verticalSpeed=0;handoff.Arm();inputGate=true;
+            Paused=true;SetPhotographyMode(PhotographyMode.Exploration);Aiming=false;moveVelocity=Vector3.zero;verticalSpeed=0;handoff.Arm();inputGate=true;
             if(companion!=null)companion.Paused=true;
             if(focusEffect!=null)focusEffect.activeFocus=false;SetCursor(true);
             SyncParkInput();InputContext.Handoff();
@@ -130,11 +130,11 @@ namespace MemoryWhitebox
         {
             if(!Paused || changingScene || returnUiGate || !InputContext.Allows(InputContextId.Paused) || CanReturnToDarkroom)return false;
             CancelInstrumentDrag();
-            if(!SavePhotoSettings())return false;
+            if(filmError=="" && !HasPendingExposure && !SavePhotoSettings())return false;
             try
             {
                 // Validate the committed roll even when camera settings did not change.
-                roll=ParkFilmStore.Load(roll.id);
+                if(!TryLoadCommittedForExit())return false;
                 if(!Application.CanStreamedLevelBeLoaded(ParkFilmRoute.HouseScenePath))throw new InvalidOperationException("HouseScene is not in Build Settings.");
                 changingScene=true;ParkFilmRoute.EnterDarkroomOnLoad=false;SyncParkInput();InputContext.Handoff();
                 UnityEngine.SceneManagement.SceneManager.LoadScene(ParkFilmRoute.HouseScenePath);return true;
@@ -147,6 +147,7 @@ namespace MemoryWhitebox
         {applicationPaused=value;if(value)PauseControls();else {inputGate=true;handoff.Arm();InputContext.Handoff();}SyncParkInput();}
         void Update()
         {
+            TickExposureEncoding();
             SyncParkInput();
             if(!focused || applicationPaused || changingScene)return;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -158,25 +159,26 @@ namespace MemoryWhitebox
             var controls=PlayerControlSettings.Current;
             float dt=Mathf.Min(Time.deltaTime,.1f);shotCooldown=Mathf.Max(0,shotCooldown-dt);flash=Mathf.Max(0,flash-dt*4);
             if(ExitParkContext())return;
+            TickLoweredDeparture();
             companion.Paused=Paused || (photoMode!=PhotographyMode.Exploration && photoMode!=PhotographyMode.Viewfinder);
+            companion.TravelPaused=!GuidedCanTravel;
             SyncCameraPreview();
             if(Paused)return;
+            if(TickGuidedRecovery(dt))return;
+            if(TickCameraRaise(dt))return;
             if(!InputContext.Ready){moveVelocity=Vector3.zero;return;}
             if(inputGate){if(handoff.Ready)inputGate=false;return;}
             bool instrumentMode=TickPhotographyModes(dt);SyncCameraPreview();
             if(instrumentMode)return;
-            if(Input.GetKeyDown(KeyCode.R))
-            {companion.RestartWalk();motor.enabled=false;transform.SetPositionAndRotation(spawn.position,spawn.rotation);motor.enabled=true;yaw=spawn.eulerAngles.y;pitch=controls.ClampPitch(Mathf.DeltaAngle(0,spawn.eulerAngles.x));verticalSpeed=0;moveVelocity=Vector3.zero;Aiming=false;inputGate=true;handoff.Arm();Notify("Walk restarted. Film kept.");return;}
-            if(Input.GetKeyDown(KeyCode.E) && !BridgePending)
-            {if(companion.Call()){if(sound!=null && callSound!=null)sound.PlayOneShot(callSound,.3f);}else Notify("Move closer. Wait for a response.");}
             aimBlend=Mathf.MoveTowards(aimBlend,Aiming?1:0,dt/Mathf.Max(.01f,controls.aimTransitionSeconds));
-            var look=edgeCandidate>=0 || PhotoHandPointerActive?Vector2.zero:PlayerInputPolicy.LookDelta;float sensitivity=controls.lookSensitivity*Mathf.Lerp(1,controls.aimingLookMultiplier,aimBlend);
+            var look=edgeCandidate>=0?Vector2.zero:PlayerInputPolicy.LookDelta;float sensitivity=controls.lookSensitivity*Mathf.Lerp(1,controls.aimingLookMultiplier,aimBlend);
             yaw+=look.x*sensitivity;pitch=controls.ClampPitch(pitch-look.y*sensitivity);
             transform.rotation=Quaternion.Euler(0,yaw,0);view.transform.localRotation=Quaternion.Euler(pitch,0,0);
             var move=Vector2.ClampMagnitude(new Vector2((Input.GetKey(KeyCode.D)?1:0)-(Input.GetKey(KeyCode.A)?1:0),
                 (Input.GetKey(KeyCode.W)?1:0)-(Input.GetKey(KeyCode.S)?1:0)),1);
             float speed=controls.walkSpeed*Mathf.Lerp(controls.parkSpeedMultiplier,controls.aimingSpeedMultiplier,aimBlend);
-            moveVelocity=controls.ApproachVelocity(moveVelocity,(transform.right*move.x+transform.forward*move.y)*speed,dt);
+            var requestedMove=GuidedDesiredVelocity((transform.right*move.x+transform.forward*move.y)*speed,dt);
+            moveVelocity=controls.ApproachVelocity(moveVelocity,requestedMove,dt);
             // Bounded moves keep gravity/ground contact stable over bridge seams
             // and on slower frames. Ground geometry remains authored in ParkScene.
             float moveRemaining=dt;
@@ -185,10 +187,11 @@ namespace MemoryWhitebox
                 float step=Mathf.Min(.02f,moveRemaining);moveRemaining-=step;
                 if(motor.isGrounded && verticalSpeed<0)verticalSpeed=-2;
                 verticalSpeed-=18*step;
-                var collisions=motor.Move((moveVelocity+Vector3.up*verticalSpeed)*step);
+                var collisions=motor.Move(ConstrainGuidedMove((moveVelocity+Vector3.up*verticalSpeed)*step));
                 if((collisions & CollisionFlags.Above)!=0 && verticalSpeed>0)verticalSpeed=0;
             }
-            if(transform.position.y< -3){motor.enabled=false;transform.position=spawn.position;motor.enabled=true;verticalSpeed=0;Notify("Back at the path. Film kept.");}
+            if(transform.position.y< -3)RecoverGuidedWalk();
+            TickGuidedSafety(dt,requestedMove);
             view.fieldOfView=Mathf.Lerp(controls.parkWalkingFov,controls.parkAimingFov,Mathf.SmoothStep(0,1,aimBlend));
             TickBridge(dt);
             if(Aiming)
@@ -196,9 +199,10 @@ namespace MemoryWhitebox
                 focusDistance=ParkCameraResponse.ScrollFocus(focusDistance,Input.mouseScrollDelta.y,focusStep,minimumFocus,maximumFocus);
                 SyncCameraPreview();
                 TickBridge(0); // Recheck a wheel change before accepting this frame's shutter.
+                TickPhotoFeedback(dt);
                 if(Input.GetMouseButtonDown(0) && shotCooldown<=0)Capture();
             }
-            else focusEffect.activeFocus=false;
+            else {focusEffect.activeFocus=false;TickPhotoFeedback(dt);}
         }
         void SyncCameraPreview()
         {
@@ -208,7 +212,7 @@ namespace MemoryWhitebox
         bool Visible(Vector3 point)
         {
             RaycastHit hit;var delta=point-view.transform.position;
-            if(!Physics.Raycast(view.transform.position,delta.normalized,out hit,delta.magnitude,~0,QueryTriggerInteraction.Ignore))return true;
+            if(!Physics.Raycast(view.transform.position,delta.normalized,out hit,delta.magnitude,~(1<<FirstPersonHands.HandLayer),QueryTriggerInteraction.Ignore))return true;
             return hit.transform.IsChildOf(companion.transform);
         }
         ParkPhotoRecord Assess()
@@ -228,7 +232,7 @@ namespace MemoryWhitebox
                 photo.taskId=CurrentTaskId;
                 photo.moment=photo.taskId=="entrance"?"Entrance candid":photo.taskId=="bridge"?"Bridge look-back":"Meadow joined hands";
                 photo.subjectDepth=TaskFocusDepth(CurrentTask);
-                photo.framed=TaskFramed(CurrentTask);photo.visible=Visible(companion.chest.position);
+                photo.framed=TaskFramed(CurrentTask);photo.visible=SubjectVisible();
                 photo.sharp=ParkCameraResponse.IsSharp(photo.subjectDepth,focusDistance,Aperture);
                 photo.accepted=bridgeReady && (photo.taskId!="meadow" || HoldingPhotoHand);
                 photo.feedback=photo.accepted?"Captured: "+photo.moment+".":PhotographyNextAction();
@@ -250,6 +254,10 @@ namespace MemoryWhitebox
         static string MomentName(int i){return i==0?"Walking together":i==1?"By the bridge":"Looking back";}
         void Capture()
         {
+            if(HasPendingExposure){RetryPendingExposure();return;}
+            if(guidedDeparturePending){Notify(PhotographyNextAction());return;}
+            if(CameraRaising)return;
+            if(handJoinTransition>0)return;
             if(roll==null || filmError!=""){Notify(filmError!=""?filmError:"No film loaded.");return;}
             if(roll.Remaining<=0){Notify("Roll complete. Develop to view.",5);return;}
             if(!roll.ReadyForPark){Notify(LoadingNextAction(),5);return;}
@@ -281,21 +289,21 @@ namespace MemoryWhitebox
             }
             catch(Exception ex){if(image!=null)Destroy(image);Notify("Shot not saved. Frame kept; try again.");Debug.LogWarning("Park capture: "+ex.Message);return;}
             finally{view.targetTexture=previousTarget;view.cullingMask=previousMask;RenderTexture.active=previousActive;if(target!=null)RenderTexture.ReleaseTemporary(target);}
-            try
-            {
-                roll=ParkFilmStore.SaveExposure(roll,record,image.EncodeToPNG());
-            }
-            catch(Exception ex){filmError="Save failed. Shooting paused; records kept.";Notify(filmError,7);Debug.LogWarning("Park film save: "+ex.Message);return;}
+            try{BeginExposureEncoding(record,image.GetRawTextureData<byte>().ToArray(),image.width,image.height);}
+            catch(Exception ex){Notify("Shot could not be encoded. Frame kept; press shutter to retry.",6);Debug.LogWarning("Park image encoding: "+ex.Message);return;}
             finally{if(image!=null)Destroy(image);}
-            InitializeBridge();
+        }
+        void ExposureCommitted(ParkPhotoRecord record)
+        {
+            if(roll.Remaining>0)HoldGuidedDeparture();else InitializeBridge();
             flash=1;Notify(roll.Remaining==0?"Frame " + RollCapacity + " exposed. Roll complete.":"Frame "+record.frameNumber+" exposed  /  Remaining "+roll.Remaining+" frames",4);
             if(sound!=null && shutter!=null)sound.PlayOneShot(shutter,.6f);
             if(roll.Remaining==0)OpenFilmReturnPanel();
             PhotoTaken?.Invoke(record);
             if(roll.Remaining==0)FilmFilled?.Invoke(roll.id);
         }
-        void OnDisable(){SavePhotoSettings();CancelInstrumentDrag();moveVelocity=Vector3.zero;InputContext.Select(InputContextId.Unfocused,PlayerControlState.Unfocused);InputContext.Handoff();if(companion!=null)companion.Paused=true;if(focusEffect!=null)focusEffect.activeFocus=false;}
-        void OnDestroy(){DisposePhotographyModes();if(bridgeReference!=null)Destroy(bridgeReference);if(font!=null)Destroy(font);}
+        void OnDisable(){CancelCameraRaise();SavePhotoSettings();CancelInstrumentDrag();moveVelocity=Vector3.zero;InputContext.Select(InputContextId.Unfocused,PlayerControlState.Unfocused);InputContext.Handoff();if(companion!=null)companion.Paused=true;if(focusEffect!=null)focusEffect.activeFocus=false;}
+        void OnDestroy(){CancelExposureEncoding();DisposePhotographyModes();DisposePhotoFeedback();if(bridgeReference!=null)Destroy(bridgeReference);if(font!=null)Destroy(font);}
         void OnGUI()
         {
             if(view==null || companion==null)return;
@@ -310,25 +318,30 @@ namespace MemoryWhitebox
                 if(InteractionUI.Button(new Rect(Screen.width*.5f-100,Screen.height*.5f+10,200,40),"Resume  /  Esc",button))InputContext.RequestExit(InputContextId.Paused,null,Resume);
                 if(CanReturnToDarkroom && InteractionUI.Button(new Rect(Screen.width*.5f-145,Screen.height*.5f+66,290,40),"Return to darkroom",button))ReturnToDarkroom();
                 if(!CanReturnToDarkroom && InteractionUI.Button(new Rect(Screen.width*.5f-145,Screen.height*.5f+66,290,40),"Leave memory",button))LeaveParkMemory();
+                if(HasPendingExposure && InteractionUI.Button(new Rect(Screen.width*.5f-145,Screen.height*.5f+116,290,40),"Retry saving photograph",button))RetryPendingExposure();
+                if((HasPendingExposure || filmError!="" || settingsSaveFailed) && InteractionUI.Button(new Rect(Screen.width*.5f-145,Screen.height*.5f+166,290,40),"Leave with saved progress",button))LeaveWithSavedProgress();
+                if(HasPendingExposure)InteractionUI.Label(new Rect(Screen.width*.5f-210,Screen.height*.5f+214,420,44),"The unsaved photograph is kept for retry here; leaving discards only that pending photograph.",small);
                 GUI.enabled=previousEnabled;
                 if(Time.unscaledTime<noticeUntil)InteractionUI.Label(new Rect(24,Screen.height-75,Screen.width-48,50),notice,text);
                 return;
             }
 
-            DrawPhotographyModes();DrawBridgeReference();
+            DrawPhotographyModes();DrawBridgeReference();DrawPhotoFeedback();
             string step=CanReturnToDarkroom?"Roll complete. Esc to return to the darkroom.":
                 photoMode==PhotographyMode.Body?LoadingNextAction():
-                photoMode==PhotographyMode.Meter?(loadingStep>=2?"Scroll: meter ISO. Match the loaded film (ISO "+FilmIso+").":"Scroll to meter for the film you want to load."):
+                photoMode==PhotographyMode.Meter?(loadingStep>=2?(MeterIsoMatchesFilm?"Meter matches ISO "+FilmIso+". Use the suggested aperture and shutter.":"Meter ISO differs from loaded ISO "+FilmIso+". Scroll to match."):"Scroll to meter for the film you want to load."):
                 photoMode==PhotographyMode.Aperture?"f/"+Aperture:
                 photoMode==PhotographyMode.Shutter?"1/"+Mathf.RoundToInt(1f/ShutterSeconds)+" s":
-                !companion.AtPhotoNode?"Follow your companion to the next photo spot.":
-                photoMode==PhotographyMode.Exploration?"Raise the camera: move to the bottom-right edge.":
+                guidedDeparturePending?"Photograph saved. Lower the camera to continue walking.":
+                !companion.AtPhotoNode?"Walking with your companion. E: camera.":
+                photoMode==PhotographyMode.Exploration?"E: raise the camera.":
                 PhotographyNextAction();
             InteractionUI.Label(new Rect(24,Screen.height*.24f+32,Screen.width-48,48),step,small);
             InteractionUI.Label(new Rect(Screen.width-190,20,170,28),"Film "+ExposedFrames+" / "+RollCapacity,small);
             if(Time.unscaledTime<noticeUntil)
                 InteractionUI.Label(new Rect(24,Screen.height-104,Screen.width-48,40),notice,small);
             if(flash>0){var color=GUI.color;GUI.color=new Color(1,1,1,flash*.55f);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=color;}
+            DrawGuidedRecovery(text,button);
         }
     }
 }

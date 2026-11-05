@@ -115,12 +115,34 @@ namespace MemoryWhitebox
             if(View!=null){View.cullingMask=originalMask;View.rect=originalRect;View.backgroundColor=originalBackground;View.clearFlags=originalClearFlags;}
             base.Deactivate();
         }
-        public override void Dispose(){if(pageCamera!=null)ReleaseObject(pageCamera.gameObject);if(Defocus!=null)Defocus.End();if(albumTexture!=null){albumTexture.Release();UnityEngine.Object.Destroy(albumTexture);}if(winterSheet!=null)winterSheet.SetPageTexture(null);base.Dispose();}
+        public override void Dispose(){if(bridgeHover)ReleaseObject(bridgeHover.gameObject);if(pageCamera!=null)ReleaseObject(pageCamera.gameObject);if(Defocus!=null)Defocus.End();if(albumTexture!=null){albumTexture.Release();UnityEngine.Object.Destroy(albumTexture);}if(winterSheet!=null)winterSheet.SetPageTexture(null);base.Dispose();}
         bool PageRay(Ray ray,out Ray bookRay)
         {
             bookRay=ray;RaycastHit hit;
             if(pageCollider==null || !pageCollider.gameObject.activeInHierarchy || !pageCollider.Raycast(ray,out hit,10))return false;
             bookRay=albumCamera.ViewportPointToRay(hit.textureCoord);return true;
+        }
+        internal override Transform HoverVisual(Vector2 point,out Camera camera)
+        {
+            camera=View;
+            if(State.Phase>=2 || actTransition>0 || looking)return null;
+            string id=Pick(PointerRay(point));
+            if(State.BookOpen)
+            {
+                camera=albumCamera;
+                return id=="album-key" && State.AtDoor && State.Painted[4] && !State.KeyInserted && !keyDragging?key:null;
+            }
+            int clue=System.Array.IndexOf(new[]{"shape-swing","shape-bridge","shape-luggage","shape-flower","shape-pendant"},id);
+            if(clue<0 || State.Painted[clue] || State.Phase==0 && clue>1)return null;
+            switch(clue)
+            {
+                case 0:return layout.observedSwing;
+                case 1:return bridgeHover;
+                case 2:return layout.observedSuitcase;
+                case 3:return layout.flowerFocus.transform.parent;
+                case 4:return layout.observedPendant;
+                default:return null;
+            }
         }
         public override string Pick(Ray ray)
         {

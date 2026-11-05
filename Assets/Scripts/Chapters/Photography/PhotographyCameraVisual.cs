@@ -46,6 +46,27 @@ namespace MemoryWhitebox
             foreach(var c in go.GetComponentsInChildren<Collider>(true))c.enabled=false;
             foreach(var a in go.GetComponentsInChildren<Animator>(true))a.enabled=false;
         }
+        internal Transform HoverPart(string id)
+        {
+            switch(id)
+            {
+                case "rewind": return rewindKnob;
+                case "back": return back;
+                case "spool": return takeUp;
+                case "advance": return advanceLever;
+                case "aperture": return apertureRing;
+                case "shutter-dial":
+                case "speed": return dial;
+                case "shutter": return shutter;
+                case "focal-ring": return focusRing;
+                case "aperture-ring": return apertureRing;
+                case "leader":
+                    foreach(var cartridge in cartridges)
+                        if(cartridge && cartridge.activeSelf)return cartridge.GetComponentInChildren<SkinnedMeshRenderer>()?.transform;
+                    break;
+            }
+            return null;
+        }
         public void Apply(bool open,bool hasFilm,int iso,int filmStage,float progress,float focus,float aperture,float shutterSeconds,float shutterPress,float dt,bool instant=false)
         {
             // Film stages: 0 ready, 1 pull, 2 seated, 3 advanced, 4 rewind, 5 retracted.

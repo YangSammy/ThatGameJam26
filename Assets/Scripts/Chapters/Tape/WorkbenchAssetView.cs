@@ -11,6 +11,16 @@ namespace MemoryWhitebox
         public Transform[] patches=new Transform[2];
         public SkinnedMeshRenderer[] patchMeshes=new SkinnedMeshRenderer[2];
         readonly Dictionary<string,AnimationClip> library=new Dictionary<string,AnimationClip>();
+        Renderer[] shellHover;
+        readonly Renderer[][] reelHover=new Renderer[2][];
+        public Renderer[] ShellHover=>shellHover??(shellHover=System.Array.FindAll(GetComponentsInChildren<Renderer>(true),r=>r.name.EndsWith("_Shell",System.StringComparison.Ordinal)));
+        public Renderer[] ReelHover(int side)
+        {
+            if(reelHover[side]!=null)return reelHover[side];
+            var pivot=side==0?leftReel:rightReel;
+            var winding=side==0?leftWinding:rightWinding;
+            return reelHover[side]=pivot?System.Array.FindAll(pivot.GetComponentsInChildren<Renderer>(true),r=>r!=winding):System.Array.Empty<Renderer>();
+        }
         public void Sample(string name,float normalized)
         {
             if(library.Count==0)foreach(var c in clips)if(c!=null)library[c.name]=c;

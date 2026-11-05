@@ -34,6 +34,20 @@ namespace MemoryWhitebox
         int handKey=-1;
         public int UITransportCommand {get;private set;}=-1;
         public bool SuccessPopupOpen=>transportPanel!=null && transportPanel.SuccessOpen;
+        // Key feedback is independent of the tape motor and recording lamp.
+        readonly bool[] heldTargetKeys=new bool[5];
+        int pointerFeedbackKey=-1;
+        public bool TargetKeyDown(int key)
+        {
+            return key>=0 && key<heldTargetKeys.Length && RecordingInputReady && focused &&
+                Selected>=0 && State==Phase.Paused && (dualDeck==null || dualDeck.Closed(1)) &&
+                (key!=0 || !Chapter.Completed) && (heldTargetKeys[key] || pointerFeedbackKey==key);
+        }
+        void ClearKeyFeedback()
+        {
+            System.Array.Clear(heldTargetKeys,0,heldTargetKeys.Length);
+            pointerFeedbackKey=-1;
+        }
         public bool RecordingInputReady=>RecordingMode && !recordingWait && house!=null && house.InputContext.Allows(InputContextId.TapeTransport);
         public void DismissRecordingSuccess()
         {
@@ -45,6 +59,7 @@ namespace MemoryWhitebox
         {
             if(SuccessPopupOpen || !RecordingMode || recordingWait || State!=Phase.Paused || Selected<0 || DeckBusy(1))return;
             SubmissionMessage="";lastFeedback="";
+            pointerFeedbackKey=command;
             UITransportCommand=-1;
             if(command==4)
             {
@@ -69,6 +84,7 @@ namespace MemoryWhitebox
         }
         public void ReleaseTransportKey(int command)
         {
+            if(pointerFeedbackKey==command)pointerFeedbackKey=-1;
             if(UITransportCommand!=command)return;
             UITransportCommand=-1;
             if(!RecordingInputReady){StopTargetOnly();return;}
@@ -129,8 +145,8 @@ namespace MemoryWhitebox
         public void CloseRecording()
         {
             if(!internalDeckHandoff)focusRadioAfterLoad=false;
-            RestoreRadioCamera();
-            if(!internalDeckHandoff || dualDeck==null){UITransportCommand=-1;transport?.StopAll();}
+            RestoreRadioCamera();ClearKeyFeedback();
+            if(!internalDeckHandoff || dualDeck==null){UITransportCommand=-1;transport?.StopAll();dualDeck?.ReleaseStoppedTarget();}
             handKey=-1;
             RecordingMode=false;wasWriting=false;stopLatch=true;recordingWait=true;
             RestoreRecordingControls();
@@ -144,7 +160,7 @@ namespace MemoryWhitebox
             UpdateTransportDisplay();
         }
         void StopRecordingInput()
-        {if(!internalDeckHandoff || dualDeck==null){UITransportCommand=-1;transport?.StopAll();}RestoreRecordingControls();wasWriting=false;mouseKey=-1;handKey=-1;stopLatch=true;recordingWait=true;recordingGate.Arm();}
+        {ClearKeyFeedback();if(!internalDeckHandoff || dualDeck==null){UITransportCommand=-1;transport?.StopAll();dualDeck?.ReleaseStoppedTarget();}RestoreRecordingControls();wasWriting=false;mouseKey=-1;handKey=-1;stopLatch=true;recordingWait=true;recordingGate.Arm();}
         public void RetryCurrentCommission()
         {
             if(SuccessPopupOpen || Chapter.Completed || !recordingReady || transport==null)return;
@@ -225,13 +241,14 @@ namespace MemoryWhitebox
             if(!radioCameraMoving && PollWorkspaceInspection())return;
             if(house.InputContext.ExitPressed(InputContextId.TapeTransport,null,ExitTapeWorkspace))return;
             bool left=Input.GetMouseButton(0);
-            if(!left){mouseKey=-1;UITransportCommand=-1;}
+            if(!left){mouseKey=-1;UITransportCommand=-1;pointerFeedbackKey=-1;}
             bool f=Input.GetKey(KeyCode.F)||mouseKey==4,s=Input.GetKey(KeyCode.S)||mouseKey==3,j=Input.GetKey(KeyCode.J)||mouseKey==5,l=Input.GetKey(KeyCode.L)||mouseKey==6,stop=Input.GetKey(KeyCode.Quote)||mouseKey==7;
             // A pointer can hold one physical/UI key while the keyboard holds another.
             // REC is S only; it does not silently also press PLAY.
             if(UITransportCommand>=0){f|=UITransportCommand==1;s|=UITransportCommand==0;j|=UITransportCommand==2;l|=UITransportCommand==3;}
             handKey=mouseKey>=0?mouseKey:stop?7:s?3:f?4:j?5:l?6:-1;
             if(UITransportCommand>=0 || (handKey>=3 && handKey<=7))handKey=-1;
+            if(dualDeck!=null && Selected>=0 && dualDeck.Closed(1) && Input.GetKeyDown(KeyCode.Quote))dualDeck.Press(1,"Stop");
             ApplyRecordingKeys(f,s,j,l,stop);
             bool[] pressed={transport.SourcePlaying,false,false,s,f,j,l,stop,false,false,false};
             for(int i=0;dualDeck==null && i<keys3d.Length;i++)keys3d[i].localPosition=keyHomes[i]+(pressed[i]?Vector3.down*keyTravel:Vector3.zero);
@@ -240,6 +257,7 @@ namespace MemoryWhitebox
         public void ApplyRecordingKeys(bool f,bool s,bool j,bool l,bool stop)
         {
             if(transport==null || SuccessPopupOpen)return;
+            heldTargetKeys[0]=s;heldTargetKeys[1]=f;heldTargetKeys[2]=j;heldTargetKeys[3]=l;heldTargetKeys[4]=stop;
             if(stop)stopLatch=true;else if(!f)stopLatch=false;
             bool ready=Selected>=0 && State==Phase.Paused && (dualDeck==null || dualDeck.Closed(1));
             bool play=ready && f && !stopLatch && !stop && (!s || !Chapter.Completed);

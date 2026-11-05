@@ -121,6 +121,7 @@ namespace MemoryWhitebox
                         {
                             target[b]=playA?input:0;mapping[b]=playA && a<source.Length?a:-1;
                             b++;length=Math.Max(length,b);dirty=true;
+                            if(b>=target.Length){playB=false;record=false;}
                         }
                         else if(runBlank)
                         {

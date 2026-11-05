@@ -17,7 +17,7 @@ Shader "Hidden/ParkPhoto/ManualFocus"
             sampler2D _MainTex;
             UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
             float4 _MainTex_TexelSize;
-            float _FocusDistance, _SharpRange, _BlurTransition, _MaxBlurPixels, _ExposureGain;
+            float _FocusDistance, _SharpRange, _BlurTransition, _MaxBlurPixels, _ExposureGain, _RaiseOcclusion;
             float4 frag(v2f_img i):SV_Target
             {
                 float2 depthUV=i.uv;
@@ -51,7 +51,7 @@ Shader "Hidden/ParkPhoto/ManualFocus"
                 #if defined(UNITY_COLORSPACE_GAMMA)
                 color=LinearToGammaSpace(color);
                 #endif
-                sum.rgb=color;
+                sum.rgb=color*(1-saturate(_RaiseOcclusion));
                 return sum;
             }
             ENDCG

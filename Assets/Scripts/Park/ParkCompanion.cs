@@ -29,6 +29,7 @@ namespace MemoryWhitebox
         public AudioClip footstep;
         public Moment CurrentMoment {get;private set;}
         public bool Paused {get;set;}
+        public bool TravelPaused {get;set;}
         [System.NonSerialized] public ParkPhotoWaypoint photoHoldNode;
         [System.NonSerialized] public bool photoLookBack;
         [System.NonSerialized] public bool photoOfferHand;
@@ -122,7 +123,7 @@ namespace MemoryWhitebox
             else if(!Finished)
             {
                 var node=route[index];if(node==null){index++;return;}
-                if(!atNode)
+                if(!atNode && !TravelPaused)
                 {
                     var delta=node.transform.position-transform.position;delta.y=0;
                     var toPlayer=player.position-transform.position;toPlayer.y=0;

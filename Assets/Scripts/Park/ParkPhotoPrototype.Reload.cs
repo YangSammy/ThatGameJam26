@@ -14,9 +14,11 @@ namespace MemoryWhitebox
         // Unity retains runtime objects across script reload but not dictionaries.
         // This is component serialization only; it is not part of the film save format.
         [SerializeField,HideInInspector] InstrumentBinding[] reloadBindings;
+        [SerializeField,HideInInspector] Vector3[] reloadGuidedPath;
 
         public void OnBeforeSerialize()
         {
+            reloadGuidedPath=guidedPath.ToArray();
             reloadBindings=new InstrumentBinding[instrumentParts.Count];
             int i=0;
             foreach(var pair in instrumentParts)
@@ -24,6 +26,7 @@ namespace MemoryWhitebox
         }
         public void OnAfterDeserialize()
         {
+            guidedPath.Clear();if(reloadGuidedPath!=null)guidedPath.AddRange(reloadGuidedPath);
             // Serialization callbacks may run off the main thread: no Unity API,
             // object lookup, instantiation, Transform access or save IO here.
             instrumentParts.Clear();partHomes.Clear();

@@ -5,7 +5,7 @@ namespace MemoryWhitebox
     public sealed partial class PaintingWorld3D
     {
         AlbumWinterVisual winterSheet,winterSwing,winterBridge,winterLoad,winterFlower,winterDoor;
-        Transform winterCrate;
+        Transform winterCrate, bridgeHover;
         static Transform VisualInstance(GameObject prefab,Transform parent,Vector3 position,float scale=1)
         {
             var t=Object.Instantiate(prefab,parent,false).transform;t.name="Visual_"+prefab.name;
@@ -29,6 +29,14 @@ namespace MemoryWhitebox
             State.BindLayout(layout);
             observedArt=layout.observationCarrier.GetComponentsInChildren<Renderer>(true);
             TintObservedArt(0);
+            var bridgeMesh=Resources.Load<Mesh>("AlbumBridgeHover");
+            if(bridgeMesh)
+            {
+                var hover=new GameObject("Bridge observation outline",typeof(HoverOutlineProxy));
+                bridgeHover=hover.transform;bridgeHover.SetParent(layout.parkObservation,false);
+                bridgeHover.position=layout.parkView.position;bridgeHover.rotation=layout.parkObservation.rotation;
+                hover.layer=ObservationLayer;hover.GetComponent<MeshFilter>().sharedMesh=bridgeMesh;
+            }
             BindClue("shape-swing",layout.swingFocus);
             BindClue("shape-bridge",layout.bridgeFocus);
             BindClue("shape-luggage",layout.luggageFocus);

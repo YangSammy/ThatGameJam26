@@ -15,7 +15,7 @@ namespace MemoryWhitebox
         public OriginalCassette[] originals;
         public GameObject[] completedCopies;
         public int CurrentCopy=>Mathf.Min(Chapter.CommissionIndex,RadioTapeChapter.CommissionCount-1);
-        [Min(1)] public float auditionDuration=10;
+        [Min(1)] public float auditionDuration=18;
         bool movingOriginal;
         float lastAuditionPosition;
         bool SourceHit(Collider hit)
@@ -98,7 +98,8 @@ namespace MemoryWhitebox
             // actual forward travel, not only frames shorter than half a second.
             // Initialize/rewind rebases the cursor; muted ticks still advance the baseline.
             if(delta>0)Chapter.AuditionSeconds+=delta;
-            float duration=CurrentCopy==0?auditionDuration:Mathf.Max(1,transport.SourceDuration-.1f);
+            float duration=Mathf.Max(0,transport.SourceDuration-.1f);
+            if(CurrentCopy==0)duration=Mathf.Min(auditionDuration,duration);
             if(Chapter.AuditionSeconds>=duration)
             {Chapter.AuditionComplete=true;RestoreSource();house.SaveStableProgress();}
         }

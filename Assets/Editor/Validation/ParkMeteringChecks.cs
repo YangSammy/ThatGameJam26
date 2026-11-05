@@ -56,8 +56,10 @@ namespace MemoryWhitebox.Editor
                         Call(p,"TickBridge",0f);
                         Set(p,"virtualPointer",Vector2.zero);Call(p,"Capture");
                         if(p.HoldingPhotoHand || p.ExposedFrames!=frame)throw new InvalidOperationException("Missed hand click was accepted");
-                        var screen=p.view.WorldToViewportPoint(p.PhotoHandPosition);
-                        Set(p,"virtualPointer",new Vector2(screen.x,screen.y));Call(p,"Capture");
+                        var framing=p.view.transform.rotation;
+                        p.view.transform.LookAt(p.PhotoHandPosition);Call(p,"Capture");
+                        p.view.transform.rotation=framing;
+                        Call(p,"TickPhotoFeedback",.5f);
                         roll=ParkFilmStore.Load(p.CurrentFilmId);
                         if(!p.HoldingPhotoHand || !roll.meadow.handJoined || roll.frames.Count!=frame)
                             throw new InvalidOperationException("Offered hand rejected under incorrect camera settings");

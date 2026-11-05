@@ -47,11 +47,13 @@ namespace MemoryWhitebox.Editor
             try
             {
                 Call(p,"SyncParkInput");
-                Check(lines,Cursor.visible && Cursor.lockState==CursorLockMode.None,"Offered hand uses a visible unlocked pointer");
+                Check(lines,!Cursor.visible && Cursor.lockState==CursorLockMode.Locked,"Offered hand preserves locked mouse-look");
+                var rotation=p.view.transform.rotation;
+                p.view.transform.LookAt(p.PhotoHandPosition);
+                Check(lines,(bool)p.GetType().GetProperty("PointerOnHand",Hidden).GetValue(p,null),"Centre aimed at palm selects hand");
                 Set(p,"virtualPointer",Vector2.zero);Call(p,"TickPhotographyModes",0f);
-                var expected=new Vector2(Mathf.Clamp(Input.mousePosition.x,0,Screen.width),Mathf.Clamp(Input.mousePosition.y,0,Screen.height));
-                Check(lines,Vector2.Distance(p.TooltipPoint,expected)<1,"Offered hand picking follows the actual pointer");
-                Check(lines,(int)Field(p,"edgeCandidate")==-1,"Reaching for a hand cannot enter an edge adjustment mode");
+                Check(lines,(int)Field(p,"edgeCandidate")==-1,"Palm hover suppresses conflicting edge gestures");
+                p.view.transform.rotation=rotation;
                 task.handJoined=true;Call(p,"SyncParkInput");
                 Check(lines,Cursor.lockState==CursorLockMode.Locked,"After joining hands the viewfinder regains mouse-look");
                 Check(lines,p.ExposedFrames==frames,"Pointer transition alone consumes no film");

@@ -1,20 +1,37 @@
+using System.Collections.Generic;
 using UnityEngine;
+
 namespace MemoryWhitebox
 {
-    // Explicit prop poses only. No controller, playback clock, root motion or save state.
+    // Transform/blend-shape poses for props. Runtime copies leave imported clips intact.
     public static class PropAnimationSampling
     {
         public static void SamplePropAnimation(this AnimationClip clip, GameObject root, float time)
         {
-            // Editor sampling accepts these clips without an Animator; players do not.
-            // Add only to runtime instances, so authoring/previews never alter prefab assets.
-            if (Application.isPlaying && !clip.legacy && root.GetComponent<Animator>() == null)
+            if(Application.isPlaying && !clip.legacy)
             {
-                var animator = root.AddComponent<Animator>();
-                animator.applyRootMotion = false;
-                animator.enabled = false;
+                var samples=root.GetComponent<PropAnimationSamples>();
+                if(!samples)samples=root.AddComponent<PropAnimationSamples>();
+                clip=samples.For(clip);
             }
-            clip.SampleAnimation(root, time);
+            clip.SampleAnimation(root,time);
         }
+    }
+
+    internal sealed class PropAnimationSamples : MonoBehaviour
+    {
+        readonly Dictionary<AnimationClip,AnimationClip> copies=new Dictionary<AnimationClip,AnimationClip>();
+        public AnimationClip For(AnimationClip source)
+        {
+            if(!copies.TryGetValue(source,out var copy))
+            {
+                copy=Instantiate(source);
+                copy.name=source.name+" (prop pose)";
+                copy.legacy=true;
+                copies.Add(source,copy);
+            }
+            return copy;
+        }
+        void OnDestroy(){foreach(var clip in copies.Values)if(clip)Destroy(clip);}
     }
 }

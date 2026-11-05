@@ -23,9 +23,13 @@ namespace MemoryWhitebox.Editor
         static void Patch(int side)
         {
             Ready();Vector2 head=Point(d.adhesiveTab.bounds.center),cut=Point(d.adhesiveCutter.bounds.center),end=cut+(cut-head).normalized*30;
-            Pointer(EventType.MouseDown,head);Pointer(EventType.MouseDrag,end);Check(d.Chapter.LooseStripReady,"Cutter produces one strip "+side);
-            var hole=Point(d.tapes[2].preparation.pieces[side].transform.position);Pointer(EventType.MouseDrag,hole);Pointer(EventType.MouseUp,hole);Call("TickWorkbenchAssets",.6f);
-            Check(side==0?d.Chapter.Tape.Candidates[2].HoleA:d.Chapter.Tape.Candidates[2].HoleB,"Physical patch completes hole "+side);
+            if(d.Chapter.LooseStripReady)
+                Pointer(EventType.MouseDown,Point(d.adhesiveStrip.GetComponent<Collider>().bounds.center));
+            else {Pointer(EventType.MouseDown,head);Pointer(EventType.MouseDrag,end);}
+            Check(d.Chapter.LooseStripReady,"One loose strip available for hole "+side);
+            var hole=Point(d.tapes[2].preparation.pieces[side].transform.position);Pointer(EventType.MouseDrag,hole);Pointer(EventType.MouseUp,hole);
+            var data=d.Chapter.Tape.Candidates[2];
+            Check((side==0?data.HoleA:data.HoleB) && !d.Chapter.LooseStripReady,"Release seals only the selected hole and consumes the strip "+side);
         }
         public static string Run()
         {
@@ -50,12 +54,34 @@ namespace MemoryWhitebox.Editor
             Check(d.sourceCounter.text.EndsWith(d.transport.SourceSeconds.ToString("000.0")),"Dual-deck tooltip counter follows actual source cursor");
             d.sourceCounter.text=d.targetCounter.text="stale authored counter";d.InitializeRecording();
             Check(d.sourceCounter.text.EndsWith(d.transport.SourceSeconds.ToString("000.0")) && d.targetCounter.text.EndsWith(d.transport.TargetSeconds.ToString("000.0")),"Restored recording initializes counters before entering a work view");
-            d.transport.SourceCommand(1);for(int i=0;i<110;i++){Pump(d.transport.Rate/10);Call("TickAudition");}
+            d.transport.SourceCommand(1);Pump(d.transport.Rate*10);Call("TickAudition");
+            Check(!d.Chapter.AuditionComplete,"First audition stays locked before the noise interval");
+            for(int i=0;i<200&&!d.Chapter.AuditionComplete;i++){Pump(d.transport.Rate/10);Call("TickAudition");}
             Check(d.Chapter.AuditionComplete,"Audible playback unlocks preparation");d.transport.SourceCommand(0);
             d.OpenWorkbench();Ready();Call("TickWorkbenchAssets",.01f);
             var tape=d.tapes[2];Vector2 shell=Point(tape.root.position),mat=Point(d.workMat.bounds.center);
             Pointer(EventType.MouseDown,shell);Pointer(EventType.MouseDrag,mat);Check(d.preparationDropPreview.enabled,"Mat drop preview");Pointer(EventType.MouseUp,mat);Settle();
             Check(Get<bool>("preparationFocused"),"Drop enters preparation close view");
+            var flat=d.Chapter.WorkbenchEuler;
+            foreach(float angle in new[]{0f,25f,50f,90f,145f,180f})
+            {
+                d.Chapter.WorkbenchEuler=flat+Vector3.right*angle;Call("PoseWorkbenchTape");Physics.SyncTransforms();
+                float bottom=tape.root.GetComponentsInChildren<Renderer>().Where(r=>r.enabled && !(r is LineRenderer)).Min(r=>r.bounds.min.y);
+                Check(bottom>=d.workMat.bounds.max.y+d.preparationMatClearance-.0001f,"Cassette keeps mat clearance at "+angle+" degrees");
+            }
+            d.Chapter.WorkbenchEuler=flat;Call("PoseWorkbenchTape");
+            var rollMesh=d.workbenchVisuals.roll.GetComponentInChildren<MeshRenderer>();
+            Check(rollMesh.bounds.size.y<Mathf.Min(rollMesh.bounds.size.x,rollMesh.bounds.size.z),"Tape roll lies flat on preparation mat");
+            d.PlaceTapeOnPreparationMat(true);Settle();
+            var head=Point(d.adhesiveTab.bounds.center);var cut=Point(d.adhesiveCutter.bounds.center);
+            Pointer(EventType.MouseDown,head);Pointer(EventType.MouseDrag,cut+(cut-head).normalized*30);
+            Check(d.Chapter.LooseStripReady,"Uninspected cassette does not block tearing a strip");
+            var socket=Point(tape.preparation.pieces[0].transform.position);
+            Pointer(EventType.MouseDrag,socket);
+            Check((int)Call("PatchTarget",socket)<0,"Incomplete tape cannot attract a patch");
+            Pointer(EventType.MouseUp,socket);
+            Check(d.Chapter.LooseStripReady && !d.Chapter.Tape.Candidates[2].HoleA && (d.adhesiveStrip.position-d.stripRest.position).sqrMagnitude<.000001f,"Rejected strip is reusable at its rest point");
+            d.PlaceTapeOnPreparationMat(false);Settle();
             var home=tape.root.position;var shellAt=Point(home);var outside=Point(d.workMat.bounds.center+Vector3.right*.35f);
             Pointer(EventType.MouseDown,shellAt);Pointer(EventType.MouseDrag,outside);Check(Get<bool>("preparationCarryReturn"),"Drag away starts automatic return");
             var drag=Get<ObjectDragSession>("benchDrag");Vector2 grip=Point(drag.ScreenCarryGrip);Call("TickPreparationCamera",.15f);
@@ -77,7 +103,7 @@ namespace MemoryWhitebox.Editor
             Check(d.Selected==2 && d.DeckBusy(1) && Get<bool>("radioFocused"),"Continuous mat-to-B drag starts close view during animation");Settle();
             for(int commission=0;commission<3;commission++)
             {
-                if(commission>0){d.OpenWorkbench();Ready();Check(d.LoadOriginal(),"Next source loads "+commission);Settle();d.transport.SourceCommand(1);for(int i=0;i<300&&!d.Chapter.AuditionComplete;i++){Pump(d.transport.Rate/10);Call("TickAudition");}Check(d.Chapter.AuditionComplete,"Next audition completes "+commission);d.PlaceOnWorkbench(2);Ready();d.PlaceTapeOnPreparationMat(false);Settle();
+                if(commission>0){d.OpenWorkbench();Ready();Check(d.LoadOriginal(),"Next source loads "+commission);Settle();d.transport.SourceCommand(1);for(int i=0;i<Mathf.CeilToInt(d.transport.SourceDuration*10)+2&&!d.Chapter.AuditionComplete;i++){Pump(d.transport.Rate/10);Call("TickAudition");}Check(d.Chapter.AuditionComplete,"Next audition completes "+commission);d.PlaceOnWorkbench(2);Ready();d.PlaceTapeOnPreparationMat(false);Settle();
                     for(int side=0;side<2;side++){var reel=Point((side==0?tape.leftSpindleHit:tape.rightSpindleHit).bounds.center);Pointer(EventType.MouseDown,reel);for(int i=0;i<12;i++)Pointer(EventType.ScrollWheel,reel,3);Pointer(EventType.MouseUp,reel);}
                     d.PlaceTapeOnPreparationMat(true);Settle();Patch(0);Patch(1);Call("SelectForDrag",2);Check(d.InsertDragged(),"New work tape preparation loads "+commission);Settle();}
                 var audio=Get<TapeCommissionAudio>("commissionAudio");d.transport.GetComponent<AudioSource>().Stop();d.transport.RetryCurrent();d.transport.SourceCommand(1);

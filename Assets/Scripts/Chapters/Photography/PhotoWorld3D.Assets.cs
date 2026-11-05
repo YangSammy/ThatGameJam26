@@ -13,6 +13,16 @@ namespace MemoryWhitebox
         {
             var go=Child(parent,id,position,scale,"#303735");go.GetComponent<Renderer>().enabled=false;go.AddComponent<PhotographyInteractionHit>();return go;
         }
+        internal override Transform HoverVisual(Vector2 point,out Camera camera)
+        {
+            camera=View;
+            if(PointerOverUI || HasActiveGesture)return null;
+            string id=Pick(PointerRay(point));
+            if(id=="meter" && meterVisual)return meterVisual.transform;
+            var part=cameraVisual?cameraVisual.HoverPart(id):null;
+            if(part)return part;
+            return Nodes.TryGetValue(id,out var node)?node.transform:null;
+        }
         void BuildAssetCamera()
         {
             cameraBody=Group("Mechanical 35 mm camera",cameraDock);

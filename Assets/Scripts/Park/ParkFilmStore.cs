@@ -80,7 +80,25 @@ namespace MemoryWhitebox
     public static class ParkFilmStore
     {
         [Serializable] sealed class ActiveRoll { public string id; }
+#if UNITY_EDITOR
+        static string validationRoot;
+        public static IDisposable BeginValidationScope(string directory)
+        {
+            if(validationRoot!=null)throw new InvalidOperationException("Film validation scopes cannot be nested.");
+            string allowed=Path.GetFullPath(Path.Combine(Application.dataPath,"..","output","QA"))+Path.DirectorySeparatorChar;
+            string resolved=Path.GetFullPath(directory);
+            if(!resolved.StartsWith(allowed,StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("Film validation must stay beneath project output/QA.");
+            validationRoot=resolved;return new ValidationScope();
+        }
+        sealed class ValidationScope:IDisposable
+        {
+            bool disposed;
+            public void Dispose(){if(disposed)return;disposed=true;validationRoot=null;}
+        }
+        public static string Root=>validationRoot??Path.Combine(GameSavePaths.Root,"ParkFilm");
+#else
         public static string Root=>Path.Combine(GameSavePaths.Root,"ParkFilm");
+#endif
         static string ActivePath=>Path.Combine(Root,"active-roll.json");
         static string RollFolder(string id)
         {Guid parsed;if(!Guid.TryParseExact(id,"N",out parsed))throw new InvalidDataException("Invalid film ID.");return Path.Combine(Root,id);}
@@ -194,12 +212,18 @@ namespace MemoryWhitebox
             roll.cameraLoading=progress;roll.updatedUtc=DateTime.UtcNow.ToString("o");
             Validate(roll);WriteJson(Manifest(roll.id),roll);return roll;
         }
+        static ActiveRoll ReadActive()
+        {
+            return ReadMetadata(ActivePath,text=>{
+                var active=JsonUtility.FromJson<ActiveRoll>(text);
+                if(active==null)throw new InvalidDataException("Active film record is damaged.");
+                RollFolder(active.id);return active;
+            });
+        }
         public static ParkFilmRoll LoadActive()
         {
-            if(!File.Exists(ActivePath))return null;
-            var active=JsonUtility.FromJson<ActiveRoll>(File.ReadAllText(ActivePath));
-            if(active==null)throw new InvalidDataException("Active film record is damaged.");
-            return Load(active.id);
+            if(!File.Exists(ActivePath) && !File.Exists(ActivePath+".bak"))return null;
+            return Load(ReadActive().id);
         }
         // Progress and preview permission are committed together. No preview is unlocked
         // if the final rinse could not be saved. Frame bytes are never rewritten here.
@@ -260,28 +284,46 @@ namespace MemoryWhitebox
             }
             catch{UnityEngine.Object.Destroy(sheet);throw;}
         }
-        static void WriteAtomic(string path,byte[] bytes)
+        static readonly HashSet<string> recoveredMetadata=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        static void WriteAtomic(string path,byte[] bytes,bool metadata=false)
         {
             string temporary=path+"."+Guid.NewGuid().ToString("N")+".tmp";
             try
             {
                 using(var stream=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None))
                 {stream.Write(bytes,0,bytes.Length);stream.Flush(true);}
-                if(File.Exists(path))File.Replace(temporary,path,null);else File.Move(temporary,path);
+                string key=Path.GetFullPath(path);
+                bool recovered=metadata && recoveredMetadata.Contains(key);
+                if(recovered && File.Exists(path))File.Copy(path,path+"."+Guid.NewGuid().ToString("N")+".damaged");
+                if(File.Exists(path))File.Replace(temporary,path,metadata && !recovered?path+".bak":null);
+                else File.Move(temporary,path);
+                if(metadata && !File.Exists(path+".bak"))File.Copy(path,path+".bak");
+                if(metadata)recoveredMetadata.Remove(key);
             }
             finally{if(File.Exists(temporary))File.Delete(temporary);}
         }
         static void WriteJson(string path,object value)
-        {WriteAtomic(path,System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(value,true)));}
+        {WriteMetadata(path,System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(value,true)));}
+        // These path-based helpers also support isolated regression checks without redirecting game saves.
+        public static void WriteMetadata(string path,byte[] bytes){WriteAtomic(path,bytes,true);}
+        public static T ReadMetadata<T>(string path,Func<string,T> parse)
+        {
+            try{return parse(File.ReadAllText(path));}
+            catch(Exception primary)
+            {
+                try
+                {
+                    T recovered=parse(File.ReadAllText(path+".bak"));
+                    recoveredMetadata.Add(Path.GetFullPath(path));return recovered;
+                }
+                catch(Exception backup){throw new InvalidDataException("Film metadata and backup are unavailable: "+Path.GetFileName(path),new AggregateException(primary,backup));}
+            }
+        }
         public static ParkFilmRoll LoadOrCreate()
         {
             Directory.CreateDirectory(Root);
-            if(File.Exists(ActivePath))
-            {
-                var active=JsonUtility.FromJson<ActiveRoll>(File.ReadAllText(ActivePath));
-                if(active==null)throw new InvalidDataException("Active film record is damaged.");
-                return Load(active.id);
-            }
+            if(File.Exists(ActivePath) || File.Exists(ActivePath+".bak"))return Load(ReadActive().id);
+            if(Directory.GetDirectories(Root).Length>0)throw new InvalidDataException("Existing film has no active record; records kept.");
             var now=DateTime.UtcNow.ToString("o");
             var roll=new ParkFilmRoll{id=Guid.NewGuid().ToString("N"),createdUtc=now,updatedUtc=now,state=ParkFilmState.Loaded};
             Directory.CreateDirectory(RollFolder(roll.id));WriteJson(Manifest(roll.id),roll);
@@ -289,8 +331,10 @@ namespace MemoryWhitebox
         }
         public static ParkFilmRoll Load(string id)
         {
-            var roll=JsonUtility.FromJson<ParkFilmRoll>(File.ReadAllText(Manifest(id)));
-            Validate(roll);if(roll.id!=id)throw new InvalidDataException("Film identity mismatch.");return roll;
+            return ReadMetadata(Manifest(id),text=>{
+                var roll=JsonUtility.FromJson<ParkFilmRoll>(text);
+                Validate(roll);if(roll.id!=id)throw new InvalidDataException("Film identity mismatch.");return roll;
+            });
         }
         public static ParkFilmRoll SaveExposure(ParkFilmRoll current,ParkPhotoRecord frame,byte[] encodedImage)
         {
@@ -311,8 +355,13 @@ namespace MemoryWhitebox
             // Frame bytes are committed before the manifest; a failed manifest write cannot
             // consume a slot or overwrite earlier frames. Orphan bytes are never exposed in UI.
             string negative=Path.Combine(RollFolder(stored.id),frame.negativeFile);
-            if(File.Exists(negative))throw new InvalidOperationException("Duplicate exposure ID.");
-            WriteAtomic(negative,encodedImage);
+            if(File.Exists(negative))
+            {
+                // A manifest failure can leave these exact pending bytes behind.
+                // Reuse them, but never overwrite a different exposure with the same ID.
+                if(!MatchingExposureBytes(File.ReadAllBytes(negative),encodedImage))throw new InvalidOperationException("Duplicate exposure ID.");
+            }
+            else WriteAtomic(negative,encodedImage);
             stored.frames.Add(frame);stored.updatedUtc=DateTime.UtcNow.ToString("o");
             if(frame.taskId=="bridge" && stored.bridge!=null)stored.bridge.captured=true;
             if(frame.taskId=="entrance" && stored.entrance!=null)stored.entrance.captured=true;
@@ -325,6 +374,12 @@ namespace MemoryWhitebox
                 stored.darkroom=new ParkDarkroomProgress{workflowVersion=3,phase=PhotoChapter.FilmPhase.Exposed,printObjects=new DarkroomPrintState()};
             }
             Validate(stored);WriteJson(Manifest(stored.id),stored);return stored;
+        }
+        public static bool MatchingExposureBytes(byte[] stored,byte[] pending)
+        {
+            if(stored==null || pending==null || stored.Length!=pending.Length)return false;
+            for(int i=0;i<stored.Length;i++)if(stored[i]!=pending[i])return false;
+            return true;
         }
         // Only the darkroom uses this after persisting the completed processing state.
         public static bool TryReadDevelopedFrame(string rollId,int frameNumber,out byte[] image,out string reason)

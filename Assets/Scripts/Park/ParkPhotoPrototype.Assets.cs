@@ -11,14 +11,36 @@ namespace MemoryWhitebox
             var go=new GameObject(id);go.transform.SetParent(parent,false);go.transform.localPosition=position;go.layer=FirstPersonHands.HandLayer;
             go.AddComponent<BoxCollider>().size=size;instrumentParts[id]=go.transform;partHomes[id]=position;return go.transform;
         }
+        internal Transform InstrumentHoverVisual(Collider hit)
+        {
+            if(!hit || !hit.enabled || !hit.gameObject.activeInHierarchy || HandPresentationBlocked)return null;
+            string id=hit.name;
+            if(photoMode==PhotographyMode.Meter)
+                return id=="meter" && instrumentMeter?instrumentMeter.HoverControl(view.ViewportPointToRay(virtualPointer)):null;
+            if(photoMode==PhotographyMode.Aperture)return id=="aperture"?instrumentCamera.apertureRing:null;
+            if(photoMode==PhotographyMode.Shutter)return id=="speed"?instrumentCamera.dial:null;
+            if(photoMode!=PhotographyMode.Body || dragPart!=null)return null;
+            bool operable=id=="rewind" && loadingStep==0 ||
+                id.StartsWith("film-") && loadingStep==1 ||
+                id=="leader" && loadingStep==2 ||
+                id=="advance" && (loadingStep==4 || loadingStep==6) ||
+                id=="back" && loadingStep==5 ||
+                id=="eyepiece" && roll!=null && roll.ReadyForPark;
+            if(!operable)return null;
+            var part=instrumentCamera?instrumentCamera.HoverPart(id):null;
+            return part?part:hit.transform;
+        }
         void BuildAssetInstruments()
         {
             instruments=new GameObject("Photography hand instruments").transform;instruments.SetParent(view.transform,false);
             bodyRoot=new GameObject("Camera operation model").transform;bodyRoot.SetParent(instruments,false);
             meterRoot=new GameObject("Incident light meter").transform;meterRoot.SetParent(instruments,false);
             instrumentCamera=PhotographyCameraVisual.Create(bodyRoot,new Vector3(0,-.135f,.64f),2.5f,FirstPersonHands.HandLayer);
+            ApertureHandContact();
             AssetProxy("body",bodyRoot,new Vector3(0,-.03f,.64f),new Vector3(.35f,.22f,.11f));
             foreach(string id in new[]{"back","rewind","chamber","spool","leader","advance","eyepiece","aperture","speed"})AssetProxy(id,bodyRoot,Vector3.zero,id=="back"?new Vector3(.32f,.20f,.02f):new Vector3(.055f,.055f,.04f));
+            instrumentParts["chamber"].GetComponent<BoxCollider>().size=new Vector3(.09f,.14f,.08f);
+            instrumentParts["spool"].GetComponent<BoxCollider>().size=new Vector3(.08f,.14f,.08f);
             for(int i=0;i<4;i++)
             {
                 int iso=filmIsos[i];var proxy=AssetProxy("film-"+iso,bodyRoot,new Vector3(-.18f+i*.12f,-.23f,.6f),new Vector3(.07f,.12f,.07f));
@@ -38,7 +60,7 @@ namespace MemoryWhitebox
             bodyRoot.gameObject.SetActive(photoMode==PhotographyMode.Body || photoMode==PhotographyMode.Aperture || photoMode==PhotographyMode.Shutter);
             instrumentMeter.Apply(filmIsos[meterIsoIndex],sceneEv100,meter,meterHeld);
             // The reference captures and gameplay camera never inherit these presentation rotations.
-            instrumentCamera.transform.localRotation=photoMode==PhotographyMode.Aperture?Quaternion.Euler(0,145,0):Quaternion.identity;
+            SyncInstrumentPresentation();
             if(dragPart=="leader")
             {
                 var start=instrumentCamera.insert.TransformPoint(new Vector3(.039f,.0015f,-.0134f));var end=instrumentCamera.takeUp.position;
@@ -48,7 +70,8 @@ namespace MemoryWhitebox
             instrumentCamera.Apply(loadingStep>0 && loadingStep<6,loadingStep>=2,FilmIso,stage,assetPull,focusDistance,Aperture,ShutterSeconds,flash,Time.deltaTime);
             void Follow(string id,Transform target){instrumentParts[id].SetPositionAndRotation(target.position,target.rotation);}
             Follow("rewind",instrumentCamera.rewindKnob);Follow("spool",instrumentCamera.takeUp);Follow("chamber",instrumentCamera.insert);
-            Follow("leader",instrumentCamera.LeaderTip);Follow("advance",instrumentCamera.advanceLever);Follow("eyepiece",instrumentCamera.eyepiece);
+            if(dragPart!="leader")Follow("leader",instrumentCamera.LeaderTip);
+            Follow("advance",instrumentCamera.advanceLever);Follow("eyepiece",instrumentCamera.eyepiece);
             Follow("aperture",instrumentCamera.apertureRing);Follow("speed",instrumentCamera.dial);
             instrumentParts["back"].SetPositionAndRotation(instrumentCamera.back.TransformPoint(new Vector3(.064f,0,0)),instrumentCamera.back.rotation);
             instrumentParts["body"].GetComponent<Collider>().enabled=false; // Never mask the small mechanical controls.

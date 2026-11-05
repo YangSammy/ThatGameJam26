@@ -184,6 +184,29 @@ namespace MemoryWhitebox
             DarkroomWorld.OpenDevelopedFrame(number);summerGallerySeen=true;SyncInputContext();
         }
 
+        internal Transform RoomHoverVisual(Collider hit,Ray ray)
+        {
+            if(DepartureRoom!=null)
+                return !StoryFinished && !DepartureDoorOpen && DepartureRoom.HitHandle(ray)?DepartureRoom.handle.transform:null;
+            if(!hit)return null;
+            if(summerPhotoRoom!=null && hit==summerPhotoRoom.curtainHit)return summerPhotoRoom.curtain;
+            if(radioDeck!=null && radioDeck.StationActive && radioDeck.IsEntryHit(hit))
+            {
+                if(radioDeck.dualDeck && radioDeck.dualDeck.Command(hit)!=null)return hit.transform;
+                var source=radioDeck.InspectionSource(ray);
+                if(source==radioDeck.transform && radioDeck.dualDeck)return radioDeck.dualDeck.transform;
+                if(source)return source;
+            }
+            var inspection=safeInspection?.ForHit(hit);
+            if(inspection!=null)return inspection.source;
+            var entry=hit.GetComponentInParent<StudyEntry>();
+            if(entry!=null)return CanEnterDay(entry.chapter)?entry.transform:null;
+            // The seasonal photo frames have their actionable collider on the visible frame.
+            if(summerPhotoRoom!=null)foreach(var frame in summerPhotoRoom.frames)
+                if(frame && frame.transform==hit.transform)return frame.transform;
+            return null;
+        }
+
         public Vector3 FilmCarryTarget(Vector3 eye,Vector3 hand)=>summerPhotoRoom!=null?summerPhotoRoom.CarryThroughDoor(eye,hand):hand;
     }
 }

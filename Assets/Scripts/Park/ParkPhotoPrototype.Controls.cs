@@ -12,8 +12,10 @@ namespace MemoryWhitebox
         [Min(1)] public float virtualCursorSpeed=20;
         [Range(0,20)] public float sceneEv100=13;
         public PhotographyMode PhotoMode=>photoMode;
-        public bool HandPresentationBlocked=>inputGate || !focused || changingScene || Paused;
+        public bool HandPresentationBlocked=>(inputGate && !raiseReleasePresentation) || !focused || changingScene || Paused;
         public Transform HandContactTarget=>dragPart!=null && instrumentParts.ContainsKey(dragPart)?instrumentParts[dragPart]:null;
+        public Transform CameraRaiseGrip=>CameraRaising && cameraRaiseElapsed<CameraRaiseSeconds*.6f && instrumentCamera!=null?instrumentCamera.grip:null;
+        public Transform CameraRaiseSupport=>CameraRaising && cameraRaiseElapsed<CameraRaiseSeconds*.6f && instrumentCamera!=null?instrumentCamera.support:null;
         public int FilmIso=>roll?.FilmIso??100;
         public float Aperture=>apertures[apertureIndex];
         public float ShutterSeconds=>speeds[speedIndex];
@@ -23,7 +25,7 @@ namespace MemoryWhitebox
         static readonly float[] speeds=ParkCameraResponse.ShutterSpeeds;
         int apertureIndex=3,speedIndex=5,meterIsoIndex,loadingStep;
         PhotographyMode photoMode;
-        bool PreciseInstrumentPointer=>photoMode==PhotographyMode.Body || photoMode==PhotographyMode.Meter || PhotoHandPointerActive;
+        bool PreciseInstrumentPointer=>photoMode==PhotographyMode.Body || photoMode==PhotographyMode.Meter;
         Vector2 virtualPointer=new Vector2(.5f,.5f);
         int edgeCandidate=-1;
         float dwell,cooldown;
@@ -37,6 +39,66 @@ namespace MemoryWhitebox
         readonly List<WorldTooltipLabel> instrumentLabels=new List<WorldTooltipLabel>();
         Material instrumentMaterial;
         WorldTooltipLabel meterReadout,cameraReadout;
+        const float CameraRaiseSeconds=.5f;
+        float cameraRaiseElapsed=-1,raiseStartFov;
+        bool raiseReleasePresentation;
+        Vector3 raiseHome,raiseGoal;
+        bool CameraRaising=>cameraRaiseElapsed>=0;
+
+        void BeginCameraRaise()
+        {
+            if(CameraRaising || photoMode!=PhotographyMode.Body || roll==null || !roll.ReadyForPark || bodyRoot==null)return;
+            CancelInstrumentDrag();
+            raiseHome=bodyRoot.localPosition;raiseStartFov=view.fieldOfView;
+            var eye=instrumentParts["eyepiece"];
+            // Keep the solid eyepiece and back door in front of the near plane.
+            var destination=view.transform.TransformPoint(new Vector3(0,0,Mathf.Max(.28f,view.nearClipPlane+.20f)));
+            raiseGoal=raiseHome+bodyRoot.parent.InverseTransformVector(destination-eye.position);
+            cameraRaiseElapsed=0;moveVelocity=Vector3.zero;verticalSpeed=0;
+            dwell=0;edgeCandidate=-1;bodyPointer.Clear();
+            SyncParkInput();
+            InputContext.Handoff();
+        }
+        bool TickCameraRaise(float dt)
+        {
+            if(!inputGate)raiseReleasePresentation=false;
+            if(!CameraRaising)return false;
+            if(Input.GetKeyDown(KeyCode.E)){SetPhotographyMode(PhotographyMode.Exploration);return true;}
+            cameraRaiseElapsed=Mathf.Min(CameraRaiseSeconds,cameraRaiseElapsed+Mathf.Max(0,dt));
+            float u=cameraRaiseElapsed/CameraRaiseSeconds;
+            float smooth=u*u*(3-2*u);
+            bodyRoot.localPosition=Vector3.Lerp(raiseHome,raiseGoal,smooth)+Vector3.up*(Mathf.Sin(Mathf.PI*u)*.07f);
+            view.fieldOfView=Mathf.Lerp(raiseStartFov,PlayerControlSettings.Current.parkAimingFov,smooth);
+            SyncInstruments();
+            // Transfer to the optical view while fully occluded, never through solid geometry.
+            if(focusEffect!=null)
+            {
+                focusEffect.raiseOcclusion=u<.6f?Mathf.SmoothStep(0,1,Mathf.InverseLerp(.25f,.6f,u)):
+                    1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.6f,1,u));
+                if(u>=.6f)SyncRaiseOpticalPreview();
+            }
+            if(u>=.6f && focusEffect!=null)bodyRoot.gameObject.SetActive(false);
+            if(u>=1)
+            {
+                cameraRaiseElapsed=-1;bodyRoot.localPosition=raiseHome;
+                aimBlend=1;SetPhotographyMode(PhotographyMode.Viewfinder);raiseReleasePresentation=true;
+            }
+            return true;
+        }
+        void CancelCameraRaise()
+        {
+            raiseReleasePresentation=false;
+            if(focusEffect!=null)focusEffect.raiseOcclusion=0;
+            if(!CameraRaising)return;
+            cameraRaiseElapsed=-1;
+            if(bodyRoot!=null)bodyRoot.localPosition=raiseHome;
+            if(view!=null)view.fieldOfView=raiseStartFov;
+        }
+        void SyncRaiseOpticalPreview()
+        {
+            focusEffect.activeFocus=true;focusEffect.distance=focusDistance;
+            focusEffect.aperture=Aperture;focusEffect.exposureError=ExposureError;
+        }
 
         void InitializePhotographyModes()
         {
@@ -87,6 +149,8 @@ namespace MemoryWhitebox
         }
         void SetPhotographyMode(PhotographyMode mode)
         {
+            CancelCameraRaise();
+            handJoinTransition=0;
             CancelInstrumentDrag();photoMode=mode;Aiming=mode==PhotographyMode.Viewfinder;
             // Esc and edge transitions can return before Update's normal render sync.
             if(focusEffect!=null)SyncCameraPreview();
@@ -95,6 +159,7 @@ namespace MemoryWhitebox
             moveVelocity=Vector3.zero;inputGate=true;handoff.Arm();
             InputContext.Handoff();SyncParkInput();
             if(instruments!=null)SyncInstruments();
+            if(mode==PhotographyMode.Exploration)ReleaseGuidedDeparture();
         }
         void CancelInstrumentDrag()
         {
@@ -104,6 +169,8 @@ namespace MemoryWhitebox
         }
         bool TickPhotographyModes(float dt)
         {
+            if(Input.GetKeyDown(KeyCode.E))
+            {ToggleCamera();return true;}
             if(PreciseInstrumentPointer)
                 virtualPointer=new Vector2(Input.mousePosition.x/Mathf.Max(1,Screen.width),Input.mousePosition.y/Mathf.Max(1,Screen.height));
             else
@@ -119,7 +186,7 @@ namespace MemoryWhitebox
             if(dragPart==null && !Input.GetMouseButton(0) && !(PhotoHandPointerActive && PointerOnHand))
             {
                 if(photoMode!=PhotographyMode.Exploration && virtualPointer.y>.94f)edge=0;
-                else if(photoMode==PhotographyMode.Exploration && virtualPointer.y<.2f)edge=virtualPointer.x<.18f?1:virtualPointer.x>.82f?2:-1;
+                else if(photoMode==PhotographyMode.Exploration && virtualPointer.y<.2f && virtualPointer.x<.18f)edge=1;
                 else if(photoMode==PhotographyMode.Viewfinder)edge=virtualPointer.x<.08f?3:virtualPointer.x>.92f?4:-1;
             }
             if(edgeArmed && cooldown<=0 && edge>=0)
@@ -137,13 +204,16 @@ namespace MemoryWhitebox
             if(Mathf.Abs(scroll)>.01f)
             {
                 int direction=scroll>0?1:-1;
-                if(photoMode==PhotographyMode.Meter)meterIsoIndex=Mathf.Clamp(meterIsoIndex+direction,0,3);
-                if(photoMode==PhotographyMode.Aperture)apertureIndex=Mathf.Clamp(apertureIndex+direction,0,apertures.Length-1);
-                if(photoMode==PhotographyMode.Shutter)speedIndex=Mathf.Clamp(speedIndex+direction,0,speeds.Length-1);
+                if(StepInstrumentControl(direction))PlayInstrumentClick();
             }
             if(photoMode==PhotographyMode.Body)HandleBody();
             SyncInstruments();
             return photoMode!=PhotographyMode.Exploration && photoMode!=PhotographyMode.Viewfinder;
+        }
+        void ToggleCamera()
+        {
+            SetPhotographyMode(photoMode==PhotographyMode.Exploration?
+                (roll!=null && roll.ReadyForPark?PhotographyMode.Viewfinder:PhotographyMode.Body):PhotographyMode.Exploration);
         }
         public Vector2 TooltipPoint=>new Vector2(virtualPointer.x*Screen.width,virtualPointer.y*Screen.height);
         public Collider TooltipTarget
@@ -185,7 +255,7 @@ namespace MemoryWhitebox
                 {dragPart=hit;dragStart=ray.GetPoint(.55f);}
                 else if(hit=="advance" && (loadingStep==4 || loadingStep==6))SaveLoadingStep(loadingStep+1,FilmIso);
                 else if(hit=="back" && loadingStep==5)SaveLoadingStep(6,FilmIso);
-                else if(hit=="eyepiece" && roll!=null && roll.ReadyForPark){SetPhotographyMode(PhotographyMode.Viewfinder);return;}
+                else if(hit=="eyepiece" && roll!=null && roll.ReadyForPark){BeginCameraRaise();return;}
             }
         }
         void MoveBodyPointer(Ray ray)
@@ -194,7 +264,12 @@ namespace MemoryWhitebox
             {
                 if(dragPart=="rewind")
                 {if(Vector3.Dot(ray.GetPoint(.55f)-dragStart,view.transform.up)>.025f){SaveLoadingStep(1,FilmIso);CancelInstrumentDrag();}}
-                else instrumentParts[dragPart].position=ray.GetPoint(.54f);
+                else
+                {
+                    // Use a view-aligned plane, so lateral cursor movement never changes drag depth.
+                    var plane=new Plane(view.transform.forward,view.transform.position+view.transform.forward*.54f);
+                    if(plane.Raycast(ray,out float distance))instrumentParts[dragPart].position=ray.GetPoint(distance);
+                }
             }
         }
         void EndBodyPointer(Ray ray)
@@ -203,7 +278,10 @@ namespace MemoryWhitebox
             {
                 string dragged=dragPart;
                 // Ignore the held object when finding its drop destination.
-                instrumentParts[dragged].GetComponent<Collider>().enabled=false;string hit=PickInstrument(ray);instrumentParts[dragged].GetComponent<Collider>().enabled=true;
+                string destination=dragged.StartsWith("film-")?"chamber":dragged=="leader"?"spool":"";
+                Physics.SyncTransforms();
+                string hit=destination!="" && instrumentParts[destination].gameObject.activeInHierarchy &&
+                    instrumentParts[destination].GetComponent<Collider>().Raycast(ray,out RaycastHit drop,2)?destination:"";
                 if(dragged.StartsWith("film-") && hit=="chamber")SaveLoadingStep(2,int.Parse(dragged.Substring(5)));
                 else if(dragged=="leader" && hit=="spool")SaveLoadingStep(4,FilmIso);
                 CancelInstrumentDrag();
@@ -226,7 +304,7 @@ namespace MemoryWhitebox
         {
             if(roll==null || roll.frames.Count>0 || !ParkCameraLoading.CanAdvance(loadingStep,step))return;
             var progress=ParkCameraLoading.AtStep(step,iso);
-            try{roll=ParkFilmStore.SaveCameraLoading(roll.id,progress);loadingStep=step;}
+            try{roll=ParkFilmStore.SaveCameraLoading(roll.id,progress);loadingStep=step;SyncMeterAfterLoadingStep(step,iso);}
             catch(Exception e){Notify("Camera step not saved. Release and retry.",6);Debug.LogWarning("Camera step not saved; previous state retained: "+e.Message);}
         }
         void SyncInstruments()
@@ -247,11 +325,21 @@ namespace MemoryWhitebox
         }
         void DrawPhotographyModes()
         {
+            if(photoMode==PhotographyMode.Aperture || photoMode==PhotographyMode.Shutter)
+            {
+                bool aperture=photoMode==PhotographyMode.Aperture;
+                var panel=new Rect(Screen.width*.5f-150,Screen.height-116,300,94);
+                GUI.Box(panel,GUIContent.none);
+                var label=new GUIStyle(GUI.skin.label){alignment=TextAnchor.MiddleCenter,fontSize=22};
+                GUI.Label(new Rect(panel.x,panel.y+8,panel.width,34),aperture?"Aperture  f/"+Aperture:"Shutter  1/"+Mathf.RoundToInt(1/ShutterSeconds)+" s",label);
+                label.fontSize=14;
+                GUI.Label(new Rect(panel.x,panel.y+45,panel.width,38),"Scroll: change one stop\nCentre: viewfinder   E: lower camera",label);
+            }
             if(photoMode==PhotographyMode.Viewfinder)
                 GUI.Label(new Rect(Screen.width*.5f-140,Screen.height-60,280,30),"f/"+Aperture+"   1/"+Mathf.RoundToInt(1/ShutterSeconds)+"   "+FilmIso+"   "+focusDistance.ToString("0.0")+"m");
             if(!PreciseInstrumentPointer && (photoMode!=PhotographyMode.Exploration || edgeCandidate>=0))
                 GUI.Label(new Rect(virtualPointer.x*Screen.width-5,(1-virtualPointer.y)*Screen.height-10,20,20),"·");
         }
-        void DisposePhotographyModes(){if(instruments!=null)Destroy(instruments.gameObject);if(instrumentMaterial!=null)Destroy(instrumentMaterial);}
+        void DisposePhotographyModes(){DisposeInstrumentClick();if(instruments!=null)Destroy(instruments.gameObject);if(instrumentMaterial!=null)Destroy(instrumentMaterial);}
     }
 }

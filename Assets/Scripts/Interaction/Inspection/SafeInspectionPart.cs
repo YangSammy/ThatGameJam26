@@ -17,28 +17,11 @@ namespace MemoryWhitebox
         Quaternion rotation;
         float target;
         Renderer[] highlightRenderers;
-        MaterialPropertyBlock[] originalBlocks;
-        bool highlighted;
-        static readonly int ColorId=Shader.PropertyToID("_Color");
-        public bool Highlighted => highlighted;
-        public void SetHighlighted(bool value)
-        {
-            if(highlighted==value)return;
-            highlighted=value;
-            if(highlightRenderers==null){highlightRenderers=GetComponentsInChildren<Renderer>(true);originalBlocks=new MaterialPropertyBlock[highlightRenderers.Length];}
-            for(int i=0;i<highlightRenderers.Length;i++)
-            {
-                var r=highlightRenderers[i];if(r==null)continue;
-                if(!value){r.SetPropertyBlock(originalBlocks[i]);continue;}
-                if(originalBlocks[i]==null)originalBlocks[i]=new MaterialPropertyBlock();
-                r.GetPropertyBlock(originalBlocks[i]);
-                var tint=new MaterialPropertyBlock();r.GetPropertyBlock(tint);
-                if(r.sharedMaterial==null || !r.sharedMaterial.HasProperty(ColorId))continue;
-                Color color=tint.HasColor(ColorId)?tint.GetColor(ColorId):r.sharedMaterial.GetColor(ColorId);
-                var warm=Color.Lerp(color,new Color(1,.91f,.71f,color.a),.16f);
-                tint.SetColor(ColorId,warm);r.SetPropertyBlock(tint);
-            }
-        }
+        public bool Highlighted {get;private set;}
+        public void SetHighlighted(bool value) { Highlighted=value; }
+        internal Renderer[] OutlineRenderers => highlightRenderers ?? (highlightRenderers =
+            System.Array.FindAll(GetComponentsInChildren<Renderer>(true),
+                r => r.GetComponentInParent<SafeInspectionPart>() == this));
         public void ResetToBaseline(){SetHighlighted(false);Held=false;target=0;}
 
         public void Capture()

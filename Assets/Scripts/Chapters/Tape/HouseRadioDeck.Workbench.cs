@@ -55,7 +55,6 @@ namespace MemoryWhitebox
         }
         public bool CancelWorkbenchGesture()
         {
-            if(Smoothing){CancelSmooth();house.SaveStableProgress();return true;}
             bool active=movingOriginal || (benchGesture!=BenchGesture.None && benchGesture!=BenchGesture.WaitRelease);
             if(!active)return false;
             benchDrag.End(true);
@@ -91,8 +90,15 @@ namespace MemoryWhitebox
             if(BenchIndex<0)return;var t=tapes[BenchIndex];
             if(OperationArea.For(t.root)!=null)
             {
-                OperationArea.RestorePose(t.root);
+                bool placed=OperationArea.RestorePose(t.root);
+                var stableRotation=t.root.rotation;
                 t.root.rotation=t.homeParent.rotation*t.homeRotation*Quaternion.Euler(Chapter.WorkbenchEuler);
+                // A tilted shell needs more vertical clearance than the stored flat pose.
+                if(placed && OnPreparationMat(t.root) && !OperationArea.For(t.root).Place(t.root,workMat,preparationMatClearance))
+                {
+                    t.root.rotation=stableRotation;
+                    Chapter.WorkbenchEuler=(Quaternion.Inverse(t.homeParent.rotation*t.homeRotation)*stableRotation).eulerAngles;
+                }
             }
             else t.root.SetPositionAndRotation(workAnchor.position,workAnchor.rotation*Quaternion.Euler(Chapter.WorkbenchEuler));
         }
@@ -104,7 +110,8 @@ namespace MemoryWhitebox
         void RestStrip()
         {
             Chapter.LooseStripReady=true;adhesiveStrip.gameObject.SetActive(true);
-            adhesiveStrip.SetPositionAndRotation(stripRest.position,stripRest.rotation);OperationArea.RestorePose(adhesiveStrip);
+            OperationArea.ClearPlacement(adhesiveStrip);
+            adhesiveStrip.SetPositionAndRotation(stripRest.position,stripRest.rotation);
         }
         public void TickWorkbench()
         {
@@ -136,7 +143,6 @@ namespace MemoryWhitebox
         public void WorkbenchPointer(EventType type,int button,Vector2 point,Vector2 delta,float wheel)
         {
             if((preparationCameraMoving && !preparationCarryReturn) || !WorkbenchMode || benchWaiting || !house.InputContext.Allows(InputContextId.TapeWorkbench))return;
-            if(Smoothing)return;
             var ray=view.ScreenPointToRay(point);Physics.SyncTransforms();
             if(type==EventType.MouseDown && !movingOriginal && benchGesture==BenchGesture.None && TapeUIAt(point))return;
             if(SourcePointer(type,button,ray))return;
@@ -196,6 +202,8 @@ namespace MemoryWhitebox
                 if(candidate>=0 && candidate!=Selected && candidate!=BenchIndex){PlaceOnWorkbench(candidate);benchWaiting=false;WorkbenchPointer(type,button,point,delta,wheel);return;}
                 if(BenchIndex<0)return;
                 var tape=tapes[BenchIndex];var target=PickWorkbenchTarget(ray);benchSpindle=target==tape.leftSpindleHit?0:target==tape.rightSpindleHit?1:-1;
+                if(benchSpindle>=0 && !OnPreparationMat(tape.root))
+                {ShowTapePointerNotice("Place the tape on the mat to check its reels.");benchGesture=BenchGesture.WaitRelease;return;}
                 if(candidate==BenchIndex || benchSpindle>=0){benchGesture=benchSpindle>=0?BenchGesture.Spindle:benchRight?BenchGesture.Rotate:BenchGesture.Pending;}
                 return;
             }
@@ -210,20 +218,18 @@ namespace MemoryWhitebox
                 if(benchGesture==BenchGesture.PullStrip || benchGesture==BenchGesture.MoveStrip)
                 {
                     // Pulling remains on its initial plane. A detached patch can approach the visible cassette surface.
-                    if(workbenchVisuals!=null)
+                    int side=benchGesture==BenchGesture.MoveStrip?PatchTarget(point):-1;
+                    if(benchGesture==BenchGesture.PullStrip && workbenchVisuals!=null)
                     {
-                        Transform receiver=null;
-                        if(benchGesture==BenchGesture.MoveStrip && BenchIndex>=0)
-                            for(int i=0;i<2;i++){var hole=tapes[BenchIndex].preparation.pieces[i].transform;if(Vector2.Distance(point,view.WorldToScreenPoint(hole.position))<22){receiver=hole;break;}}
-                        if(benchGesture==BenchGesture.PullStrip)
-                        {
-                            float distance;var plane=new Plane(view.transform.forward,pullStart);
-                            if(plane.Raycast(ray,out distance))adhesiveStrip.position=pullStart+Vector3.ClampMagnitude(ray.GetPoint(distance)-pullStart,.12f);
-                        }
-                        else if(receiver!=null)benchDrag.MoveOverSurface(receiver.position,tapes[BenchIndex].root,true);
-                        else benchDrag.Move(ray);
+                        var plane=new Plane(view.transform.forward,pullStart);
+                        if(plane.Raycast(ray,out float distance))adhesiveStrip.position=pullStart+Vector3.ClampMagnitude(ray.GetPoint(distance)-pullStart,.12f);
                     }
-                    else benchDrag.Move(ray,benchGesture==BenchGesture.PullStrip?adhesiveTab.transform.parent:BenchIndex>=0?tapes[BenchIndex].root:null);
+                    else if(side>=0)
+                    {
+                        var tape=tapes[BenchIndex];
+                        benchDrag.MoveOverSurface(tape.preparation.pieces[side].transform.position,tape.root,true);
+                    }
+                    else benchDrag.Move(ray);
                     if(benchGesture==BenchGesture.PullStrip)
                     {
                         if(workbenchVisuals!=null)workbenchVisuals.Pull(Vector3.Distance(pullStart,adhesiveStrip.position));
@@ -266,31 +272,21 @@ namespace MemoryWhitebox
                     }
                     if(benchGesture==BenchGesture.MoveStrip)
                     {
-                        bool attached=false;
-                        if(BenchIndex>=0 && Chapter.Tape.Candidates[BenchIndex].Intact)
+                        int side=LooseStripDropTarget(point);
+                        if(side>=0)
                         {
-                            for(int i=0;i<2;i++)
-                            {
-                                var hole=tapes[BenchIndex].preparation.pieces[i];var target=(Vector2)view.WorldToScreenPoint(hole.transform.position);
-                                // Tolerant screen target, but require a direct visible surface ray.
-                                var toward=new Ray(view.transform.position,hole.transform.position-view.transform.position);
-                                bool clear=Vector3.Dot(hole.transform.up,(view.transform.position-hole.transform.position).normalized)>.08f;
-                                float distance=Vector3.Distance(view.transform.position,hole.transform.position);
-                                foreach(var near in Physics.RaycastAll(toward,distance-.004f,view.cullingMask))
-                                {
-                                    var tape=tapes[BenchIndex];
-                                    if(near.collider==tape.hit || near.collider==tape.leftSpindleHit || near.collider==tape.rightSpindleHit || near.transform==adhesiveStrip || near.collider==hole.GetComponent<Collider>())continue;
-                                    clear=false;break;
-                                }
-                                if(!benchDrag.Blocked && Vector2.Distance(point,target)<22 && clear)
-                                {
-                                    var data=Chapter.Tape.Candidates[BenchIndex];if(i==0?data.HoleA:data.HoleB)continue;
-                                    if(workbenchVisuals!=null)StartSmooth(BenchIndex,i);else if(i==0)data.HoleA=true;else data.HoleB=true;
-                                    attached=true;break;
-                                }
-                            }
+                            var data=Chapter.Tape.Candidates[BenchIndex];
+                            if(side==0)data.HoleA=true;else data.HoleB=true;
+                            if(workbenchVisuals!=null)workbenchVisuals.intact[BenchIndex].Cover(side,1);
+                            TapeSound(9,tapes[BenchIndex].root.position);
+                            OperationArea.ClearPlacement(adhesiveStrip);
+                            Chapter.LooseStripReady=false;adhesiveStrip.gameObject.SetActive(false);
                         }
-                        if(attached){OperationArea.ClearPlacement(adhesiveStrip);Chapter.LooseStripReady=Smoothing;adhesiveStrip.gameObject.SetActive(false);}else {benchDrag.TryPlaceInArea();RestStrip();}
+                        else
+                        {
+                            RestStrip();
+                            ShowTapePointerNotice(PatchLockReason(BenchIndex)??"Aim at an open, visible protection hole.");
+                        }
                     }
                     else if(benchGesture==BenchGesture.PullStrip){adhesiveStrip.gameObject.SetActive(false);workbenchVisuals?.CancelPull();}
                     benchDrag.End(false);
@@ -302,7 +298,6 @@ namespace MemoryWhitebox
         }
         string NextTapeTask()
         {
-            if(Smoothing)return "Smoothing the patch. Wait a moment.";
             if(Chapter.Completed)return "All 3 copies saved. Esc back to the desk, then Esc to leave for summer.";
             if(!Chapter.SourceLoaded)return "Load Original "+(CurrentCopy+1).ToString("00")+" into A.";
             if(!Chapter.AuditionComplete)return transport.SourcePlaying?"Listen to A: notice the noise and what follows.":"Click A PLAY to hear the original.";
@@ -325,8 +320,9 @@ namespace MemoryWhitebox
             if(BenchIndex<0)return "Drag a work tape from the right onto the centre mat.";
             var data=Chapter.Tape.Candidates[BenchIndex];
             if(data.Broken)return "Broken tape. Choose another.";
+            if(!OnPreparationMat(tapes[BenchIndex].root))return "Drag this tape onto the centre mat.";
             if(!data.Intact)return "Hold LMB on each reel + scroll. Check both ends.";
-            if(!data.Prepared && Chapter.ProtectionDiscovered)
+            if(!data.Prepared && (Chapter.ProtectionDiscovered || Chapter.LooseStripReady))
                 return Chapter.LooseStripReady?"Cover both upper-edge holes.":"Show tabs on the mat, then pull tape across the cutter.";
             return "Load the work tape into B.";
         }

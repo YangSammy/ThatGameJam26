@@ -19,6 +19,8 @@ namespace ThatGamejam.Art
 
         // Captures actual presentation channels, including poses sampled by AnimationClip.
         // This is a transient object, not a new gameplay/save schema.
+        public Transform IsoControl => isoDial;
+
         public sealed class Snapshot
         {
             internal Vector3 Position;

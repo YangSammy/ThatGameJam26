@@ -44,8 +44,13 @@ namespace MemoryWhitebox
                 bool holding=park.PhotoMode!=ParkPhotoPrototype.PhotographyMode.Exploration;
                 var targets=holding?parkAimTargets:parkRestTargets;
                 left=TargetPose(targets,0,holding?1:0);right=TargetPose(targets,1,holding?1:0);
+                var heldLeft=park.InstrumentLeftHandTarget;var heldRight=park.InstrumentRightHandTarget;
+                if(heldLeft!=null)left=FirstPersonArmRig.Pose.At(heldLeft.position,heldLeft.rotation,1);
+                if(heldRight!=null)right=FirstPersonArmRig.Pose.At(heldRight.position,heldRight.rotation,1);
                 var instrument=park.HandContactTarget;
                 if(instrument!=null)right=FirstPersonArmRig.Pose.At(instrument.position,instrument.rotation,1);
+                if(park.CameraRaiseGrip!=null)right=FirstPersonArmRig.Pose.At(park.CameraRaiseGrip.position,park.CameraRaiseGrip.rotation,1);
+                if(park.CameraRaiseSupport!=null)left=FirstPersonArmRig.Pose.At(park.CameraRaiseSupport.position,park.CameraRaiseSupport.rotation,1);
                 right.push=park.ShutterPulse;right.grip*=1-right.push;
                 right.position+=transform.up*(-park.ShutterPulse*.008f);
                 if(park.HoldingPhotoHand)

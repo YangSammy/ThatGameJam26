@@ -12,10 +12,10 @@ namespace MemoryWhitebox
                 photoMode==PhotographyMode.Aperture?InputContextId.ParkAperture:photoMode==PhotographyMode.Shutter?InputContextId.ParkShutter:
                 photoMode==PhotographyMode.Viewfinder?InputContextId.ParkViewfinder:InputContextId.Exploration;
             var cursor=id==InputContextId.Unfocused?PlayerControlState.Unfocused:changingScene?PlayerControlState.Transition:
-                Paused?PlayerControlState.Paused:photoMode==PhotographyMode.Exploration?PlayerControlState.Exploration:PlayerControlState.Operation;
+                Paused || needsWalkRecovery?PlayerControlState.Paused:photoMode==PhotographyMode.Exploration?PlayerControlState.Exploration:PlayerControlState.Operation;
             // Mechanical drag targets use the visible pointer, without a second relative cursor.
             // Exploration/viewfinder retain mouse-look and the existing edge gestures.
-            InputContext.Select(id,cursor,!PreciseInstrumentPointer);
+            InputContext.Select(id,cursor,CameraRaising || !PreciseInstrumentPointer);
         }
         bool CancelParkGesture()
         {

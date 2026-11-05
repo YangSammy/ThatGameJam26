@@ -36,7 +36,7 @@ namespace MemoryWhitebox
         public bool TryInspect(Ray ray)
         {
             bool workspace=WorkbenchMode || RecordingMode;
-            if(radioCameraMoving || preparationCameraMoving || house==null || house.safeInspection==null || waitingForRelease || draggingTape || movingOriginal || benchDrag.Active || tapeDrag.Active || Smoothing ||
+            if(radioCameraMoving || preparationCameraMoving || house==null || house.safeInspection==null || waitingForRelease || draggingTape || movingOriginal || benchDrag.Active || tapeDrag.Active ||
                 benchGesture!=BenchGesture.None || benchLeft || benchRight || (!workspace && (leftWasDown || rightWasDown)) || heldSpindle>=0 ||
                 DeckBusy(0) || DeckBusy(1) || transferA || transferB || State==Phase.Loading || State==Phase.Returning || State==Phase.Playing)return false;
             var source=InspectionSource(ray);if(source==null && State==Phase.Dragging)source=tapes[Selected].root;

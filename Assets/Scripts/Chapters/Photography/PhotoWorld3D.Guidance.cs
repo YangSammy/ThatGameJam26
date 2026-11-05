@@ -109,16 +109,22 @@ namespace MemoryWhitebox
                 default:return null;
             }
         }
-        public string DarkroomTooltip(Ray ray)
+        public string DarkroomTooltip(Ray ray,out Renderer[] hover)
         {
+            hover=null;
             if(!DarkroomGuidanceActive)return "";
             ResolveDarkroomGuide();string id=Pick(ray),name=DarkroomName(id);
             string drop=CurrentDropTarget();
-            if(drop!=null)return DarkroomName(dragged??printDrag)+" → "+DarkroomName(drop)+"\n"+DropInstruction(ray,drop)+" / Esc Cancel";
+            if(drop!=null)
+            {
+                if(CanCommitDarkroom(ray,drop))hover=GuideSurfaces(drop);
+                return DarkroomName(dragged??printDrag)+" → "+DarkroomName(drop)+"\n"+DropInstruction(ray,drop)+" / Esc Cancel";
+            }
             if(objectDrag.AtEdge)return "Keep on this work area\nRelease LMB to place";
             if(objectDrag.Blocked)return "Path blocked\nMove around the obstacle / Esc Cancel";
             if(name==null)return "";
             if(id=="tank-lid" && tankSealed && (guideSource=="tank" || guideTarget=="tank")){id="tank";name=DarkroomName(id);}
+            hover=GuideSurfaces(id);
             bool carrying=printDrag!=null || dragged!=null;
             if(id==guideTarget || (id=="print-frame-lid" && guideTarget=="print-frame"))
                 return name+"\n"+(carrying?"Move closer; keep target clear":"Place "+DarkroomName(guideSource)+" here");
@@ -128,6 +134,35 @@ namespace MemoryWhitebox
             if(printProcessing || Photo.Phase==PhotoChapter.FilmPhase.Processing)return name+"\nProcessing — please wait";
             return name+"\n"+(ParkPrintsReady?"Processing complete":"Not needed for this step");
         }
+        Renderer[] GuideSurfaces(string id)
+        {
+            if(string.IsNullOrEmpty(id) || !Nodes.ContainsKey(id))return null;
+            Renderer[] renderers;
+            if(!guideRenderers.TryGetValue(id,out renderers))
+            {
+                var targets=new List<Renderer>(Nodes[id].GetComponentsInChildren<Renderer>(true));
+                var cameraPart=cameraVisual?cameraVisual.HoverPart(id):null;
+                if(cameraPart)targets.AddRange(cameraPart.GetComponentsInChildren<Renderer>(true));
+                // Logical hit roots survive model replacement, but their old
+                // renderers are hidden. Highlight the delivered moving part.
+                if(darkroomVisuals!=null)
+                {
+                    string model=null;string[] parts=null;
+                    if(id=="print-tap"){model="print-wash";parts=new[]{"WashTap","WashValve"};}
+                    else if(id=="water"){model="film-drain-basin";parts=new[]{"TapBody","ValveHandle"};}
+                    else if(id=="tank-lid"){model="tank";parts=new[]{"MainLid"};}
+                    else if(id=="print-frame-lid"){model="print-frame";parts=new[]{"PressurePlate","Latch"};}
+                    if(model!=null)foreach(var part in parts)
+                    {
+                        var node=DarkroomAssetVisuals.Node(darkroomVisuals.ModelRoot(model),part);
+                        if(node!=null)foreach(var r in node.GetComponentsInChildren<Renderer>(true))if(!targets.Contains(r))targets.Add(r);
+                    }
+                }
+                renderers=targets.ToArray();guideRenderers[id]=renderers;
+            }
+            return renderers;
+        }
+
         public void ClearDarkroomHighlight()
         {
             foreach(var saved in guideMaterialColors)
@@ -147,6 +182,36 @@ namespace MemoryWhitebox
             }
             guideColors.Clear();guideProperties.Clear();
         }
+        internal bool TaskMarkerPosition(Camera camera,out Vector2 screen)
+        {
+            screen=default;
+            if(guideColors.Count==0 || !camera)return false;
+            Bounds bounds=default;
+            bool first=true;
+            foreach(var r in guideColors.Keys)
+            {
+                if(!r || r.forceRenderingOff)continue;
+                if(first){bounds=r.bounds;first=false;}else bounds.Encapsulate(r.bounds);
+            }
+            if(first)return false;
+            var center=camera.WorldToScreenPoint(bounds.center);
+            if(center.z<=camera.nearClipPlane || !camera.pixelRect.Contains(center))return false;
+            string target=CurrentDropTarget() ?? guideSource;
+            bool OnTask(Vector2 point)
+            {
+                string seen=Pick(camera.ScreenPointToRay(point));
+                return seen==target || target=="tank" && seen=="tank-lid" || target=="print-frame" && seen=="print-frame-lid";
+            }
+            if(!OnTask(center))return false;
+            // Keep the marker on the item's visible surface: a floating marker above
+            // a flat bag can visually land on the neighbouring tank.
+            var right=camera.transform.right;
+            float halfWidth=Vector3.Dot(new Vector3(Mathf.Abs(right.x),Mathf.Abs(right.y),Mathf.Abs(right.z)),bounds.extents);
+            Vector2 inset=camera.WorldToScreenPoint(bounds.center-right*(halfWidth*.5f));
+            screen=camera.pixelRect.Contains(inset) && OnTask(inset)?inset:(Vector2)center;
+            return true;
+        }
+
         public void RefreshDarkroomHighlight()
         {
             ClearDarkroomHighlight();
@@ -155,27 +220,7 @@ namespace MemoryWhitebox
             string id=(printDrag!=null || dragged!=null)?CurrentDropTarget():guideSource;
             if(string.IsNullOrEmpty(id) || !Nodes.ContainsKey(id))return;
             bool ready=(printDrag!=null || dragged!=null) && CanCommitDarkroom(lastRay,id);
-            Renderer[] renderers;
-            if(!guideRenderers.TryGetValue(id,out renderers))
-            {
-                var targets=new List<Renderer>(Nodes[id].GetComponentsInChildren<Renderer>(true));
-                // Logical hit roots survive model replacement, but their old
-                // renderers are hidden. Highlight the delivered moving part.
-                if(darkroomVisuals!=null)
-                {
-                    string model=null;string[] parts=null;
-                    if(id=="print-tap"){model="print-wash";parts=new[]{"WashTap","WashValve"};}
-                    else if(id=="water"){model="film-drain-basin";parts=new[]{"TapBody","ValveHandle"};}
-                    else if(id=="tank-lid"){model="tank";parts=new[]{"MainLid"};}
-                    else if(id=="print-frame-lid"){model="print-frame";parts=new[]{"PressurePlate","Latch"};}
-                    if(model!=null)foreach(var part in parts)
-                    {
-                        var node=DarkroomAssetVisuals.Node(darkroomVisuals.ModelRoot(model),part);
-                        if(node!=null)foreach(var r in node.GetComponentsInChildren<Renderer>(true))if(!targets.Contains(r))targets.Add(r);
-                    }
-                }
-                renderers=targets.ToArray();guideRenderers[id]=renderers;
-            }
+            var renderers=GuideSurfaces(id);
             foreach(var renderer in renderers)
             {
                 if(renderer==null || !renderer.enabled || !renderer.gameObject.activeInHierarchy || renderer.sharedMaterial==null)continue;

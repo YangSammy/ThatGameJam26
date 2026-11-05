@@ -72,7 +72,7 @@ namespace MemoryWhitebox
             edge=Mathf.Abs(local.x-before.x)>.001f || Mathf.Abs(local.z-before.z)>.001f;
             constrained=transform.TransformPoint(local);return true;
         }
-        public bool Place(Transform item,Collider receiver=null)
+        public bool Place(Transform item,Collider receiver=null,float receiverClearance=.002f)
         {
             Vector3 at;bool edge;if(!Constrain(item,item.position,0,out at,out edge))return false;
             Vector3 old=item.position;item.position=at;
@@ -81,7 +81,7 @@ namespace MemoryWhitebox
             {if(!r.enabled || r is LineRenderer)continue;if(!found){b=r.bounds;found=true;}else b.Encapsulate(r.bounds);}
             if(receiver!=null && found)
             {
-                float lift=Mathf.Max(0,receiver.bounds.max.y+.002f-b.min.y);
+                float lift=Mathf.Max(0,receiver.bounds.max.y+Mathf.Max(0,receiverClearance)-b.min.y);
                 at+=Vector3.up*lift;item.position=at;b.center+=Vector3.up*lift;
             }
             foreach(var col in Physics.OverlapBox(b.center,Vector3.Max(b.extents-Vector3.one*.004f,Vector3.one*.001f),Quaternion.identity,Physics.DefaultRaycastLayers,QueryTriggerInteraction.Ignore))

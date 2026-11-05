@@ -58,6 +58,12 @@ namespace MemoryWhitebox
         public virtual void CancelPointerGesture(){Release("",new Ray(Vector3.zero,Vector3.up));}
         public virtual void Scroll(string id,float delta,Ray ray){}
         public virtual Ray PointerRay(Vector2 nativeScreenBottomLeft){return View.ScreenPointToRay(nativeScreenBottomLeft);}
+        internal virtual Transform HoverVisual(Vector2 point,out Camera camera)
+        {
+            camera=View;
+            var id=Pick(PointerRay(point));
+            return !string.IsNullOrEmpty(id) && Nodes.TryGetValue(id,out var node)?node.transform:null;
+        }
         public virtual string Pick(Ray ray)
         {
             RaycastHit[] hits=Physics.RaycastAll(ray,60,1<<8);

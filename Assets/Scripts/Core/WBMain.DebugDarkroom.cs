@@ -7,7 +7,7 @@ namespace MemoryWhitebox
         void DebugEnterDarkroom()
         {
             if(!deskStudy || !sharedHouse)return;
-            if((InStation && ChapterIndex!=1) || DirectTapeHandling || radioDeck.RecordingMode || radioDeck.WorkbenchMode)
+            if((InStation && ChapterIndex!=1) || DirectTapeHandling || (radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode)))
             {cameraRouteNotice="Exit the current interaction, then press 2 for darkroom.";cameraRouteNoticeUntil=Time.unscaledTime+5;return;}
             if(!CanEnterDay(1))return;
             var photo=worlds[1] as PhotoWorld3D;if(photo==null)return;

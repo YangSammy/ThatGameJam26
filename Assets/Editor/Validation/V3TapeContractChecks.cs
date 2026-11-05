@@ -70,6 +70,8 @@ namespace MemoryWhitebox.Editor
                 Check(lines,t.Writing && t.SnapshotMapping().Skip(step).All(i=>i==-1),"Stopping A does not stop B; its missing input becomes blank audio");
                 t.RetryCurrent();t.SourceCommand(1);t.TargetCommand(true,true,0,false);Pump(t,Mathf.RoundToInt(t.SourceDuration*t.Rate)+step);
                 Check(lines,!t.SourcePlaying && !t.Writing,"Source end stops recording at the exact final source sample");
+                t.RetryCurrent();t.TargetCommand(true,true,0,false);Pump(t,Mathf.RoundToInt(t.TargetCapacitySeconds*t.Rate)+step);
+                Check(lines,!t.TargetRunning && !t.Writing && !t.SourcePlaying,"Full B stops its own motor even when A is paused");
                 return string.Join("\n",lines);
             }
             finally {t.StopAll();t.RetryCurrent();}
@@ -108,9 +110,21 @@ namespace MemoryWhitebox.Editor
                 Check(lines,key!=null && key.panel==d.transportPanel && key.command==0,"Authored UI Record has its held-input binding");
                 if(key!=null){key.OnPointerUp(pointer);Check(lines,d.UITransportCommand==-1,"Pointer release clears the held key");d.SetUITransportCommand(0);key.OnPointerExit(pointer);Check(lines,d.UITransportCommand==-1,"Leaving a held UI key cancels it");}
                 d.ApplyRecordingKeys(false,true,false,false,false);Pump(t,t.Rate/10);
-                Check(lines,t.TargetSeconds==0,"S alone never moves B");
+                var rec=d.dualDeck.transform.Find("Deck_B_ROOT/Deck_B_Key_Record");
+                var lamp=d.dualDeck.transform.Find("Deck_B_ROOT/Deck_B_RecordLamp");
+                var up=rec.localPosition;var unlit=lamp.localScale;
+                // Sample the actual model clips across two ticks (start, then settle).
+                for(int i=0;i<2;i++)d.dualDeck.Tick(.5f,t.SourcePlaying,t.TargetStatus,t.Writing,d.TargetKeyDown(0));
+                Check(lines,d.TargetKeyDown(0) && (rec.localPosition-up).sqrMagnitude>1e-12f &&
+                    (lamp.localScale-unlit).sqrMagnitude<1e-12f && !t.Writing && t.TargetSeconds==0,
+                    "S alone depresses REC while the motor stays stopped and the lamp stays off");
+                d.ApplyRecordingKeys(false,false,false,false,false);
+                for(int i=0;i<2;i++)d.dualDeck.Tick(.5f,t.SourcePlaying,t.TargetStatus,t.Writing,d.TargetKeyDown(0));
+                Check(lines,!d.TargetKeyDown(0) && (rec.localPosition-up).sqrMagnitude<1e-12f,"Releasing S returns the model key");
                 t.SourceCommand(1);d.ApplyRecordingKeys(true,true,false,false,false);Pump(t,t.Rate/10);
-                Check(lines,t.Writing,"F+S records when both decks are prepared");
+                d.dualDeck.Tick(.5f,t.SourcePlaying,t.TargetStatus,t.Writing,d.TargetKeyDown(0),"Play");
+                Check(lines,t.Writing && d.TargetKeyDown(0) && d.TargetKeyDown(1) &&
+                    (lamp.localScale-unlit).sqrMagnitude>1e-12f,"F+S lights the lamp when B actually writes");
                 d.ApplyRecordingKeys(true,true,false,false,true);int count=t.SnapshotMapping().Length;Pump(t,t.Rate/10);
                 Check(lines,t.SourcePlaying && !t.Writing && t.SnapshotMapping().Length==count,"Stop has highest B priority without stopping A");
                 d.ApplyRecordingKeys(true,true,false,false,false);

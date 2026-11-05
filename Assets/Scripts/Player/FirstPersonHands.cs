@@ -132,6 +132,10 @@ namespace MemoryWhitebox
                 var visual=authoredHands[i];if(visual==null)continue;
                 var targets=park.Aiming?parkAimTargets:parkRestTargets;
                 var target=targets!=null && targets.Length>i?targets[i]:null;
+                var held=i==0?park.InstrumentLeftHandTarget:park.InstrumentRightHandTarget;
+                if(held!=null)target=held;
+                var raising=i==0?park.CameraRaiseSupport:park.CameraRaiseGrip;
+                if(raising!=null)target=raising;
                 Vector3 position=target!=null?transform.InverseTransformPoint(target.position):Rest(i);
                 var rotation=target!=null?Quaternion.Inverse(transform.rotation)*target.rotation:Quaternion.Euler(15,0,0);
                 if(i==0 && park.HoldingPhotoHand)

@@ -66,6 +66,7 @@ namespace MemoryWhitebox
         public Rect ResetButtonRect => new Rect(28,Screen.height*.5f-46,156,38);
         public Rect ExitButtonRect => new Rect(28,Screen.height*.5f,156,38);
         SafeInspectionPart hovered;
+        readonly HoverOutline outline=new HoverOutline();
         Font font;
 
         public SafeInspectionSubject ForSource(Transform source)
@@ -172,6 +173,8 @@ namespace MemoryWhitebox
         }
         void SetHover(SafeInspectionPart part)
         {
+            bool dial=part && part.motion==SafeInspectionPart.Motion.Dial;
+            outline.Show(displayCamera,part ? part.OutlineRenderers : null,dial,dial);
             if(hovered==part)return;
             if(hovered!=null)hovered.SetHighlighted(false);
             hovered=part;if(hovered!=null)hovered.SetHighlighted(true);
@@ -184,7 +187,8 @@ namespace MemoryWhitebox
         public void UpdateHover(Vector2 point)
         {
             if(!Active || Resetting || PointerOverUI(point) || gesture==Gesture.Rotate || gesture==Gesture.WaitRelease){SetHover(null);return;}
-            SetHover(HeldPart!=null?HeldPart:Current.Pick(displayCamera.ScreenPointToRay(point)));
+            var part=Current.Pick(displayCamera.ScreenPointToRay(point));
+            SetHover(HeldPart!=null && part!=HeldPart?null:part);
         }
         void CommitPart()
         {
@@ -307,7 +311,7 @@ namespace MemoryWhitebox
             if(displayCamera!=null)displayCamera.RemoveCommandBuffer(UnityEngine.Rendering.CameraEvent.BeforeForwardOpaque,backdropCommands);
             backdropCommands.Release();backdropCommands=null;
         }
-        void OnDestroy(){DisableBackdrop();if(backdropMaterial!=null)Destroy(backdropMaterial);if(font!=null)Destroy(font);}
+        void OnDestroy(){outline.Dispose();DisableBackdrop();if(backdropMaterial!=null)Destroy(backdropMaterial);if(font!=null)Destroy(font);}
         static bool DrawInspectionButton(Rect rect,string label,GUIStyle style)
         {
             return InteractionUI.Button(rect,label,style);

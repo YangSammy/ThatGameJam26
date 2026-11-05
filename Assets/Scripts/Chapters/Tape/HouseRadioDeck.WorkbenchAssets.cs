@@ -4,9 +4,8 @@ namespace MemoryWhitebox
     public sealed partial class HouseRadioDeck
     {
         public TapeWorkbenchVisuals workbenchVisuals;
-        int smoothingTape=-1,smoothingHole;
-        float smoothingTime;
-        bool Smoothing=>smoothingTape>=0;
+        [Min(0),Tooltip("Minimum gap in metres between the cassette shell and the preparation mat.")]
+        public float preparationMatClearance=.01f;
         public LineRenderer preparationDropPreview;
         public Transform preparationTabsPose;
         public SceneViewAnchor radioCloseView;
@@ -111,7 +110,7 @@ namespace MemoryWhitebox
             }
             preparationFocused=preparationCameraMoving=preparationCarryReturn=false;
         }
-        bool PreparationIdle=>!preparationCameraMoving && WorkbenchMode && BenchIndex>=0 && Selected!=BenchIndex && !benchWaiting && !Smoothing && !movingOriginal && benchGesture==BenchGesture.None;
+        bool PreparationIdle=>!preparationCameraMoving && WorkbenchMode && BenchIndex>=0 && Selected!=BenchIndex && !benchWaiting && !movingOriginal && benchGesture==BenchGesture.None;
         bool OnPreparationMat(Transform item)=>workAnchor!=null && Vector2.Distance(new Vector2(item.position.x,item.position.z),new Vector2(workAnchor.position.x,workAnchor.position.z))<.13f;
         bool PreparationAvailable(Transform item)
         {
@@ -135,7 +134,7 @@ namespace MemoryWhitebox
                 tape.root.rotation=Quaternion.FromToRotation(hole.up,(view.transform.position-hole.position).normalized)*tape.root.rotation;
             }
             var area=OperationArea.For(tape.root);
-            if(area==null || !area.Place(tape.root,workMat)){tape.root.SetPositionAndRotation(oldPosition,oldRotation);ShowTapePointerNotice("Clear the preparation mat first");return false;}
+            if(area==null || !area.Place(tape.root,workMat,preparationMatClearance)){tape.root.SetPositionAndRotation(oldPosition,oldRotation);ShowTapePointerNotice("Clear the preparation mat first");return false;}
             Chapter.WorkbenchEuler=(Quaternion.Inverse(tape.homeParent.rotation*tape.homeRotation)*tape.root.rotation).eulerAngles;
             FocusPreparation(true);house.SaveStableProgress();return true;
         }
@@ -221,12 +220,42 @@ namespace MemoryWhitebox
             return false;
         }
         bool StorageClosed(Transform tape)=>workbenchVisuals!=null && workbenchVisuals.InStorage(tape) && (!workbenchVisuals.LidOpen || workbenchVisuals.LidBusy);
-        void StartSmooth(int tape,int hole)
-        {smoothingTape=tape;smoothingHole=hole;smoothingTime=0;}
-        void CancelSmooth()
+        string PatchLockReason(int index)
         {
-            if(!Smoothing)return;smoothingTape=-1;RestStrip();
+            if(index<0 || index!=BenchIndex || Selected==index || !OnPreparationMat(tapes[index].root))
+                return "Place a work tape on the preparation mat.";
+            var data=Chapter.Tape.Candidates[index];
+            if(data.Broken)return "Broken tape. Choose another.";
+            return data.Intact?null:"Check both reels to both ends first.";
         }
+
+        int LooseStripDropTarget(Vector2 point)=>benchDrag.Active && !benchDrag.Blocked && !TapeUIAt(point)?PatchTarget(point):-1;
+        int PatchTarget(Vector2 point)
+        {
+            if(!Chapter.LooseStripReady || PatchLockReason(BenchIndex)!=null)return -1;
+            var tape=tapes[BenchIndex];var data=Chapter.Tape.Candidates[BenchIndex];
+            int nearest=-1;float best=22;
+            for(int i=0;i<2;i++)
+            {
+                if(i==0?data.HoleA:data.HoleB)continue;
+                var hole=tape.preparation.pieces[i].transform;
+                var projected=view.WorldToScreenPoint(hole.position);
+                float pixels=Vector2.Distance(point,projected);
+                var offset=hole.position-view.transform.position;
+                if(projected.z<=0 || pixels>=best || Vector3.Dot(hole.up,-offset.normalized)<=.08f)continue;
+                bool clear=true;
+                foreach(var hit in Physics.RaycastAll(view.transform.position,offset.normalized,offset.magnitude-.004f,view.cullingMask))
+                {
+                    if(DragReceiverProbe.BelongsTo(hit.transform,adhesiveStrip) || hit.collider==tape.hit ||
+                       hit.collider==tape.leftSpindleHit || hit.collider==tape.rightSpindleHit || hit.transform==hole ||
+                       (workbenchVisuals!=null && hit.collider==workbenchVisuals.candidateGrips[BenchIndex]))continue;
+                    clear=false;break;
+                }
+                if(clear){nearest=i;best=pixels;}
+            }
+            return nearest;
+        }
+
         void TickWorkbenchAssets(float dt)
         {
             if(workbenchVisuals==null || Chapter==null)return;
@@ -240,21 +269,6 @@ namespace MemoryWhitebox
                 if(stripHit!=null)stripHit.center=adhesiveStrip.InverseTransformPoint(workbenchVisuals.loosePiece.bounds.center);
             }
             for(int i=0;i<tapes.Length;i++)workbenchVisuals.Inspect(i,Chapter.Tape.Candidates[i]);
-            if(Smoothing)
-            {
-                if(!WorkbenchMode || !focused || house.safeInspection.Active){CancelSmooth();}
-                else
-                {
-                    smoothingTime+=dt;float v=Mathf.Clamp01(smoothingTime/.45f);
-                    var visual=workbenchVisuals.intact[smoothingTape];visual.Cover(smoothingHole,Mathf.Lerp(.5f,1,v));
-                    visual.Sample(smoothingHole==0?"A03_SmoothGesture_L":"A03_SmoothGesture_R",v);
-                    if(v>=1)
-                    {
-                        var data=Chapter.Tape.Candidates[smoothingTape];if(smoothingHole==0)data.HoleA=true;else data.HoleB=true;
-                        TapeSound(9,tapes[smoothingTape].root.position);Chapter.LooseStripReady=false;smoothingTape=-1;house.SaveStableProgress();
-                    }
-                }
-            }
             if(transport!=null)
             {
                 float p=transport.SourceDuration>0?transport.SourceSeconds/transport.SourceDuration:0;

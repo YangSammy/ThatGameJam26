@@ -35,6 +35,7 @@ namespace MemoryWhitebox.Editor
                 foreach(var t in park.GetRootGameObjects().SelectMany(o=>o.GetComponentsInChildren<Transform>(true)))
                     if(t.name=="Player"||t.name=="Player_FirstPerson"||t.name=="Companion_Photography") t.gameObject.SetActive(false);
                 Capture("Park",parkEye,parkHeading,null);
+                WriteBridgeOutline(park);
                 var room=EditorSceneManager.OpenScene(NarrativeBedroom.WinterScene);
                 var bedroom=room.GetRootGameObjects().Select(o=>o.GetComponentInChildren<NarrativeBedroom>(true)).Single(b=>b!=null);
                 var w=bedroom.winterAlbum;
@@ -60,6 +61,26 @@ namespace MemoryWhitebox.Editor
                 if(!EditorSceneManager.SaveScene(room)) throw new IOException("Could not save winter observation views");
             }
             finally { EditorSceneManager.RestoreSceneManagerSetup(setup); }
+        }
+
+        // Same capture frame as the six park backgrounds. This mesh is used only
+        // by the hover renderer; it never replaces the baked environment.
+        public static void WriteBridgeOutline(Scene park)
+        {
+            var root=park.GetRootGameObjects().SelectMany(o=>o.GetComponentsInChildren<Transform>(true))
+                .First(t=>t.name=="WoodenBridge_Reused");
+            var capture=Matrix4x4.Rotate(Quaternion.Inverse(parkHeading))*Matrix4x4.Translate(-parkEye);
+            var parts=root.GetComponentsInChildren<MeshFilter>().Where(f=>f.sharedMesh &&
+                f.GetComponent<Renderer>() && f.GetComponent<Renderer>().enabled).Select(f=>new CombineInstance
+                {mesh=f.sharedMesh,transform=capture*f.transform.localToWorldMatrix}).ToArray();
+            if(parts.Length==0)throw new InvalidOperationException("Park bridge outline has no source meshes.");
+            var mesh=new Mesh{name="Park bridge observation silhouette",indexFormat=UnityEngine.Rendering.IndexFormat.UInt32};
+            mesh.CombineMeshes(parts,true,true);
+            const string path="Assets/Resources/AlbumBridgeHover.asset";
+            var existing=AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if(existing){EditorUtility.CopySerialized(mesh,existing);Object.DestroyImmediate(mesh);EditorUtility.SetDirty(existing);}
+            else AssetDatabase.CreateAsset(mesh,path);
+            AssetDatabase.SaveAssets();
         }
 
         static void AlignBottom(Transform root,Transform view,Vector3 source)

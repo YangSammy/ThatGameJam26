@@ -217,6 +217,12 @@ namespace MemoryWhitebox
             sheet.SetActive(true); paperBall.gameObject.SetActive(false);
             base.Deactivate();
         }
+        internal override Transform HoverVisual(Vector2 point,out Camera camera)
+        {
+            camera=View;
+            if(State.Completed || !sheet || !View.pixelRect.Contains(point))return null;
+            return Pick(PointerRay(point))=="paper" && !HasPointerGesture?sheet.transform:null;
+        }
         public override Ray PointerRay(Vector2 nativeScreenBottomLeft)
         {
             return nativeScreenBottomLeft.x < View.pixelRect.xMin ? MemoryCamera.ScreenPointToRay(nativeScreenBottomLeft) : View.ScreenPointToRay(nativeScreenBottomLeft);

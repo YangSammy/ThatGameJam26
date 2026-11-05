@@ -12,6 +12,14 @@ namespace MemoryWhitebox
             var d=go.AddComponent<PhotographyMeterDisplay>();d.visual=Instantiate(PhotographyVisualAssets.Load().meter,go.transform).GetComponent<LightMeterVisual>();
             PhotographyCameraVisual.PrepareVisual(go,layer);d.visual.ClearReading();return d;
         }
+        Renderer[] isoSurfaces;
+        internal Transform HoverControl(Ray ray)
+        {
+            if(isoSurfaces==null)isoSurfaces=visual.IsoControl.GetComponentsInChildren<Renderer>(true);
+            foreach(var renderer in isoSurfaces)
+                if(renderer.enabled && renderer.gameObject.activeInHierarchy && renderer.bounds.IntersectRay(ray))return visual.IsoControl;
+            return null;
+        }
         public void Apply(int iso,float ev100,bool available,float held)
         {
             visual.SetHeldProgress(held);visual.SetIsoIndex(iso==200?1:iso==400?2:iso==800?3:0);

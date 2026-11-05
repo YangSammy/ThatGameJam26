@@ -31,20 +31,22 @@ namespace MemoryWhitebox
     {
         public Material template;
         [HideInInspector] public bool activeFocus;
+        [System.NonSerialized] public float raiseOcclusion;
         [HideInInspector] public float distance=4;
         [System.NonSerialized] public float aperture=8,exposureError;
         Material effect;
         void OnEnable(){GetComponent<Camera>().depthTextureMode|=DepthTextureMode.Depth;if(template!=null)effect=new Material(template);}
         void OnRenderImage(RenderTexture source,RenderTexture destination)
         {
-            if(!activeFocus || effect==null){Graphics.Blit(source,destination);return;}
+            if((!activeFocus && raiseOcclusion<=0) || effect==null){Graphics.Blit(source,destination);return;}
             float focus=Mathf.Max(.1f,distance);
             effect.SetFloat("_FocusDistance",focus);
             effect.SetFloat("_SharpRange",ParkCameraResponse.ClearRange(focus,aperture));
             effect.SetFloat("_BlurTransition",Mathf.Max(.18f,focus*.15f)*ParkCameraResponse.ApertureScale(aperture));
             // Radius is authored at 1080 px height, so preview and captured film agree.
-            effect.SetFloat("_MaxBlurPixels",Mathf.Lerp(12,4,Mathf.InverseLerp(2.8f,16,aperture)));
-            effect.SetFloat("_ExposureGain",ParkCameraResponse.ExposureGain(exposureError));
+            effect.SetFloat("_MaxBlurPixels",activeFocus?Mathf.Lerp(12,4,Mathf.InverseLerp(2.8f,16,aperture)):0);
+            effect.SetFloat("_ExposureGain",activeFocus?ParkCameraResponse.ExposureGain(exposureError):1);
+            effect.SetFloat("_RaiseOcclusion",Mathf.Clamp01(raiseOcclusion));
             Graphics.Blit(source,destination,effect);
         }
         void OnDisable(){if(effect!=null)Destroy(effect);effect=null;}

@@ -17,7 +17,9 @@ namespace MemoryWhitebox
         public Button successDismiss;
         public bool SuccessOpen=>successPopup!=null && successPopup.activeSelf;
         readonly PlayerInputReleaseGate successGate=new PlayerInputReleaseGate();
-        Text recordLabel,playLabel;
+        static readonly string[] targetLabels={"● REC [S]","▶ PLAY [F]","REW [J]","FF [L]","STOP [']","EJECT"};
+        public static string TargetKeyLabel(int index)=>targetLabels[index];
+        ColorBlock[] idleColors;
         static readonly string[] targetTooltipCommands={"Record","Play","Rewind","Forward","Stop","Eject"};
         static readonly string[] sourceTooltipCommands={"Play","Stop","Rewind","Eject"};
         readonly System.Collections.Generic.List<UnityEngine.EventSystems.RaycastResult> tooltipHits=new System.Collections.Generic.List<UnityEngine.EventSystems.RaycastResult>();
@@ -39,11 +41,13 @@ namespace MemoryWhitebox
         void Awake()
         {
             if(successPopup!=null)successPopup.SetActive(false);
-            recordLabel=buttons[0].GetComponentInChildren<Text>(true);
-            playLabel=buttons[1].GetComponentInChildren<Text>(true);
-            recordLabel.fontSize=12;
-            recordLabel.text="HOLD S";
-            playLabel.text="HOLD F";
+            idleColors=new ColorBlock[buttons.Length];
+            for(int i=0;i<buttons.Length;i++)
+            {
+                buttons[i].GetComponentInChildren<Text>(true).text=TargetKeyLabel(i);
+                idleColors[i]=buttons[i].colors;
+                idleColors[i].normalColor=new Color(.2f,.23f,.22f);
+            }
         }
         void Update()
         {
@@ -53,11 +57,13 @@ namespace MemoryWhitebox
             if(!show)return;
             bool loaded=deck.Selected>=0 && deck.State==HouseRadioDeck.Phase.Paused;
             bool protectedTape=loaded && !deck.Chapter.Tape.Candidates[deck.Selected].Prepared;
-            status.text="B  COPY "+(deck.CurrentCopy+1).ToString("00")+"   ·   "+(loaded?(protectedTape?"PROTECTED":deck.transport.TargetStatus):"EMPTY")+(loaded?"   "+deck.transport.TargetSeconds.ToString("0.0")+"s":"");
+            string state=loaded?(protectedTape?"PROTECTED":deck.transport.TargetStatus):"EMPTY";
+            if(!protectedTape && deck.TargetKeyDown(0) && !deck.TargetKeyDown(1) && !deck.transport.TargetRunning)
+                state="REC HELD · HOLD PLAY";
+            status.text="B  COPY "+(deck.CurrentCopy+1).ToString("00")+"   ·   "+state+(loaded?"   "+deck.transport.TargetSeconds.ToString("0.0")+"s":"");
             if(sourceStatus!=null)sourceStatus.text="A  ORIGINAL "+(deck.CurrentCopy+1).ToString("00")+" / 03   ·   "+(deck.Chapter.SourceLoaded?deck.transport.SourceStatus+"   "+deck.transport.SourceSeconds.ToString("0.0")+"s":"EMPTY");
             if(prepareAction!=null)prepareAction.SetActive(!deck.Chapter.Completed);
             bool hasCopy=loaded && deck.transport.RecordedSeconds>0;
-            recordLabel.text="HOLD S";
             if(listenAction!=null)listenAction.SetActive(false);
             if(submitAction!=null)submitAction.SetActive(hasCopy && !deck.Chapter.Completed);
             if(sourceButtons!=null)foreach(var button in sourceButtons)button.interactable=CanOperate && deck.Chapter.SourceLoaded;
@@ -66,7 +72,10 @@ namespace MemoryWhitebox
                 // An empty B deck must not put disabled controls over desk cassettes.
                 buttons[i].gameObject.SetActive(loaded);
                 buttons[i].interactable=CanOperate && loaded && (i!=0 || !deck.Chapter.Completed);
-                var colors=buttons[i].colors;colors.normalColor=deck.UITransportCommand==i?new Color(.3f,.46f,.36f):new Color(.2f,.23f,.22f);buttons[i].colors=colors;
+                var colors=idleColors[i];
+                if(deck.TargetKeyDown(i))
+                    colors.normalColor=colors.highlightedColor=colors.selectedColor=colors.pressedColor=new Color(.3f,.46f,.36f);
+                buttons[i].colors=colors;
             }
         }
         public void Hold(int command){if(CanOperate)deck.SetUITransportCommand(command);}

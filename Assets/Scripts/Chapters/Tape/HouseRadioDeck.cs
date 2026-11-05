@@ -65,7 +65,7 @@ namespace MemoryWhitebox
                 speaker.Play();speaker.time=Mathf.Clamp(hiddenAudioPosition,0,Mathf.Max(0,speaker.clip.length-.001f));speaker.Pause();restoreHiddenAudio=false;
             }
         }
-        void OnDisable(){if(sfx!=null)sfx.StopAll();if(initialized){SetStationActive(false);SettleDualDeck();}}
+        void OnDisable(){ClearTapeHover();if(sfx!=null)sfx.StopAll();if(initialized){SetStationActive(false);SettleDualDeck();}}
         bool SelectForDrag(int index)
         {
             if(!initialized || State!=Phase.Empty || index<0 || index>=tapes.Length)return false;
