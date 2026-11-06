@@ -26,7 +26,6 @@ namespace MemoryWhitebox
                 if(Chapter.Completed)return "B · All copies saved · Playback available";
                 if(!Chapter.SourceLoaded)return "B · Load the original into A first";
                 if(!Chapter.AuditionComplete)return "B · Listen to A first";
-                if(!Chapter.Tape.Candidates[Selected].Intact)return "B · Eject and check both reels first";
                 if(!Chapter.Tape.Candidates[Selected].Prepared)return "B · Eject and cover both upper-edge holes";
                 if(dualDeck!=null && !dualDeck.Closed(0))return "B · Close A before recording";
 
@@ -52,6 +51,7 @@ namespace MemoryWhitebox
         void MoveRadioTape(ObjectDragSession drag,Ray ray,Transform receiver)
         {
             drag.MoveScreenCarry(ray);
+            KeepDraggedTapeAboveStorage(drag.Item);
             ShowTapeDropPreview(drag.Blocked?null:receiver);
         }
         void VisibleCassette(Transform item,bool visible)

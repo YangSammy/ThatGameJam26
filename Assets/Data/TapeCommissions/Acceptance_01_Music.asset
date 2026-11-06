@@ -12,15 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 17065b68c0eca614cbf38f5d66089246, type: 3}
   m_Name: Acceptance_01_Music
   m_EditorClassIdentifier: 
-  minimumCleanCoverage: 0.8
-  allowedNoiseSeconds: 0.75
-  allowedSilenceSeconds: 2
+  minimumCleanCoverage: 0.7
+  allowedNoiseSeconds: 1.5
+  allowedSilenceSeconds: 3
   requiredSounds:
   - label: Opening
     start: 0
     end: 2.4
-    minimumCoverage: 0.7
+    minimumCoverage: 0.5
   - label: Ending
     start: 27.6
     end: 30.0
-    minimumCoverage: 0.7
+    minimumCoverage: 0.5

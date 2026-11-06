@@ -11,10 +11,11 @@ namespace MemoryWhitebox
         {
             public float Position=Duration*.5f;
             public bool LeftUsed,RightUsed,StartReached,EndReached,HoleA,HoleB;
-            public bool Intact=>!Broken && Scanned>=Samples && LeftUsed && RightUsed && StartReached && EndReached;
-            public bool Prepared=>Intact && HoleA && HoleB;
+            // Legacy inspection fields are retained solely for checkpoint compatibility.
+            public bool Intact=>true;
+            public bool Prepared=>HoleA && HoleB;
             public float[] Breaks;
-            public bool Broken;
+            public bool Broken {get=>false;set{}}
             public readonly bool[] Seen=new bool[Samples];
             public int Scanned;
             public Candidate(params float[] breaks){Breaks=breaks;}
@@ -23,12 +24,7 @@ namespace MemoryWhitebox
             new Candidate(BreaksFor(0)),new Candidate(BreaksFor(1)),new Candidate(),
             new Candidate(),new Candidate()
         };
-        internal static float[] BreaksFor(int index)
-        {
-            if(index==0)return new[]{2.2f,5.8f};
-            if(index==1)return new[]{1.4f,6.3f};
-            return Array.Empty<float>();
-        }
+        internal static float[] BreaksFor(int index)=>Array.Empty<float>();
         public int Selected=-1;
         public bool SourceVerified;
         int heldSpindle=-1;
@@ -36,24 +32,6 @@ namespace MemoryWhitebox
         public float InspectPosition=>Selected<0?0:Candidates[Selected].Position;
         public void BeginSpindle(int spindle){heldSpindle=spindle;}
         public void EndSpindle(){heldSpindle=-1;}
-        public void Turn(float delta)
-        {
-            if(SourceVerified || Selected<0 || heldSpindle<0 || heldSpindle>1)return;
-            var cassette=Candidates[Selected];
-            if(cassette.Broken || Mathf.Abs(delta)<.001f)return;
-            float old=cassette.Position;
-            float next=Mathf.Clamp(old+Mathf.Clamp(Mathf.Abs(delta),0,3)*.28f*(heldSpindle==0?-1:1),0,Duration);
-            if(Mathf.Abs(next-old)<.0001f)return;
-            if(heldSpindle==0)cassette.LeftUsed=true;else cassette.RightUsed=true;
-            cassette.StartReached|=next<=.001f;cassette.EndReached|=next>=Duration-.001f;
-            float lo=Mathf.Min(old,next),hi=Mathf.Max(old,next);
-            foreach(float brokenAt in cassette.Breaks)
-                if(brokenAt>=lo && brokenAt<=hi){cassette.Position=brokenAt;cassette.Broken=true;return;}
-            cassette.Position=next;
-            for(int i=Mathf.Max(0,Mathf.FloorToInt(lo/Duration*Samples));i<Mathf.Min(Samples,Mathf.CeilToInt(hi/Duration*Samples));i++)
-                if(!cassette.Seen[i]){cassette.Seen[i]=true;cassette.Scanned++;}
-            if(cassette.Intact)
-            {SourceVerified=true;heldSpindle=-1;WBMain.Tone(440,.15f);}
-        }
+        public void Turn(float delta){} // Retired inspection API; old callers cannot change preparation.
     }
 }

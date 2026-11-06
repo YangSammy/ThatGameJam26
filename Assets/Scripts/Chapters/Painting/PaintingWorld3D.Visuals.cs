@@ -122,6 +122,7 @@ namespace MemoryWhitebox
             layout.observationCarrier.gameObject.SetActive(State.Phase<3);
             winterSwing.gameObject.SetActive(State.Phase==0 && State.Painted[0]);winterSwing.SetSwingAngleRadians(State.SwingAngle);
             winterBridge.gameObject.SetActive(State.Phase==0 && State.Painted[1]);winterBridge.SetBridgeProgress(State.BridgeGrowth);
+            ShowEmptyShapes();
             winterLoad.gameObject.SetActive(State.Phase==1);winterLoad.SetLoadProgress(State.PlatePressed?1:0);
             winterFlower.gameObject.SetActive(State.Phase==1 && State.Painted[3]);winterFlower.SetFlowerAngleRadians(State.FlowerAngle);
             winterDoor.gameObject.SetActive(State.Phase==1);

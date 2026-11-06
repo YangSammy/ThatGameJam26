@@ -36,16 +36,10 @@ namespace MemoryWhitebox
         }
         public void Inspect(int index,TapeInspectionState.Candidate data)
         {
-            intact[index].gameObject.SetActive(!data.Broken);broken[index].gameObject.SetActive(data.Broken);
-            var v=data.Broken?broken[index]:intact[index];v.Winding(data.Position/TapeInspectionState.Duration);
+            intact[index].gameObject.SetActive(true);broken[index].gameObject.SetActive(false);
+            var v=intact[index];v.Winding(data.Position/TapeInspectionState.Duration);
             v.Reel(0,reelL[index]);v.Reel(1,reelR[index]);
-            if(data.Broken){v.Sample("A04_LoseTension",1);}
-            else {v.Cover(0,data.HoleA?1:0);v.Cover(1,data.HoleB?1:0);}
-        }
-        public void Turn(int index,int side,float amount,bool damaged)
-        {
-            if(side==0)reelL[index]+=amount*85;else reelR[index]+=amount*85;
-            if(damaged){var v=broken[index];v.Sample(side==0?"A04_EndFlutter_L":"A04_EndFlutter_R",Mathf.Repeat(Mathf.Abs(side==0?reelL[index]:reelR[index])/360,1));}
+            v.Cover(0,data.HoleA?1:0);v.Cover(1,data.HoleB?1:0);
         }
         public void Pull(float length)
         {

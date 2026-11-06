@@ -136,7 +136,7 @@ namespace MemoryWhitebox
                 bool over=CanReceive(sourceSlot,ray);benchDrag.MoveScreenCarry(ray);ShowTapeDropPreview(null);
                 bool insert=!benchDrag.Blocked && over;
                 string rejection=insert?null:TapeDropHint(sourceSlot,ray,benchDrag);
-                bool placed=!insert && benchDrag.TryPlaceInArea();benchDrag.End(!insert && !placed);movingOriginal=false;originalHit.enabled=true;
+                bool placed=!insert && !OverStorageFootprint(originalTape) && benchDrag.TryPlaceInArea();benchDrag.End(!insert && !placed);movingOriginal=false;originalHit.enabled=true;
                 if(insert)LoadOriginal();else RestoreSource();
                 if(!insert && !placed)ShowTapePointerNotice(rejection);
                 if(placed){TapeSound(5,originalTape.position);house.SaveStableProgress();}

@@ -31,14 +31,5 @@ namespace MemoryWhitebox
             sfx.Loop(2,13,!silent&&Selected>=0&&seeking,slotHit.bounds.center,.3f);
             if(silent || !WorkbenchMode || benchGesture!=BenchGesture.Spindle || Time.unscaledTime>windingSoundUntil)sfx.StopLoop(3);
         }
-        void SpindleSound(TapeInspectionState.Candidate data,float old,bool wasBroken)
-        {
-            if(sfx==null || BenchIndex<0)return;
-            var at=tapes[BenchIndex].root.position;
-            if(!wasBroken&&data.Broken){sfx.StopLoop(3,true);TapeSound(7,at);return;}
-            if(Mathf.Abs(data.Position-old)<.0001f)return;
-            if(data.Position<=.001f || data.Position>=TapeInspectionState.Duration-.001f){sfx.StopLoop(3);sfx.Shot(7,at,0,1.3f);return;}
-            windingSoundUntil=Time.unscaledTime+.02f;sfx.Loop(3,6,true,at,benchSpindle==0?-.2f:.2f,Mathf.Lerp(.85f,1.15f,Mathf.Clamp01(Mathf.Abs(data.Position-old)/.84f)));
-        }
     }
 }

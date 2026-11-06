@@ -10,6 +10,30 @@ namespace MemoryWhitebox
         Vector3 deliveryStart,deliveryEnd;
         Quaternion deliveryStartRotation,deliveryEndRotation;
         float deliveryTime;
+        int deliveryCandidate=-1;
+
+        bool OverStorageFootprint(Transform item)
+        {
+            if(item==null || workbenchVisuals==null || workbenchVisuals.storageFloor==null)return false;
+            var box=workbenchVisuals.storageFloor.bounds;
+            Bounds tape=new Bounds(item.position,Vector3.zero);
+            foreach(var r in item.GetComponentsInChildren<Renderer>())
+                if(r.enabled && !(r is LineRenderer))tape.Encapsulate(r.bounds);
+            return tape.max.x>=box.min.x-.01f && tape.min.x<=box.max.x+.01f &&
+                tape.max.z>=box.min.z-.01f && tape.min.z<=box.max.z+.01f;
+        }
+        void KeepDraggedTapeAboveStorage(Transform item)
+        {
+            if(!OverStorageFootprint(item))return;
+            var box=workbenchVisuals.storageFloor.bounds;
+            // The floor has no solid navigation collider. Keep the whole cassette
+            // above the compartment walls; storage acceptance remains explicit.
+            float bottom=item.position.y;
+            foreach(var r in item.GetComponentsInChildren<Renderer>())
+                if(r.enabled && !(r is LineRenderer))bottom=Mathf.Min(bottom,r.bounds.min.y);
+            float top=box.max.y+.12f;
+            if(bottom<top)item.position+=Vector3.up*(top-bottom);
+        }
 
         bool TryDeliverStoredTape(Collider hit)
         {
@@ -24,14 +48,17 @@ namespace MemoryWhitebox
             {
                 var reason=WorkTapeLockReason(candidate);
                 if(reason!=null){ShowTapePointerNotice(reason);return true;}
+                if(workAnchor==null || !PreparationAvailable(item))
+                {ShowTapePointerNotice("Clear the preparation mat first");return true;}
             }
             else if(Chapter.Completed || landing!=CurrentCopy || Chapter.SourceLoaded)
             {ShowTapePointerNotice(SourceHint(hit));return true;}
-            if(landing>=storageDeskLandings.Length || storageDeskLandings[landing]==null)
+            if(candidate<0 && (landing>=storageDeskLandings.Length || storageDeskLandings[landing]==null))
             {ShowTapePointerNotice("Desk landing is not assigned");return true;}
-            if(!WorkbenchMode && !RecordingMode)OpenWorkbench();
+            if(candidate>=0 || (!WorkbenchMode && !RecordingMode))OpenWorkbench();
             storageDelivery=item;deliveryStart=item.position;deliveryStartRotation=item.rotation;
-            var pose=storageDeskLandings[landing];deliveryEnd=pose.position;deliveryEndRotation=pose.rotation;deliveryTime=0;
+            deliveryCandidate=candidate;
+            var pose=candidate>=0?workAnchor:storageDeskLandings[landing];deliveryEnd=pose.position;deliveryEndRotation=pose.rotation;deliveryTime=0;
             TapeSound(5,item.position);
             return true;
         }
@@ -44,6 +71,17 @@ namespace MemoryWhitebox
             float t=Mathf.Clamp01(deliveryTime/.55f),ease=Mathf.SmoothStep(0,1,t);
             storageDelivery.SetPositionAndRotation(Vector3.Lerp(deliveryStart,deliveryEnd,ease)+Vector3.up*(Mathf.Sin(t*Mathf.PI)*.12f),Quaternion.Slerp(deliveryStartRotation,deliveryEndRotation,ease));
             if(t<1)return;
+            if(deliveryCandidate>=0)
+            {
+                int previous=Chapter.WorkbenchTapeIndex;
+                Chapter.WorkbenchTapeIndex=deliveryCandidate;
+                // Remove the box close-up before the preparation camera captures its return pose.
+                RestoreRadioCamera();
+                if(!PlaceTapeOnPreparationMat(false))
+                {Chapter.WorkbenchTapeIndex=previous;CancelStorageDelivery();return;}
+                storageDelivery=null;deliveryCandidate=-1;
+                house.SaveStableProgress();benchWaiting=true;benchGate.Arm();return;
+            }
             var item=storageDelivery;
             var area=OperationArea.For(item);
             if(area==null || !area.Place(item))
@@ -55,7 +93,7 @@ namespace MemoryWhitebox
         void CancelStorageDelivery()
         {
             if(storageDelivery==null)return;
-            storageDelivery.SetPositionAndRotation(deliveryStart,deliveryStartRotation);storageDelivery=null;
+            storageDelivery.SetPositionAndRotation(deliveryStart,deliveryStartRotation);storageDelivery=null;deliveryCandidate=-1;
         }
         void ReturnTapeToDesk(Transform item,int landing)
         {

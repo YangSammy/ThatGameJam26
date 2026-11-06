@@ -17,9 +17,7 @@ namespace MemoryWhitebox
         public string ActionHint=>preparation.Hint;
         public void DrawPreparationHints(Camera camera,GUIStyle style)=>preparation.DrawHints(camera,style);
         TapeInspectionState.Candidate Data=>deck.Chapter.Tape.Candidates[index];
-        public string Status=>Data.Broken?"BREAK FOUND - Reel stopped. Try another tape.":
-            Data.Prepared?"Ready to insert":Data.Intact?"Seal holes "+((Data.HoleA?1:0)+(Data.HoleB?1:0))+"/2  /  Drag adhesive to hole":
-            "Checked "+Mathf.RoundToInt(100f*Data.Scanned/TapeInspectionState.Samples)+"%  /  Hold LMB on reel + Scroll";
+        public string Status=>Data.Prepared?"Ready to insert":"Seal both holes on the preparation mat.";
         public static TapeInspectionSession Create(SafeInspectionSubject subject)
         {
             var house=WBMain.Instance;var deck=house!=null?house.radioDeck:null;
@@ -38,20 +36,7 @@ namespace MemoryWhitebox
             }
             preparation=new TapePreparationView(subject,Data);
         }
-        public bool Turn(SafeInspectionPart part,float delta)
-        {
-            if(part==null || (part.transform!=left && part.transform!=right))return false;
-            var state=deck.Chapter.Tape;int selected=state.Selected;bool verified=state.SourceVerified;
-            try
-            {
-                float position=Data.Position;int scanned=Data.Scanned;bool broken=Data.Broken;
-                state.Selected=index;state.SourceVerified=Data.Intact;
-                state.BeginSpindle(part.transform==left?0:1);state.Turn(delta);state.EndSpindle();
-                changed|=position!=Data.Position || scanned!=Data.Scanned || broken!=Data.Broken;
-            }
-            finally{state.Selected=selected;state.SourceVerified=verified;}
-            Sync();return true;
-        }
+        public bool Turn(SafeInspectionPart part,float delta)=>false;
         public void Sync()
         {
             preparation.Sync();

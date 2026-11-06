@@ -12,7 +12,7 @@ Shader "Hidden/Memory/TapeHoverOutline"
         CGINCLUDE
         #include "UnityCG.cginc"
         float3 _OutlineCenter;
-        float _FillOpenings, _EdgeWidth;
+        float _FillOpenings, _EdgeWidth, _Dashed;
         fixed4 _InkColor;
         struct Vertex { float4 pos : SV_POSITION; };
         Vertex vert(appdata_base input)
@@ -49,6 +49,7 @@ Shader "Hidden/Memory/TapeHoverOutline"
             }
         }
         fixed4 white(Vertex v):SV_Target { return _InkColor; }
+        fixed4 edge(Vertex v):SV_Target { if(_Dashed>.5)clip(frac((v.pos.x+v.pos.y)/14)-.4); return _InkColor; }
         ENDCG
 
         Pass
@@ -70,7 +71,7 @@ Shader "Hidden/Memory/TapeHoverOutline"
             #pragma target 4.0
             #pragma vertex vert
             #pragma geometry expand
-            #pragma fragment white
+            #pragma fragment edge
             ENDCG
         }
         Pass

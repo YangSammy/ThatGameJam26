@@ -332,6 +332,16 @@ namespace MemoryWhitebox
         }
         void SyncInstruments()
         {
+            if(photoMode==PhotographyMode.Body && !HandPresentationBlocked && instrumentCamera!=null)
+            {
+                string next=dragPart!=null?(dragPart=="leader"?"spool":"chamber"):
+                    loadingStep==0?"rewind":loadingStep==1?"film-"+FilmIso:loadingStep==2?"leader":
+                    loadingStep==4 || loadingStep==6?"advance":loadingStep==5?"back":"eyepiece";
+                var target=instrumentCamera.HoverPart(next);
+                if(target==null && instrumentParts.ContainsKey(next))target=instrumentParts[next];
+                if(target)TaskOutlineCue.Show(target,view,target.GetComponentsInChildren<Renderer>(true));
+            }
+
             if(instruments==null)return;
             if(instrumentCamera!=null){SyncAssetInstruments();return;}
             meterRoot.gameObject.SetActive(photoMode==PhotographyMode.Meter);

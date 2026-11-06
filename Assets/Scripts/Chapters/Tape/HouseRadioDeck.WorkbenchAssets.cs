@@ -188,8 +188,8 @@ namespace MemoryWhitebox
             var tape=tapes[index];
             if(tape.preparation!=null)foreach(var piece in tape.preparation.pieces)
                 if(piece!=null && Hit(piece.GetComponent<Collider>(),ray))return piece.GetComponent<Collider>();
-            if(Hit(tape.leftSpindleHit,ray))return tape.leftSpindleHit;
-            if(Hit(tape.rightSpindleHit,ray))return tape.rightSpindleHit;
+            if(Hit(tape.leftSpindleHit,ray))return tape.hit;
+            if(Hit(tape.rightSpindleHit,ray))return tape.hit;
             return visible;
         }
         string WorkTapeLockReason(int index)
@@ -213,15 +213,15 @@ namespace MemoryWhitebox
             if(candidate>=0)
             {
                 var reason=WorkTapeLockReason(candidate);if(reason!=null)return reason;
-                if(workbenchVisuals.InStorage(tapes[candidate].root))return "Click to place this work tape on the desk";
+                if(workbenchVisuals.InStorage(tapes[candidate].root))return "Click to place this work tape on the preparation mat";
                 var tape=tapes[candidate];
                 if(hit==tape.leftSpindleHit || hit==tape.rightSpindleHit)
-                    return (hit==tape.leftSpindleHit?"Left reel":"Right reel")+" · Hold LMB + Scroll";
+                    return "Tape · LMB drag to move";
                 if(hit==tape.hit || (candidate<workbenchVisuals.candidateGrips.Length && hit==workbenchVisuals.candidateGrips[candidate]))
                     return "Shell · LMB drag to move · LMB + RMB to rotate";
             }
             if(hit==workMat)return "Preparation mat · Drop a work tape here";
-            if(hit==adhesiveTab)return "Tape tab · LMB drag across the cutter";
+            if(hit==adhesiveTab)return "Tape tab · Hold LMB and drag down";
             var hint=workbenchVisuals.Tooltip(hit);if(hint!=null)return hint;
             for(int n=0;n<tapes.Length;n++)for(int side=0;side<2;side++)
             {
@@ -270,8 +270,7 @@ namespace MemoryWhitebox
             if(index<0 || index!=BenchIndex || Selected==index || !OnPreparationMat(tapes[index].root))
                 return "Place a work tape on the preparation mat.";
             var data=Chapter.Tape.Candidates[index];
-            if(data.Broken)return "Broken tape. Choose another.";
-            return data.Intact?null:"Check both reels to both ends first.";
+            return null;
         }
 
         int LooseStripDropTarget(Vector2 point)=>benchDrag.Active && !benchDrag.Blocked && !TapeUIAt(point)?PatchTarget(point):-1;

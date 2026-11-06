@@ -219,34 +219,7 @@ namespace MemoryWhitebox
             ResolveDarkroomGuide();
             string id=(printDrag!=null || dragged!=null)?CurrentDropTarget():guideSource;
             if(string.IsNullOrEmpty(id) || !Nodes.ContainsKey(id))return;
-            bool ready=(printDrag!=null || dragged!=null) && CanCommitDarkroom(lastRay,id);
-            var renderers=GuideSurfaces(id);
-            foreach(var renderer in renderers)
-            {
-                if(renderer==null || !renderer.enabled || !renderer.gameObject.activeInHierarchy || renderer.sharedMaterial==null)continue;
-                var material=renderer.sharedMaterial;
-                int property=Shader.PropertyToID(material.HasProperty("_GuideTint")?"_GuideTint":material.HasProperty("_BaseColor")?"_BaseColor":"_Color");
-                if(!material.HasProperty(property))continue;
-                renderer.GetPropertyBlock(guideBlock);
-                Color original=guideBlock.HasColor(property)?guideBlock.GetColor(property):material.GetColor(property);
-                guideColors[renderer]=original;guideProperties[renderer]=property;
-                Color warm=Color.Lerp(original,ready?new Color(.55f,1,.76f,original.a):new Color(1,.91f,.68f,original.a),ready?.32f:.22f);
-                guideBlock.SetColor(property,warm);renderer.SetPropertyBlock(guideBlock);
-                // Photo surfaces have indexed blocks for their own image/wetness.
-                // Unity gives those precedence over the renderer-wide highlight.
-                var materials=renderer.sharedMaterials;
-                for(int i=0;i<materials.Length;i++)
-                {
-                    var slot=materials[i];if(slot==null)continue;
-                    renderer.GetPropertyBlock(guideBlock,i);if(guideBlock.isEmpty)continue;
-                    int tint=Shader.PropertyToID(slot.HasProperty("_GuideTint")?"_GuideTint":slot.HasProperty("_BaseColor")?"_BaseColor":"_Color");
-                    if(!slot.HasProperty(tint))continue;
-                    Color baseColor=guideBlock.HasColor(tint)?guideBlock.GetColor(tint):slot.GetColor(tint);
-                    guideMaterialColors.Add(new GuideMaterialColor{renderer=renderer,index=i,property=tint,color=baseColor});
-                    guideBlock.SetColor(tint,Color.Lerp(baseColor,ready?new Color(.55f,1,.76f,baseColor.a):new Color(1,.91f,.68f,baseColor.a),ready?.32f:.22f));
-                    renderer.SetPropertyBlock(guideBlock,i);
-                }
-            }
+            TaskOutlineCue.Show(Nodes[id].transform,View,GuideSurfaces(id));
         }
     }
 }

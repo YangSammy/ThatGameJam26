@@ -106,6 +106,7 @@ namespace MemoryWhitebox
         }
         public override void Deactivate()
         {
+            foreach(var ink in emptyShapeInk)ink.Clear();
             CancelPointerGesture();if(observedSeat!=null)observedSeat.SetSwingAngleRadians(0);
             EndWardImage();
             if(albumCamera!=null)albumCamera.enabled=false;
@@ -114,7 +115,7 @@ namespace MemoryWhitebox
             if(View!=null){View.cullingMask=originalMask;View.rect=originalRect;View.backgroundColor=originalBackground;View.clearFlags=originalClearFlags;}
             base.Deactivate();
         }
-        public override void Dispose(){if(PagePendant)ReleaseObject(key.gameObject);StopWinterMotion();EndWardImage();if(wardImage!=null)ReleaseObject(wardImage);if(albumBacking!=null)ReleaseObject(albumBacking.gameObject);if(bridgeHover)ReleaseObject(bridgeHover.gameObject);if(pageCamera!=null)ReleaseObject(pageCamera.gameObject);if(Defocus!=null)Defocus.End();if(albumTexture!=null){albumTexture.Release();UnityEngine.Object.Destroy(albumTexture);}if(winterSheet!=null)winterSheet.SetPageTexture(null);base.Dispose();}
+        public override void Dispose(){DisposeEmptyShapes();if(PagePendant)ReleaseObject(key.gameObject);StopWinterMotion();EndWardImage();if(wardImage!=null)ReleaseObject(wardImage);if(albumBacking!=null)ReleaseObject(albumBacking.gameObject);if(bridgeHover)ReleaseObject(bridgeHover.gameObject);if(pageCamera!=null)ReleaseObject(pageCamera.gameObject);if(Defocus!=null)Defocus.End();if(albumTexture!=null){albumTexture.Release();UnityEngine.Object.Destroy(albumTexture);}if(winterSheet!=null)winterSheet.SetPageTexture(null);base.Dispose();}
         bool PageRay(Ray ray,out Ray bookRay)
         {
             bookRay=ray;RaycastHit hit;

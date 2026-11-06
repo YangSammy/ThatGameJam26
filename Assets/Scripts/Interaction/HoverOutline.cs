@@ -27,7 +27,7 @@ namespace MemoryWhitebox
             return rootRenderers;
         }
 
-        public void Show(Camera view, Renderer[] renderers, bool fillOpenings = false, bool recessed = false, bool contrast = false, bool afterEffects = false)
+        public void Show(Camera view, Renderer[] renderers, bool fillOpenings = false, bool recessed = false, bool contrast = false, bool afterEffects = false, Color? color = null, bool dashed = false)
         {
             if (!view || renderers == null || renderers.Length == 0) { Clear(); return; }
             var nextStage=afterEffects?CameraEvent.AfterImageEffects:CameraEvent.AfterForwardAlpha;
@@ -64,6 +64,9 @@ namespace MemoryWhitebox
                 if (!shader || !shader.isSupported) return;
                 material = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
             }
+            material.SetFloat("_Dashed",dashed?1:0);
+            material.SetColor("_InkColor",color ?? Color.white);
+            if (color.HasValue) material.SetFloat("_EdgeWidth",3f);
             if (fillOpenings) material.SetVector("_OutlineCenter", bounds.center);
             if (!rebuild) return;
             Clear();

@@ -12,7 +12,7 @@ namespace MemoryWhitebox
             if(index<0 || index>=tapes.Length || Chapter.IsArchived(index))return "Choose the current recorded work tape";
             if(index!=Chapter.RecordingTapeIndex || transport.RecordedSeconds<=0)return "This tape has no current recording";
             if(!Chapter.AuditionComplete)return "Listen to the original first";
-            if(!Chapter.Tape.Candidates[index].Prepared)return "Check both reels and seal both holes first";
+            if(!Chapter.Tape.Candidates[index].Prepared)return "Seal both holes first";
             return null;
         }
         bool OverFinishedCompartment(Ray ray,Transform item)

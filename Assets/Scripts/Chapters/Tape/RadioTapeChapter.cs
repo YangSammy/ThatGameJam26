@@ -41,7 +41,7 @@ namespace MemoryWhitebox
         public int FinishedCommission(int index)=>ValidTapeIndex(index)?finishedCommissions[index]:-1;
         public bool IsArchived(int index)=>FinishedCommission(index)>=0;
         bool CanUsePreparedTape(int index)=>ValidTapeIndex(index) && !IsArchived(index) &&
-            Tape.Candidates[index].Breaks.Length==0 && Tape.Candidates[index].Prepared;
+            Tape.Candidates[index].Prepared;
 
         public bool BindRecordingTape(int index)
         {
@@ -55,7 +55,6 @@ namespace MemoryWhitebox
             int index=Array.IndexOf(itemIds,DefaultItemIds[2]);
             if(!ValidTapeIndex(index) || IsArchived(index))return false;
             var tape=Tape.Candidates[index];
-            if(tape.Breaks.Length!=0 || !tape.Intact)return false;
             // Legacy PCM proves this tape was recorded before a seal may have been removed.
             RecordingTapeIndex=index;
             NeedsLegacyRecordingBinding=false;
@@ -250,10 +249,8 @@ namespace MemoryWhitebox
             {
                 if(finished[i]<0 && recording!=i)continue;
                 var payload=payloads[i];
-                if(Tape.Candidates[i].Breaks.Length!=0 || !PayloadIntact(payload))
-                    throw new InvalidDataException("A recorded or finished tape is not intact.");
                 // A recorded tape can be ejected and have a seal removed before submission.
-                if(finished[i]>=0 && payload.flags!=PreparedFlags)
+                if(finished[i]>=0 && (payload.flags&48)!=48)
                     throw new InvalidDataException("A finished tape is not prepared.");
             }
 
@@ -303,9 +300,6 @@ namespace MemoryWhitebox
                 if(bit!='0' && bit!='1')throw new InvalidDataException("Invalid tape sample.");
         }
 
-        static bool PayloadIntact(TapeItemPayload p)=>!p.broken &&
-            (p.flags&InspectionFlags)==InspectionFlags && p.coverage.IndexOf('0')<0;
-
         static void RestoreCandidate(TapeInspectionState.Candidate candidate,TapeItemPayload p)
         {
             candidate.LeftUsed=(p.flags&1)!=0;candidate.RightUsed=(p.flags&2)!=0;
@@ -319,7 +313,7 @@ namespace MemoryWhitebox
             }
         }
 
-        public override string Help => "LMB drag  Tape to slot / Release outside  Return\nE  Inspect / Hold LMB on reel + Scroll  Check\nEsc / RMB  Cancel drag";
+        public override string Help => "LMB drag  Tape to slot / Release outside  Return\nE  Inspect / Seal both holes on the mat\nEsc / RMB  Cancel drag";
         public override void Draw(){}
         public void VerifyPlayback(){} // Loading alone no longer completes the chapter.
 

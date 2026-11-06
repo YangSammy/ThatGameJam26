@@ -71,6 +71,9 @@ namespace MemoryWhitebox
 
         void UpdateMemoryRestoration(float dt)
         {
+            if(State.Phase=="collect" && !State.TimedOut)
+                for(int i=0;i<4;i++)if(!State.HasItem(i))
+                    TaskOutlineCue.Show(collectionProps[i],MemoryCamera,collectionProps[i].GetComponentsInChildren<Renderer>(true));
             float travel=Vector3.Distance(actorPrevious,player.localPosition);
             actorPrevious=player.localPosition;
             if(travel>.001f && dt>0)actorStep=Mathf.Repeat(actorStep+travel*1.8f,1);

@@ -102,9 +102,35 @@ namespace MemoryWhitebox
 
         void LateUpdate()
         {
+            ApplyDeskHandVisibility();
             if(GamePauseMenu.BlocksGameplay)return;
             Advance(Time.unscaledDeltaTime);
+            ApplyDeskHandVisibility();
             UpdateClothingSound();
+        }
+
+        Renderer[] deskHandRenderers;
+        void ApplyDeskHandVisibility()
+        {
+            bool visible=false;
+            if(park==null && house!=null && !(house.safeInspection!=null && house.safeInspection.BlocksInput))
+            {
+                var context=house.InputContext.Current;
+                visible=context==InputContextId.TapeWorkbench || context==InputContextId.TapeTransport ||
+                    context==InputContextId.AutumnWriting || context==InputContextId.WinterBook;
+            }
+            // Keep animation targets and the camera's instruments alive; only hide hand meshes.
+            if(skeletalRig!=null)
+            {
+                if(deskHandRenderers==null)deskHandRenderers=skeletalRig.GetComponentsInChildren<Renderer>(true);
+                foreach(var r in deskHandRenderers)if(r)r.forceRenderingOff=!visible;
+            }
+            else foreach(var pair in sets)
+            {
+                foreach(var t in pair.Value.visuals)if(t)foreach(var r in t.GetComponentsInChildren<Renderer>(true))r.forceRenderingOff=!visible;
+                foreach(var t in pair.Value.arms)if(t)foreach(var r in t.GetComponentsInChildren<Renderer>(true))r.forceRenderingOff=!visible;
+            }
+            if(!visible)VisibleSet=-1;
         }
 
         void UpdateClothingSound()

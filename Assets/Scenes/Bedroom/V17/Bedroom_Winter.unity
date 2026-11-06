@@ -395611,6 +395611,10 @@ PrefabInstance:
       propertyPath: m_Mesh
       value: 
       objectReference: {fileID: 4300000, guid: 476a38a23fde50748962167b1957db62, type: 2}
+    - target: {fileID: 28401801820241567, guid: ade12e078b348f94eae9584a4c9bac81, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 30760801053037444, guid: ade12e078b348f94eae9584a4c9bac81, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 68
@@ -445696,7 +445700,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!65 &737477095
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1100155,7 +1100159,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 4
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1997829914
 Transform:
   m_ObjectHideFlags: 0

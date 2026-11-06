@@ -19,7 +19,7 @@ namespace MemoryWhitebox
         Vector2 previousPointer;
         float size;
         public bool Busy=>held>=0;
-        public string Hint=>data.Broken?"Broken tape - return and inspect another tape":!data.Intact?"Check both reels first  /  Hold LMB on each reel + Scroll to both ends":
+        public string Hint=>
             Busy?(torn?"Move to an upper-edge hole and release LMB":"Pull the strip across CUT HERE"):
             data.Prepared?"E / Esc to return  /  Drag tape into cassette slot":
             "Pull TAPE TAB across CUT HERE / Rotate tape to see both upper-edge holes";
@@ -59,7 +59,7 @@ namespace MemoryWhitebox
             {
                 Vector3 point=camera.WorldToScreenPoint(pieces[i].transform.position);float distance;
                 if(point.z<=0 || !Visible(i,camera.ScreenPointToRay(point),out distance)){if(i<2)hiddenHoles++;continue;}
-                string label=i==2?(data.Broken?"TAPE TAB - BROKEN TAPE":data.Intact?"TAPE TAB - LMB DRAG":"TAPE TAB - CHECK REELS FIRST"):
+                string label=i==2?"TAPE TAB - LMB DRAG":
                     (i==0?"HOLE A":"HOLE B")+((i==0?data.HoleA:data.HoleB)?" - SEALED":" - PATCH HERE");
                 float x=Mathf.Clamp(point.x,140,Mathf.Max(140,Screen.width-140));
                 float y=Screen.height-point.y;
@@ -91,7 +91,6 @@ namespace MemoryWhitebox
             for(int i=0;i<3;i++){float hitDistance;if(Visible(i,ray,out hitDistance) && hitDistance<nearest){nearest=hitDistance;hit=i;}}
             if(type==EventType.MouseDown && button==0 && hit>=0)
             {
-                if(!data.Intact)return false;
                 if(hit<2 && !(hit==0?data.HoleA:data.HoleB))return false;
                 held=hit;torn=hit<2;
                 if(hit==0)data.HoleA=false;if(hit==1)data.HoleB=false;
@@ -121,7 +120,7 @@ namespace MemoryWhitebox
             }
             if(type==EventType.MouseUp && button==0)
             {
-                if(torn && hit<2 && hit>=0 && data.Intact){if(hit==0)data.HoleA=true;else data.HoleB=true;WBMain.Tone(330,.06f);}
+                if(torn && hit<2 && hit>=0){if(hit==0)data.HoleA=true;else data.HoleB=true;WBMain.Tone(330,.06f);}
                 Cancel();WBMain.Instance?.SaveStableProgress();
             }
             return true;

@@ -129,7 +129,7 @@ namespace MemoryWhitebox
         void LateUpdate()
         {
             if(GamePauseMenu.BlocksGameplay)return;
-            if(initialized){TickWorkbenchAssets(Time.unscaledDeltaTime);TickSfx();}
+            if(initialized){TickWorkbenchAssets(Time.unscaledDeltaTime);TickSfx();ShowNextTapeTask();}
             if(dualDeck!=null){TickDualDeck();FocusLoadedRadio();if(State==Phase.Returning)AdvanceReturn(Time.unscaledDeltaTime);else if(State==Phase.Dragging&&view!=null)PoseDraggedTape(Time.unscaledDeltaTime);return;}
             if(RecordingMode)return;
             if(!initialized || Selected<0)return;

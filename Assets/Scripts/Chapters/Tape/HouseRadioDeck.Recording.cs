@@ -73,7 +73,6 @@ namespace MemoryWhitebox
             }
             if(dualDeck!=null && !dualDeck.Closed(1))return;
             if(command<0 || command>=4 || (Chapter.Completed && command==0))return;
-            if(command==0 && !Chapter.Tape.Candidates[Selected].Intact){SubmissionMessage="Check both reels on the workbench first.";return;}
             if(command==0 && !Chapter.AuditionComplete){SubmissionMessage="Listen to this original first.";return;}
             if(command==0 && !Chapter.SourceLoaded){SubmissionMessage="Load the original tape into A first.";return;}
             if(command==0 && dualDeck!=null && !dualDeck.Closed(0)){SubmissionMessage="Close A before recording.";return;}

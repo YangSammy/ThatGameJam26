@@ -46,7 +46,7 @@ namespace MemoryWhitebox.EditorTools
             if(startPath=="Assets/Scenes/ParkSceneDev.unity")return;
             try
             {
-                string parent=Path.GetFullPath(Application.persistentDataPath).TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar);
+                string parent=Path.GetFullPath(GameSavePaths.PersistentRoot).TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar);
                 string target=Path.GetFullPath(GameSavePaths.EditorSessionRoot).TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar);
                 if(!string.Equals(Path.GetDirectoryName(target),parent,StringComparison.OrdinalIgnoreCase) ||
                    !string.Equals(Path.GetFileName(target),"EditorPlaySession",StringComparison.Ordinal))

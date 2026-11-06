@@ -19,7 +19,9 @@ namespace MemoryWhitebox
             {
                 // Low invisible navigation footprints (e.g. a coat rack's base) are not opaque geometry.
                 var body=blockers[i].collider;
-                if(body.name.StartsWith("Walk blocker") && body.GetComponent<Renderer>()==null && body.bounds.max.y<1.65f)continue;
+                if(body.GetComponent<Renderer>()==null &&
+                    (body.name.EndsWith("_Walking_collision",System.StringComparison.Ordinal) ||
+                    body.name.StartsWith("Walk blocker") && body.bounds.max.y<1.65f))continue;
                 if(!blockers[i].transform.IsChildOf(ownRoot))return null;
             }
             return hit.collider;
