@@ -64,7 +64,7 @@ namespace MemoryWhitebox
             meterHeld=Mathf.MoveTowards(meterHeld,meter?1:0,Time.deltaTime*4);
             meterRoot.gameObject.SetActive(meter || meterHeld>0);
             bodyRoot.gameObject.SetActive(photoMode==PhotographyMode.Body || photoMode==PhotographyMode.Aperture || photoMode==PhotographyMode.Shutter);
-            instrumentMeter.Apply(filmIsos[meterIsoIndex],MeterEv100,meter,meterHeld);
+            instrumentMeter.Apply(filmIsos[meterIsoIndex],MeterEv100,meter && meterReadingValid,meterHeld,MeterSuggestedAperture);
             // The reference captures and gameplay camera never inherit these presentation rotations.
             SyncInstrumentPresentation();
             if(dragPart=="leader")
@@ -73,7 +73,7 @@ namespace MemoryWhitebox
                 assetPull=Mathf.Clamp01(Vector3.Dot(instrumentParts["leader"].position-start,end-start)/Mathf.Max(.00001f,(end-start).sqrMagnitude));
             }
             int stage=loadingStep>=7?3:loadingStep>=4?2:dragPart=="leader"?1:0;
-            instrumentCamera.Apply(loadingStep>0 && loadingStep<6,loadingStep>=2,FilmIso,stage,assetPull,focusDistance,Aperture,ShutterSeconds,flash,Time.deltaTime);
+            instrumentCamera.Apply(loadingStep>0 && loadingStep<6,loadingStep>=2,FilmIso,stage,assetPull,focusDistance,Aperture,ShutterSeconds,flash,Time.deltaTime,smoothDials:true);
             void Follow(string id,Transform target){instrumentParts[id].SetPositionAndRotation(target.position,target.rotation);}
             Follow("rewind",instrumentCamera.rewindKnob);Follow("spool",instrumentCamera.takeUp);Follow("chamber",instrumentCamera.insert);
             if(dragPart!="leader")Follow("leader",instrumentCamera.LeaderTip);
@@ -92,8 +92,12 @@ namespace MemoryWhitebox
             instrumentParts["chamber"].gameObject.SetActive(loadingStep==1);instrumentParts["spool"].gameObject.SetActive(loadingStep>=2 && loadingStep<6);
             instrumentParts["leader"].gameObject.SetActive(loadingStep==2);
             foreach(int iso in filmIsos)instrumentParts["film-"+iso].gameObject.SetActive(loadingStep==1);
+            // Detail rendering uses the same visual off-screen; its proxies must not
+            // become invisible obstacles. Body mode restores each operable target above.
+            if(CameraDetailMode)foreach(var pair in instrumentParts)
+                if(pair.Value.parent==bodyRoot)pair.Value.GetComponent<Collider>().enabled=false;
             float suggested=ParkCameraResponse.SuggestedShutter(8,filmIsos[meterIsoIndex],MeterEv100);
-            meterReadout.text="ISO "+filmIsos[meterIsoIndex]+" / EV "+MeterEv100.ToString("0.0")+" / f/8 / 1/"+Mathf.RoundToInt(1/suggested);
+            meterReadout.text=MeterNumbers;
             cameraReadout.text="50 mm / Focus "+focusDistance.ToString("0.00")+" m / f/"+Aperture+" / 1/"+Mathf.RoundToInt(1/ShutterSeconds);
         }
     }

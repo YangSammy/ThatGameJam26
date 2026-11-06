@@ -25,12 +25,15 @@ namespace MemoryWhitebox
             CurrentTaskId=="meadow" && CurrentTask?.aligned==true && !CurrentTask.handJoined;
         bool HandInReach=>Vector3.Distance(view.transform.position,PhotoHandPosition)<=2f;
         bool PhotoHandPointerActive=>Aiming && HandOffered && HandInReach && InView(PhotoHandPosition) && Visible(PhotoHandPosition);
-        bool PointerOnHand=>PhotoHandPointerActive && PalmHit(view,PhotoHandPosition);
+        bool PointerOnHand=>PointerInsideViewport(virtualPointer) && PhotoHandPointerActive && PalmHit(view,PhotoHandPosition,
+            view.pixelRect.position+Vector2.Scale(virtualPointer,view.pixelRect.size));
         float handJoinTransition;
         internal static bool PalmHit(Camera camera,Vector3 contact)
+            =>PalmHit(camera,contact,camera.pixelRect.center);
+        internal static bool PalmHit(Camera camera,Vector3 contact,Vector2 pointer)
         {
             Vector3 screen=camera.WorldToScreenPoint(contact);
-            return screen.z>0 && Vector2.Distance(screen,camera.pixelRect.center)<=PalmRadiusPixels(camera,contact);
+            return screen.z>0 && Vector2.Distance(screen,pointer)<=PalmRadiusPixels(camera,contact);
         }
         internal static float PalmRadiusPixels(Camera camera,Vector3 contact)
         {
@@ -193,9 +196,10 @@ namespace MemoryWhitebox
             companion.photoLookBack=CurrentTask.aligned && CurrentTaskId!="entrance";
             companion.photoOfferHand=CurrentTask.aligned && CurrentTaskId=="meadow";
             companion.photoHandTarget=PhotoHandPosition;
-            Vector3 towardPlayer=view.transform.position-companion.transform.position;towardPlayer.y=0;
             // Recheck player settings/position, but never compare the turned pose to the old silhouette.
-            bridgeReady=handJoinTransition<=0 && CurrentTask.aligned && match && (CurrentTaskId=="entrance" || Vector3.Angle(companion.transform.forward,towardPlayer)<10);
+            // Wait for the same 10-degree turn completion, against the stable response
+            // heading rather than forcing the body to chase every camera adjustment.
+            bridgeReady=handJoinTransition<=0 && CurrentTask.aligned && match && (CurrentTaskId=="entrance" || companion.PhotoResponseSettled);
         }
         void CaptureBridgeReference()
         {
@@ -258,7 +262,7 @@ namespace MemoryWhitebox
             if(HandOffered)
             {
                 if(!HandInReach)return "Step closer to the offered hand.";
-                return PhotoHandPointerActive?"Aim the centre at the offered palm and click.":"Bring the offered hand into view.";
+                return PhotoHandPointerActive?"Click the offered palm.":"Bring the offered hand into view.";
             }
             if(CurrentTaskId=="meadow" && task.handJoined)
             {

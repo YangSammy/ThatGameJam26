@@ -8,7 +8,21 @@ namespace MemoryWhitebox
         DarkroomPrintState printObjectsState;
         BoxCollider framePlateHit;
         string printDrag;
+        string printLanding;
+        Vector3 printLandingStart;
+        Quaternion printLandingRotation,printLandingVisualRotation;
+        Vector3 printLandingVisualStart;
+        float printLandingTime;
+        const float PrintLandingDuration=.35f;
+        // Presentation only: the accepted location remains the existing save authority.
+        void BeginPrintLanding(string id,Vector3 position,Quaternion rotation)
+        {
+            printLanding=id;printLandingStart=position;printLandingRotation=rotation;printLandingTime=Time.time;
+        }
+        void FinishPrintLanding(){printLanding=null;}
+
         Texture2D contactTexture;
+        string contactTextureRoll;
         MaterialPropertyBlock printProperties=new MaterialPropertyBlock();
         Vector3 negativeHomePosition,paperHomePosition,negativeHomeScale,paperHomeScale;
         Quaternion negativeHomeRotation,paperHomeRotation,frameClosedRotation;
@@ -29,6 +43,9 @@ namespace MemoryWhitebox
         {
             StopPhotographySound();
             if(!sceneProcessing)return;
+            // Detach may happen outside direct mode: always end transient ownership first.
+            CancelInteraction();
+            SettleToolReturn();
             SetDirectDarkroom(false);
             ClearDarkroomHighlight();guideRenderers.Clear();RestoreSceneProcessing();RestorePrintPoses();
             foreach(var prop in printObjects.props)
@@ -127,7 +144,7 @@ namespace MemoryWhitebox
 
         bool PressPhysicalPrint(string id,Ray ray)
         {
-            if(!PrintInput || printObjects==null)return true;
+            if(!PrintInput || printObjects==null || printLanding!=null)return true;
             if(printProcessing){DarkroomNotice("Processing — please wait.");return true;}
             if(printStage==ParkPrintStage.NegativeDrying && !printObjectsState.negativeRemoved)
             {
@@ -194,6 +211,9 @@ namespace MemoryWhitebox
             string releaseHit=Pick(ray);
             bool overEquipment=releaseHit!=null && releaseHit!=item && Nodes.ContainsKey(releaseHit);
             bool placed=!valid && !overEquipment && objectDrag.TryPlaceInArea();
+            var landingStart=Nodes[item].transform.position;var landingRotation=Nodes[item].transform.rotation;
+            var landingVisual=darkroomVisuals!=null?darkroomVisuals.ModelRoot(item):Nodes[item].transform;
+            var visualStart=landingVisual.position;var visualRotation=landingVisual.rotation;
             objectDrag.End(true);
             SetColliders(Nodes[item],true);printDrag=null;
             if(valid)
@@ -210,10 +230,13 @@ namespace MemoryWhitebox
                 PhotographySound(item=="print-negative"?131:331,item);DarkroomNotice("Placed on work area.");
             }
             else {WBMain.Tone(110,.05f);DarkroomNotice(rejection);}
+            if(valid){BeginPrintLanding(item,landingStart,landingRotation);printLandingVisualStart=visualStart;printLandingVisualRotation=visualRotation;}
             SyncPhysicalPrint();SaveProgress();Host.SaveStableProgress();return true;
         }
         void CancelPhysicalPrint()
         {
+            // A committed drop stays committed; cancellation settles its visual only.
+            FinishPrintLanding();
             if(printDrag!=null){objectDrag.End(true);SetColliders(Nodes[printDrag],true);printDrag=null;}
             SyncPhysicalPrint();
         }
@@ -232,6 +255,17 @@ namespace MemoryWhitebox
             var anchor=printObjects.Placement(state.locationId);if(anchor==null)return;
             Nodes[id].transform.SetPositionAndRotation(anchor.position,anchor.rotation);
             if(id=="print-negative" && state.locationId=="print-frame")Nodes[id].transform.position=anchor.TransformPoint(printObjects.negativeOnFrameOffset);
+            if(printLanding==id)
+            {
+                var item=Nodes[id].transform;var end=item.position;var rotation=item.rotation;
+                float t=Mathf.Clamp01((Time.time-printLandingTime)/PrintLandingDuration);
+                // Stay above the receiving rim while aligning, then lower into the authored seat.
+                float u=Mathf.SmoothStep(0,1,Mathf.Min(1,t/.65f));
+                var above=new Vector3(end.x,Mathf.Max(printLandingStart.y,end.y)+.025f,end.z);
+                item.position=t<.65f?Vector3.Lerp(printLandingStart,above,u):Vector3.Lerp(above,end,Mathf.SmoothStep(0,1,(t-.65f)/.35f));
+                item.rotation=Quaternion.Slerp(printLandingRotation,rotation,u);
+                if(t>=1)FinishPrintLanding();
+            }
         }
         void SyncPhysicalPrint()
         {
@@ -256,9 +290,12 @@ namespace MemoryWhitebox
         }
         void LoadContactTexture()
         {
-            if(printObjects==null || contactTexture!=null || !PhysicalPrinting || printStage<ParkPrintStage.PaperDeveloper)return;
+            if(printObjects==null || !PhysicalPrinting || printStage<ParkPrintStage.PaperDeveloper)return;
+            if(contactTexture!=null && contactTextureRoll==parkFilm.id)return;
+            if(contactTexture!=null){ReleaseObject(contactTexture);contactTexture=null;}
+            contactTextureRoll=null;
             // Private process preview: no gallery or original frame files are exposed before completion.
-            try{contactTexture=ParkFilmStore.CreateContactSheetPreview(parkFilm.id,HasDarkroomAssets?4f/3f:16f/9f);}
+            try{contactTexture=ParkFilmStore.CreateContactSheetPreview(parkFilm.id,HasDarkroomAssets?4f/3f:16f/9f);contactTextureRoll=parkFilm.id;}
             catch(Exception e){saveNotice="Print preview unavailable. Negatives kept.";Debug.LogWarning(e.Message);}
             SyncPhysicalPrint();
         }

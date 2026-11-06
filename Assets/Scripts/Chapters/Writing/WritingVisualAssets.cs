@@ -5,6 +5,7 @@ namespace MemoryWhitebox
     public sealed class WritingVisualAssets : ScriptableObject
     {
         public GameObject writingSet;
+        public GameObject memoryBedroom;
         public GameObject[] collectedItems;
         public GameObject[] paperBalls;
         public GameObject timer;

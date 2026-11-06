@@ -22,6 +22,14 @@ namespace MemoryWhitebox
             var cursor=id==InputContextId.Modal?PlayerControlState.Paused:ControlState;
             InputContext.Select(id,cursor,InStation && CurrentWorld!=null && CurrentWorld.WantsMouseLook,continueGesture);
         }
+        public void PreparePauseInput()
+        {
+            if(safeInspection!=null)safeInspection.PreparePauseInput();
+            if(radioDeck!=null)radioDeck.PreparePauseInput();
+            if(DirectDarkroomActive)DarkroomWorld.CancelInteraction();
+            else if(InStation && CurrentWorld!=null)CurrentWorld.CancelPointerGesture();
+            SuspendHouseInput();
+        }
         bool ExitHouseContext()
         {
             var id=InputContext.Current;
@@ -31,14 +39,14 @@ namespace MemoryWhitebox
             {
                 if(!DarkroomWorld.HasActiveGesture)return false;
                 DarkroomWorld.CancelInteraction();DarkroomWorld.SaveProgress();SuspendHouseInput();return true;
-            },GamePauseMenu.Open);
+            },()=>{});
             if(id==InputContextId.Station || id==InputContextId.AutumnWriting || id==InputContextId.WinterObserve || id==InputContextId.WinterBook || id==InputContextId.WardWalk)return InputContext.ExitPressed(id,()=>
             {
                 if(CurrentWorld==null || !CurrentWorld.HasPointerGesture)return false;
                 CurrentWorld.CancelPointerGesture();InputState.Down=false;SuspendHouseInput();return true;
-            },GamePauseMenu.Open);
+            },()=>{var painting=CurrentWorld as PaintingWorld3D;if(painting!=null && painting.ReturnFromBook()){SuspendHouseInput();return;}ExitHouseStation();});
             if(id==InputContextId.Exploration && DirectTapeHandling)return InputContext.ExitPressed(id,null,()=>{radioDeck.PutBack();SyncTapePointer();SuspendHouseInput();});
-            if(id==InputContextId.Exploration)return InputContext.ExitPressed(id,null,GamePauseMenu.Open);
+
             return false;
         }
     }

@@ -272,13 +272,14 @@ namespace MemoryWhitebox
                 CancelInteraction();ReturnToCheckpoint();Photo.MeterVisible=false;SaveProgress();
                 Eye=World(walkPosition);Look=Eye+Quaternion.Euler(pitch,yaw,0)*Vector3.forward;Fov=62;SyncProps();
             }
-            else Release("", lastRay);
+            else {Release("", lastRay);CancelPhysicalPrint();}
             looking = false; Photo.InViewfinder = false; Photo.MeterVisible = false;
             View.ResetAspect();
             if(houseFocus!=null)houseFocus.activeFocus=false;
+            SettleToolReturn();
             base.Deactivate();
         }
-        public bool HasActiveGesture=>dragged!=null || printDrag!=null || Rewinding || bagHeld || tankHeld || printHeld;
+        public bool HasActiveGesture=>returningVisual!=null || printLanding!=null || dragged!=null || printDrag!=null || Rewinding || bagHeld || tankHeld || printHeld;
         public override bool HasPointerGesture=>HasActiveGesture;
         public override void CancelPointerGesture()=>CancelInteraction();
         public void CancelInteraction()
@@ -287,10 +288,10 @@ namespace MemoryWhitebox
             StopPhotographySound();
             CancelPrintExposure();
             CancelPhysicalPrint();
-            objectDrag.End(true);
+            EndToolDrag(dragged);
             looking=Rewinding=bagHeld=tankHeld=false;
             if(dragged!=null && Nodes.ContainsKey(dragged) && homes.ContainsKey(dragged))
-            {Nodes[dragged].transform.localPosition=homes[dragged];Nodes[dragged].transform.localRotation=homeRotations[dragged];OperationArea.RestorePose(Nodes[dragged].transform);SetColliders(Nodes[dragged],true);}
+            {SetColliders(Nodes[dragged],true);}
             dragged=null;filmStrip.gameObject.SetActive(false);pour.gameObject.SetActive(false);SyncProps();
         }
 
@@ -356,7 +357,7 @@ namespace MemoryWhitebox
             else if(dragged!="tank")tankBody.localRotation = homeRotations["tank"];
             UpdateBody();
             if (Photo.Phase == PhotoChapter.FilmPhase.Processing && clockDuration > 0) clockHand.localRotation = clockHomeRotation * Quaternion.Euler(0, 0, -(1 - Photo.ProcessingTime / clockDuration) * 360);
-            if (Photo.Phase == PhotoChapter.FilmPhase.Processing && Photo.Chemistry == 3)
+            if (!HasDarkroomAssets && Photo.Phase == PhotoChapter.FilmPhase.Processing && Photo.Chemistry == 3)
             {
                 pour.gameObject.SetActive(true); pour.SetPosition(0, Nodes["water"].transform.position+new Vector3(-.13f,-.02f,0)); pour.SetPosition(1, tankLid.position);
             }
@@ -403,7 +404,7 @@ namespace MemoryWhitebox
 
         public override void Press(string id, Ray ray, int button)
         {
-            if(parkGallery || parkFilmUnavailable || parkLoading)return;
+            if(parkGallery || parkFilmUnavailable || parkLoading || (cameraVisual!=null && cameraVisual.MechanicalTransition))return;
             id = id ?? "";
             if(id=="tank-lid" && (!ManualTank || tankSealed))id="tank";
             lastRay = ray;
@@ -450,7 +451,7 @@ namespace MemoryWhitebox
             }
             else if (id == "shutter" && Photo.Phase == PhotoChapter.FilmPhase.Ready) ExposeNative();
             else if (id == "rewind" && Photo.Phase == PhotoChapter.FilmPhase.Exposed) { Rewinding = true; }
-            else if (id == "exposed-film" && Photo.Phase == PhotoChapter.FilmPhase.Rewound) BeginDrag(id, ray);
+            else if (id == "exposed-film" && Photo.Phase == PhotoChapter.FilmPhase.Rewound && (cameraVisual==null || cameraVisual.BackOpen)) BeginDrag(id, ray);
             else if (id == "bag" && Photo.Phase == PhotoChapter.FilmPhase.DarkBag) bagHeld = true;
             else if (id == "tank" && Photo.Phase == PhotoChapter.FilmPhase.Processing) { tankHeld = true; agitationTravel = 0; lastDrag = Point(ray, 1.2f); }
             else if (id.StartsWith("chemical-") && Photo.Phase == PhotoChapter.FilmPhase.Tank) BeginDrag(id, ray);
@@ -489,13 +490,14 @@ namespace MemoryWhitebox
                 if (dragged == "leader") SetFilmLine(point);
                 else if (Nodes.ContainsKey(dragged))
                 {
+                    if(dragged.StartsWith("film-") && cameraVisual!=null)point=cameraVisual.ClearCarryPosition(View,Nodes[dragged].transform,ray,point);
                     Nodes[dragged].transform.position = point;
                     if(dragged=="tank")
                     {
                         Vector3 sink=Nodes[DrainTarget].transform.position;
                         bool over=CanDropDarkroom(ray,DrainTarget);
                         tankBody.localRotation=homeRotations["tank"]*Quaternion.Euler(over?(sceneProcessing?printObjects.tankDrainEuler:new Vector3(0,0,100)):Vector3.zero);
-                        if(over){point=objectDrag.MoveOverSurface(ToolDropPreview(DrainTarget,Nodes[dragged]),Nodes[DrainTarget].transform);over=!objectDrag.Blocked;}
+                        if(over){point=objectDrag.MoveTo(ToolDropPreview(DrainTarget,Nodes[dragged]),Nodes[DrainTarget].transform);over=!objectDrag.Blocked;}
                         pour.gameObject.SetActive(over);
                         if(over){pour.SetPosition(0,point);pour.SetPosition(1,new Vector3(sink.x,point.y-.3f,sink.z));}
                     }
@@ -504,7 +506,7 @@ namespace MemoryWhitebox
                         Vector3 receiver=Printing?developedPrint.transform.position:tankBody.position;
                         bool over = CanPourChemical(dragged) && CanDropDarkroom(ray,"tank");
                         Nodes[dragged].transform.localRotation = homeRotations[dragged]*Quaternion.Euler(over?(sceneProcessing?printObjects.bottlePourEuler:new Vector3(60,0,-35)):Vector3.zero);
-                        if(over){point=objectDrag.MoveOverSurface(ToolDropPreview("tank",Nodes[dragged]),tankBody);over=!objectDrag.Blocked;}
+                        if(over){point=objectDrag.MoveTo(ToolDropPreview("tank",Nodes[dragged]),tankBody);over=!objectDrag.Blocked;}
                         pour.gameObject.SetActive(over); if (over) { pour.SetPosition(0, point); pour.SetPosition(1, receiver+Vector3.up*.03f); }
                     }
                 }
@@ -532,6 +534,8 @@ namespace MemoryWhitebox
             if(ReleasePhysicalPrint(ray))return;
             if(wasExposing){SyncProps();SaveProgress();return;}
             if (dragged == null) return;
+            // Re-evaluate the final pointer and rotated bounds before accepting a drop.
+            Move(ray);
             NativeActionCount++;
             string target = Pick(ray);
             if(target=="tank-lid")target="tank";
@@ -559,6 +563,7 @@ namespace MemoryWhitebox
             {
                 OperationArea.ClearPlacement(Nodes[item].transform);
                 Photo.Settings.ISO = int.Parse(item.Substring(5)); Photo.Phase = PhotoChapter.FilmPhase.LoadedOpen;
+                if(cameraVisual!=null)cameraVisual.BeginInsertion(Nodes[item].transform.GetChild(0));
             }
             else if (item == "exposed-film" && Photo.Phase == PhotoChapter.FilmPhase.Rewound && CanCommitDarkroom(ray,"bag"))
             {
@@ -581,11 +586,9 @@ namespace MemoryWhitebox
                 }
             }
             else if(item=="exposed-film")DarkroomNotice(DropInstruction(ray,"bag"));
-            objectDrag.End(true);
+            EndToolDrag(item);
             if (Nodes.ContainsKey(item) && homes.ContainsKey(item))
             {
-                Nodes[item].transform.localPosition = homes[item]; Nodes[item].transform.localRotation = homeRotations[item];
-                OperationArea.RestorePose(Nodes[item].transform);
                 SetColliders(Nodes[item], true);
             }
             dragged = null; pour.gameObject.SetActive(false); SyncProps();SaveProgress();
@@ -622,6 +625,7 @@ namespace MemoryWhitebox
         {
             dragged = id; dragOrigin = Nodes[id].transform.position; lastDrag = dragOrigin;
             bool extraction=id=="exposed-film";
+            if(extraction){extractionElapsed=0;extractionFrame=-1;extractionStart=Nodes[id].transform.position;}
             bool tabletop=extraction || id=="tank" || id.StartsWith("chemical-");
             objectDrag.Begin(Nodes[id].transform,ray,tabletop?Vector3.up:View.transform.forward,tabletop ? .045f : 0,1.8f,!extraction,extraction?cameraBody:null);
             SetColliders(Nodes[id], false); Move(ray);
@@ -678,6 +682,7 @@ namespace MemoryWhitebox
 
         void SyncProps()
         {
+            RestoreToolReturnPose();
             bool open = Photo.Phase == PhotoChapter.FilmPhase.Empty || Photo.Phase == PhotoChapter.FilmPhase.LoadedOpen || Photo.Phase == PhotoChapter.FilmPhase.Rewound && RewoundBackOpen;
             cameraBack.localRotation = Quaternion.Euler(0, open ? -112 : 0, 0);
             loadedFilm.SetActive(Photo.Phase == PhotoChapter.FilmPhase.LoadedOpen);
@@ -712,6 +717,7 @@ namespace MemoryWhitebox
             printClip.GetComponent<Renderer>().sharedMaterial.color = feedbackTime > 0 ? feedbackColor : Photo.Completed ? new Color(.38f, .54f, .38f) : new Color(.4f, .47f, .42f);
             SyncPhysicalPrint();
             SyncAssetCamera(open);
+            TickToolReturn();
         }
 
         void RenderReference()

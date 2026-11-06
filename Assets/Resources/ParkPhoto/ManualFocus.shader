@@ -8,52 +8,75 @@ Shader "Hidden/ParkPhoto/ManualFocus"
     SubShader
     {
         Cull Off ZWrite Off ZTest Always
+        CGINCLUDE
+        #include "UnityCG.cginc"
+        sampler2D _MainTex, _OriginalTex;
+        float4 _MainTex_TexelSize, _OriginalTex_TexelSize;
+        float _FocusBlur, _MaxBlurPixels;
+        float _ExposureGain, _RaiseOcclusion, _DetailBackdrop;
+        float4 Gaussian(float2 uv,float2 axis)
+        {
+            // One subject-based blur for the entire image, including sky and
+            // transparent surfaces. No depth-edge masks or split-image optics.
+            float radius=(_DetailBackdrop>.5?1:saturate(_FocusBlur))*_MaxBlurPixels/1080;
+            float2 stepUV=axis*radius/12;
+            float4 sum=0;float total=0;
+            // Dense contiguous taps, three-sigma radius. No distant copies.
+            [unroll] for(int tap=-12;tap<=12;tap++)
+            {
+                float2 sampleUV=saturate(uv+stepUV*tap);
+                float weight=exp(-.5*(tap*tap)/16.0);
+                sum+=tex2Dlod(_MainTex,float4(sampleUV,0,0))*weight;total+=weight;
+            }
+            return sum/max(total,.00001);
+        }
+        float4 Horizontal(v2f_img i):SV_Target
+        {
+            return Gaussian(i.uv,float2(abs(_MainTex_TexelSize.x/_MainTex_TexelSize.y),0));
+        }
+        float4 Vertical(v2f_img i):SV_Target {return Gaussian(i.uv,float2(0,1));}
+        float3 Expose(float3 color)
+        {
+            color=max(0,color);
+            #if defined(UNITY_COLORSPACE_GAMMA)
+            color=GammaToLinearSpace(color);
+            #endif
+            color=color*_ExposureGain/(1+color*max(0,_ExposureGain-1));
+            #if defined(UNITY_COLORSPACE_GAMMA)
+            color=LinearToGammaSpace(color);
+            #endif
+            return color;
+        }
+        float4 Composite(v2f_img i):SV_Target
+        {
+            float4 result=tex2D(_MainTex,i.uv);
+            result.rgb=Expose(result.rgb);
+            result.rgb*=1-saturate(_RaiseOcclusion);
+            return result;
+        }
+        ENDCG
         Pass
         {
             CGPROGRAM
+            #pragma target 3.0
             #pragma vertex vert_img
-            #pragma fragment frag
-            #include "UnityCG.cginc"
-            sampler2D _MainTex;
-            UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
-            float4 _MainTex_TexelSize;
-            float _FocusDistance, _SharpRange, _BlurTransition, _MaxBlurPixels, _ExposureGain, _RaiseOcclusion;
-            float4 frag(v2f_img i):SV_Target
-            {
-                float2 depthUV=i.uv;
-                #if UNITY_UV_STARTS_AT_TOP
-                if(_MainTex_TexelSize.y<0)depthUV.y=1-depthUV.y;
-                #endif
-                float depth=LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture,depthUV));
-                float blur=smoothstep(_SharpRange,_SharpRange+_BlurTransition,abs(depth-_FocusDistance));
-                // Keep nearby hands readable; do not exempt them from focus entirely.
-                if(depth<_FocusDistance)blur*=.65;
-                float2 radius=float2(abs(_MainTex_TexelSize.x/_MainTex_TexelSize.y),1)*blur*_MaxBlurPixels/1080;
-                float4 sum=tex2D(_MainTex,i.uv)*.2;
-                sum+=tex2D(_MainTex,i.uv+radius*float2(.45,0))*.1;
-                sum+=tex2D(_MainTex,i.uv+radius*float2(-.45,0))*.1;
-                sum+=tex2D(_MainTex,i.uv+radius*float2(0,.45))*.1;
-                sum+=tex2D(_MainTex,i.uv+radius*float2(0,-.45))*.1;
-                sum+=tex2D(_MainTex,i.uv+radius*float2(1,0))*.05;
-                sum+=tex2D(_MainTex,i.uv+radius*float2(-1,0))*.05;
-                sum+=tex2D(_MainTex,i.uv+radius*float2(0,1))*.05;
-                sum+=tex2D(_MainTex,i.uv+radius*float2(0,-1))*.05;
-                sum+=tex2D(_MainTex,i.uv+radius*float2(.707,.707))*.05;
-                sum+=tex2D(_MainTex,i.uv+radius*float2(-.707,.707))*.05;
-                sum+=tex2D(_MainTex,i.uv+radius*float2(.707,-.707))*.05;
-                sum+=tex2D(_MainTex,i.uv+radius*float2(-.707,-.707))*.05;
-                float3 color=max(0,sum.rgb);
-                #if defined(UNITY_COLORSPACE_GAMMA)
-                color=GammaToLinearSpace(color);
-                #endif
-                // Neutral is identity; positive exposure rolls highlights off smoothly.
-                color=color*_ExposureGain/(1+color*max(0,_ExposureGain-1));
-                #if defined(UNITY_COLORSPACE_GAMMA)
-                color=LinearToGammaSpace(color);
-                #endif
-                sum.rgb=color*(1-saturate(_RaiseOcclusion));
-                return sum;
-            }
+            #pragma fragment Horizontal
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma target 3.0
+            #pragma vertex vert_img
+            #pragma fragment Vertical
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma target 3.0
+            #pragma vertex vert_img
+            #pragma fragment Composite
             ENDCG
         }
     }

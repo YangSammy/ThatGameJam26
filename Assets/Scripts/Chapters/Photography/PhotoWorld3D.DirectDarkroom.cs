@@ -9,7 +9,7 @@ namespace MemoryWhitebox
         {
             if(!value)StopPhotographySound();
             if(DirectDarkroom==value)return;
-            CancelInteraction();SaveProgress();DirectDarkroom=value;
+            CancelInteraction();if(!value)SettleToolReturn();SaveProgress();DirectDarkroom=value;
             if(value)DarkroomNotice("LMB: interact / RMB: look / WASD: move");
             else{handLeft.gameObject.SetActive(false);handRight.gameObject.SetActive(false);armLeft.gameObject.SetActive(false);armRight.gameObject.SetActive(false);ClearDarkroomHighlight();}
         }
@@ -52,7 +52,7 @@ namespace MemoryWhitebox
             if(tankHeld) tankBody.localRotation=homeRotations["tank"]*Quaternion.Euler(Vector3.Scale(printObjects.tankAgitationEuler,new Vector3(Mathf.Sin(Time.unscaledTime*14),0,Mathf.Cos(Time.unscaledTime*11))));
             else if(dragged!="tank")tankBody.localRotation=homeRotations["tank"];
             if(Photo.Phase==PhotoChapter.FilmPhase.Processing && clockDuration>0)clockHand.localRotation=clockHomeRotation*Quaternion.Euler(0,0,-(1-Photo.ProcessingTime/clockDuration)*360);
-            if(Photo.Phase==PhotoChapter.FilmPhase.Processing && Photo.Chemistry==3)
+            if(!HasDarkroomAssets && Photo.Phase==PhotoChapter.FilmPhase.Processing && Photo.Chemistry==3)
             {pour.gameObject.SetActive(true);pour.SetPosition(0,Nodes["water"].transform.position);pour.SetPosition(1,tankLid.position);}
             else if(dragged==null)pour.gameObject.SetActive(false);
             UpdateBody();SyncProps();

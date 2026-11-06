@@ -11,7 +11,7 @@ namespace MemoryWhitebox
         readonly Vector3[] pickupStart=new Vector3[4];
         Vector3 suitcaseLast;
         bool suitcasePlaced;
-        Transform suitcaseGrip;
+        Transform suitcaseGrip,flowerCarryAnchor;
 
         void BuildAutumnPerformance()
         {
@@ -45,6 +45,14 @@ namespace MemoryWhitebox
             }
             if(memoryActor==null || reachUpper==null || reachLower==null || reachPalm==null)
                 throw new System.InvalidOperationException("Autumn actor requires the authored E02 mesh and arm bones.");
+            // A small satchel gives the bouquet a visible, permanent attachment independent of luggage.
+            Child(player,"memory-satchel",new Vector3(-.23f,.58f,-.08f),new Vector3(.18f,.25f,.11f),"#725947");
+            Child(player,"satchel-flap",new Vector3(-.23f,.69f,-.085f),new Vector3(.19f,.06f,.13f),"#8a7157");
+            Child(player,"satchel-strap",new Vector3(-.22f,.77f,-.07f),new Vector3(.025f,.24f,.025f),"#725947");
+            flowerCarryAnchor=new GameObject("BouquetSatchelAnchor").transform;
+            flowerCarryAnchor.SetParent(player,false);flowerCarryAnchor.localPosition=new Vector3(-.32f,.67f,-.08f);
+            inventoryProps[1].SetParent(flowerCarryAnchor,true);
+            SetLayer(player,MemoryLayer);
             BuildMemoryRestoration();
         }
 
@@ -83,10 +91,11 @@ namespace MemoryWhitebox
                 {
                     case 0:
                         // Lift to the collar, then tuck under it. HasItem remains authoritative.
-                        destination=player.TransformPoint(new Vector3(0,Mathf.Lerp(.91f,.72f,Mathf.InverseLerp(.65f,1,u)),.12f));
+                        float tuck=Mathf.InverseLerp(.85f,1,u);
+                        destination=player.TransformPoint(new Vector3(0,Mathf.Lerp(.91f,.72f,tuck),Mathf.Lerp(.34f,.12f,tuck)));
                         rotation*=Quaternion.Euler(90,0,0);break;
                     case 1:
-                        destination=player.TransformPoint(new Vector3(-.25f,.58f,-.08f));break;
+                        destination=flowerCarryAnchor.position;break;
                     case 2:
                         destination=player.TransformPoint(new Vector3(.38f,.19f,-.35f));
                         rotation*=Quaternion.Euler(-15,0,0);break;
@@ -129,7 +138,7 @@ namespace MemoryWhitebox
         void CancelAutumnPresentation()
         {
             pickupIntent=false;reachWeight=0;
-            StorySfx.Stop(234);missingGestureTime=0;
+            StorySfx.Stop(234);
             if(memoryActor!=null)memoryActor.SetActorPose("Idle",0);
             for(int i=0;i<4;i++)pickupProgress[i]=State.HasItem(i)?1:0;
             UpdateCarryPresentation(0,true);

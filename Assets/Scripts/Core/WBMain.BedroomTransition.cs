@@ -11,6 +11,7 @@ namespace MemoryWhitebox
         BedroomTransitionOverlay bedroomCover;
         BedroomLoadTrace bedroomTrace;
         bool bedroomLoadFailed;
+        public bool ScenePresentationReady=>houseReady && !loadingSpringRoom && !bedroomLoadFailed;
         bool HasBedroom=>springTapeRoom!=null || summerPhotoRoom!=null || narrativeBedroom!=null || DepartureRoom!=null;
 
         void InitializeBedroomCover()
@@ -29,15 +30,6 @@ namespace MemoryWhitebox
             foreach(var root in gameObject.scene.GetRootGameObjects())
                 if(root.name=="Lighting")root.SetActive(false);
         }
-        IEnumerator FadeBedroom(float target)
-        {
-            if(bedroomCover==null)yield break;
-            float startAlpha=bedroomCover.Alpha;
-            double started=Time.realtimeSinceStartupAsDouble;
-            // A long loading frame must not count as elapsed time in a new fade.
-            while(bedroomCover!=null && !Mathf.Approximately(bedroomCover.Alpha,target))
-            {bedroomCover.SetAlpha(Mathf.MoveTowards(startAlpha,target,(float)(Time.realtimeSinceStartupAsDouble-started)/.25f));yield return null;}
-        }
         IEnumerator ChangeBedroom(string destination,Func<IEnumerator> load,int debugKey)
         {
             loadingSpringRoom=true;bedroomLoadFailed=false;
@@ -45,6 +37,8 @@ namespace MemoryWhitebox
             bedroomTrace=new BedroomLoadTrace(System.IO.Path.GetFileNameWithoutExtension(destination));
             SetBedroomLoadingPriority(ThreadPriority.High);
             if(bedroomCover==null)bedroomCover=BedroomTransitionOverlay.Create(transform,UIFont);
+            PreparePauseInput();
+            if(radioDeck!=null)radioDeck.PrepareSceneInput();
             bedroomCover.ClearError();Room.StopMotion();SuspendHouseInput();SyncInputContext();
             bedroomCover.ShowLoading("Saving progress");
             // Save before unbinding; startup already restored the committed checkpoint.
@@ -52,7 +46,8 @@ namespace MemoryWhitebox
             {FailBedroomTransition("Could not save before changing bedroom: "+LastSaveError);yield break;}
             bedroomTrace.Mark("save-before-handoff");
             bedroomCover.ShowLoading("Loading bedroom");
-            if(!Mathf.Approximately(bedroomCover.Alpha,1))yield return FadeBedroom(1);
+            yield return BrushSceneTransition.Cover();
+            bedroomCover.SetAlpha(0);
             bedroomTrace.Mark("fade-out");
             // Render a completely covered frame before any scene/object changes.
             int coverFrame=Time.frameCount;
@@ -98,13 +93,13 @@ namespace MemoryWhitebox
             int readyFrame=Time.frameCount;
             yield return null;
             bedroomTrace.MarkFrameWait("ready-frame-wait",readyFrame);
-            yield return FadeBedroom(0);
-            bedroomTrace.Mark("fade-in");bedroomTrace.End();
             RestoreBedroomLoadingPriority();
             loadingSpringRoom=false;SuspendHouseInput();SyncInputContext();
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if(debugKey!=0)DebugEnterChapter(debugKey);
-#endif
+            // Debug entry can position a camera/build objects too; finish it under the cover.
+            yield return null;
+            if(!BrushSceneTransition.ExternalLoadActive)yield return BrushSceneTransition.Reveal();
+            bedroomTrace.Mark("brush-reveal-or-host-handoff");bedroomTrace.End();
             if(!loadingSpringRoom && springTapeRoom!=null && CurrentDay==StoryDay.SpringTape)StartCoroutine(PreloadSummerBedroom());
         }
         void FailBedroomTransition(string reason)
@@ -113,14 +108,8 @@ namespace MemoryWhitebox
             bedroomTrace?.End("failed");ReleaseBedroomLoading();
             Debug.LogError("Bedroom transition failed: "+reason,this);
             if(bedroomCover==null)bedroomCover=BedroomTransitionOverlay.Create(transform,UIFont);
-            bedroomCover.Fail(()=>
-            {
-                // Rebuild bindings from the durable save, not from a partially bound room.
-                // Keep the covered host alive until Unity replaces it.
-                if(!Application.CanStreamedLevelBeLoaded(gameObject.scene.path))return;
-                try{SceneManager.LoadScene(gameObject.scene.path);}
-                catch(Exception ex){Debug.LogError("Bedroom retry failed: "+ex.Message,this);}
-            });
+            bedroomCover.SetAlpha(0);
+            BrushSceneTransition.ShowFailure(reason,gameObject.scene.path);
             SyncInputContext();
             PlayerInputPolicy.SetCursor(true);
         }

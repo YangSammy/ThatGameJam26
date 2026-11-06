@@ -128,7 +128,7 @@ namespace MemoryWhitebox
         }
         void LateUpdate()
         {
-            if(GamePauseMenu.BlocksGameplay)return;
+            if(GamePauseMenu.BlocksGameplay){HideTaskHoles();return;}
             if(initialized){TickWorkbenchAssets(Time.unscaledDeltaTime);TickSfx();ShowNextTapeTask();}
             if(dualDeck!=null){TickDualDeck();FocusLoadedRadio();if(State==Phase.Returning)AdvanceReturn(Time.unscaledDeltaTime);else if(State==Phase.Dragging&&view!=null)PoseDraggedTape(Time.unscaledDeltaTime);return;}
             if(RecordingMode)return;
@@ -156,7 +156,7 @@ namespace MemoryWhitebox
             var hit=Pick(ray);
             var sourceHint=SourceHint(hit);if(sourceHint!=null)return sourceHint;
             if(!StationActive)return IsEntryHit(hit)?"LMB  Interact   /   E  Inspect":null;
-            if(State==Phase.Dragging)return draggingTape?(hit==slotHit?"Release LMB to insert   /   Esc  Cancel":"LMB drag to slot. Release to insert."):"LMB drag shell to slot   /   Esc  Cancel";
+            if(State==Phase.Dragging)return draggingTape?(hit==slotHit?"Release LMB to insert   /   RMB  Cancel":"LMB drag to slot. Release to insert."):"LMB drag shell to slot   /   RMB  Cancel";
             if(State==Phase.Loading)return "Loading tape...";
             if(State==Phase.Returning)return string.IsNullOrEmpty(Notice)?"Returning tape...":Notice;
             if(hit==radioHit || hit==slotHit)

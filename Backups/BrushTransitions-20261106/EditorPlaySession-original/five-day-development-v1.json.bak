@@ -1,0 +1,54 @@
+{
+    "version": 2,
+    "currentDay": 1,
+    "finished": false,
+    "completed": [],
+    "checkpoints": [],
+    "chapters": [
+        {
+            "chapterId": "spring.tape",
+            "schemaVersion": 1,
+            "completed": true,
+            "payload": "{\"version\":9,\"items\":[{\"instanceId\":\"tape.work.1\",\"definitionId\":\"tape.work\",\"ownerChapterId\":\"spring.tape\",\"schemaVersion\":1,\"locationId\":\"tape.home\",\"payload\":\"{\\\"flags\\\":0,\\\"position\\\":4.0,\\\"broken\\\":false,\\\"coverage\\\":\\\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\\\"}\"},{\"instanceId\":\"tape.work.2\",\"definitionId\":\"tape.work\",\"ownerChapterId\":\"spring.tape\",\"schemaVersion\":1,\"locationId\":\"tape.home\",\"payload\":\"{\\\"flags\\\":0,\\\"position\\\":4.0,\\\"broken\\\":false,\\\"coverage\\\":\\\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\\\"}\"},{\"instanceId\":\"tape.work.3\",\"definitionId\":\"tape.work\",\"ownerChapterId\":\"spring.tape\",\"schemaVersion\":1,\"locationId\":\"tape.home\",\"payload\":\"{\\\"flags\\\":0,\\\"position\\\":4.0,\\\"broken\\\":false,\\\"coverage\\\":\\\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\\\"}\"},{\"instanceId\":\"tape.work.4\",\"definitionId\":\"tape.work\",\"ownerChapterId\":\"spring.tape\",\"schemaVersion\":1,\"locationId\":\"tape.home\",\"payload\":\"{\\\"flags\\\":0,\\\"position\\\":4.0,\\\"broken\\\":false,\\\"coverage\\\":\\\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\\\"}\"},{\"instanceId\":\"tape.work.5\",\"definitionId\":\"tape.work\",\"ownerChapterId\":\"spring.tape\",\"schemaVersion\":1,\"locationId\":\"tape.home\",\"payload\":\"{\\\"flags\\\":0,\\\"position\\\":4.0,\\\"broken\\\":false,\\\"coverage\\\":\\\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\\\"}\"}],\"sourceLoaded\":false,\"auditionComplete\":false,\"protectionDiscovered\":false,\"completed\":false,\"auditionSeconds\":0.0,\"benchTape\":-1,\"benchEuler\":{\"x\":0.0,\"y\":0.0,\"z\":0.0},\"looseStrip\":false,\"workingTape\":-1,\"commission\":0,\"recordingTapeId\":\"\",\"flags\":[],\"positions\":[],\"broken\":[],\"coverage\":[]}"
+        },
+        {
+            "chapterId": "summer.photography",
+            "schemaVersion": 1,
+            "completed": false,
+            "payload": ""
+        },
+        {
+            "chapterId": "autumn.writing",
+            "schemaVersion": 1,
+            "completed": false,
+            "payload": "{\"version\":3,\"draft\":1,\"collected\":0,\"row\":0,\"phase\":\"tutorial\",\"missingItemHintUsed\":false,\"crumple\":false,\"started\":false,\"awaitingReturn\":false,\"remaining\":60.0,\"writingProgress\":0.0,\"player\":{\"x\":160.0,\"y\":505.0},\"rows\":[0.0]}"
+        },
+        {
+            "chapterId": "winter.painting",
+            "schemaVersion": 1,
+            "completed": false,
+            "payload": "{\"version\":5,\"phase\":0,\"shapes\":[false,false,false,false,false],\"middle\":false,\"high\":false,\"key\":false,\"pendantHint\":false,\"crate\":2.0,\"ward\":0.0,\"wardActor\":0.0,\"white\":0.0,\"wardTime\":0.0}"
+        },
+        {
+            "chapterId": "spring.departure",
+            "schemaVersion": 1,
+            "completed": false,
+            "payload": "{\"version\":2,\"phase\":0,\"spring\":0.0}"
+        }
+    ],
+    "artifacts": [],
+    "areaPlacements": [],
+    "returnFromPark": false,
+    "housePosition": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+    },
+    "houseRotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 1.0
+    },
+    "houseFov": 65.0
+}

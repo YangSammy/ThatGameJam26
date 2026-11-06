@@ -118,10 +118,10 @@ namespace MemoryWhitebox
             if(drop!=null)
             {
                 if(CanCommitDarkroom(ray,drop))hover=GuideSurfaces(drop);
-                return DarkroomName(dragged??printDrag)+" → "+DarkroomName(drop)+"\n"+DropInstruction(ray,drop)+" / Esc Cancel";
+                return DarkroomName(dragged??printDrag)+" → "+DarkroomName(drop)+"\n"+DropInstruction(ray,drop)+" / RMB Cancel";
             }
             if(objectDrag.AtEdge)return "Keep on this work area\nRelease LMB to place";
-            if(objectDrag.Blocked)return "Path blocked\nMove around the obstacle / Esc Cancel";
+            if(objectDrag.Blocked)return "Path blocked\nMove around the obstacle / RMB Cancel";
             if(name==null)return "";
             if(id=="tank-lid" && tankSealed && (guideSource=="tank" || guideTarget=="tank")){id="tank";name=DarkroomName(id);}
             hover=GuideSurfaces(id);
@@ -185,10 +185,13 @@ namespace MemoryWhitebox
         internal bool TaskMarkerPosition(Camera camera,out Vector2 screen)
         {
             screen=default;
-            if(guideColors.Count==0 || !camera)return false;
+            if(!DarkroomGuidanceActive || !camera)return false;
+            ResolveDarkroomGuide();
+            var markerSurfaces=GuideSurfaces(CurrentDropTarget() ?? guideSource);
+            if(markerSurfaces==null)return false;
             Bounds bounds=default;
             bool first=true;
-            foreach(var r in guideColors.Keys)
+            foreach(var r in markerSurfaces)
             {
                 if(!r || r.forceRenderingOff)continue;
                 if(first){bounds=r.bounds;first=false;}else bounds.Encapsulate(r.bounds);
@@ -215,7 +218,7 @@ namespace MemoryWhitebox
         public void RefreshDarkroomHighlight()
         {
             ClearDarkroomHighlight();
-            if(!DarkroomGuidanceActive || Host==null || !(Host.InputContext.Allows(InputContextId.Station) || Host.InputContext.Allows(InputContextId.Darkroom)))return;
+            if(returningVisual!=null || printLanding!=null || !DarkroomGuidanceActive || Host==null || !(Host.InputContext.Allows(InputContextId.Station) || Host.InputContext.Allows(InputContextId.Darkroom)))return;
             ResolveDarkroomGuide();
             string id=(printDrag!=null || dragged!=null)?CurrentDropTarget():guideSource;
             if(string.IsNullOrEmpty(id) || !Nodes.ContainsKey(id))return;

@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 namespace MemoryWhitebox
 {
     // Day one and day five load the same art scene. This authored group is dormant on day one.
-    public sealed class DepartureBedroom : MonoBehaviour
+    public sealed partial class DepartureBedroom : MonoBehaviour
     {
         public Transform hinge,threshold,spawn,paperAnchor;
         public AlbumWinterVisual finalPage;
@@ -62,8 +62,8 @@ namespace MemoryWhitebox
             petalsScale=petals.transform.localScale;petalsCenter=petals.transform.InverseTransformPoint(petals.bounds.center);
             tapeKeepsakes.SetActive(host.Done[0]);letterBasket.SetActive(host.Done[2]);
             LoadPrints();
+            BeginSpringAtmosphere();
             ApplyThaw(ending.SpringProgress);
-            windowSounds.mute=host.Muted;if(!host.StoryFinished)windowSounds.Play();
             Physics.SyncTransforms();
         }
 
@@ -97,10 +97,11 @@ namespace MemoryWhitebox
             var petal=petals.transform;var center=petal.TransformPoint(petalsCenter);
             petal.localScale=Vector3.Scale(petalsScale,new Vector3(Mathf.Lerp(.25f,1,t),1,Mathf.Lerp(.25f,1,t)));
             petal.position+=center-petal.TransformPoint(petalsCenter);
+            UpdateMeltwater(t);
         }
         void Update()
         {
-            if(owner!=null)windowSounds.mute=owner.Muted || owner.ShowHelp || !Application.isFocused || owner.StoryFinished;
+            UpdateSpringAtmosphere();
         }
         public bool HitHandle(Ray ray)
         {
@@ -116,6 +117,6 @@ namespace MemoryWhitebox
             host.Room.StopMotion();host.SuspendHouseInput();
             gameObject.SetActive(false);SceneManager.UnloadSceneAsync(gameObject.scene);
         }
-        void OnDestroy(){foreach(var texture in photos)if(texture!=null)Destroy(texture);}
+        void OnDestroy(){foreach(var texture in photos)if(texture!=null)Destroy(texture);if(meltwaterMaterial!=null)Destroy(meltwaterMaterial);}
     }
 }

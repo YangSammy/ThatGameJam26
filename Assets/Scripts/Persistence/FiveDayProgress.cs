@@ -145,17 +145,21 @@ namespace MemoryWhitebox
         {
             return CommitChapter(ChapterIds.At(index),snapshot,true).Success;
         }
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public bool PrepareDevelopmentEntry(int index,string snapshot,bool restart)
         {
             if(!development || index<0 || index>=5)return false;
+            return PrepareShortcutEntry(index,snapshot,restart);
+        }
+        public bool PrepareShortcutEntry(int index,string snapshot,bool restart)
+        {
+            if(blocked || index<0 || index>=5)return false;
+            if(!development && index<data.currentDay)return false;
             var next=Copy();
             for(int i=0;i<index;i++)Record(next,i).completed=true;
             if(restart){Record(next,index).completed=false;Record(next,index).payload=snapshot;}
             next.currentDay=index;next.finished=false;
             return Commit(next);
         }
-#endif
         public SaveResult CommitChapter(string chapterId,string snapshot,bool complete,ArtifactReference artifact=null)
         {
             int index=ChapterIds.Index(chapterId);

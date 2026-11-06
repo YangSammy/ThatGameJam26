@@ -51,7 +51,7 @@ namespace MemoryWhitebox.Editor
                 Set(p,"virtualPointer",new Vector2(.04f,.04f));Set(p,"edgeArmed",true);Set(p,"cooldown",0f);
                 Call(p,"TickPhotographyModes",.3f);
                 lines.Add((p.PhotoMode==ParkPhotoPrototype.PhotographyMode.Meter?"PASS":"FAIL")+" bottom-left meter entry remains available");
-                var palm=typeof(ParkPhotoPrototype).GetMethod("PalmHit",BindingFlags.Static|BindingFlags.NonPublic);
+                var palm=typeof(ParkPhotoPrototype).GetMethod("PalmHit",BindingFlags.Static|BindingFlags.NonPublic,null,new[]{typeof(Camera),typeof(Vector3)},null);
                 foreach(var size in new[]{new Vector2(1920,1080),new Vector2(2560,1080),new Vector2(1280,1024)})
                 {
                     camera.pixelRect=new Rect(0,0,size.x,size.y);

@@ -1,10 +1,8 @@
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System;
 namespace MemoryWhitebox
 {
     public sealed partial class PhotoWorld3D
     {
-#if UNITY_EDITOR
         public bool EditorCompleteDarkroom(out string message)
         {
             if(!DebugPrepareDarkroom(out message))return false;
@@ -30,7 +28,6 @@ namespace MemoryWhitebox
             message="Prints drying. Click the hanging print when ready.";
             return true;
         }
-#endif
         public bool DebugPrepareDarkroom(out string message)
         {
             // Save the live timer/placements before touching disk. Repeated use never rewinds a roll.
@@ -65,4 +62,3 @@ namespace MemoryWhitebox
         }
     }
 }
-#endif

@@ -1,4 +1,3 @@
-#if UNITY_EDITOR
 using System;
 using System.Collections;
 using UnityEngine;
@@ -12,7 +11,7 @@ namespace MemoryWhitebox
 
         public bool EditorCompleteStage(int key)
         {
-            if(key<1 || key>5 || !houseReady || loadingSpringRoom || editorCompletionRunning)return false;
+            if(key<1 || key>5 || !houseReady || loadingSpringRoom || transition>0 || editorCompletionRunning || BrushSceneTransition.IsBusy || BrushSceneTransition.ExternalLoadActive)return false;
             StartCoroutine(CompleteEditorStage(key));return true;
         }
 
@@ -23,7 +22,7 @@ namespace MemoryWhitebox
             {
                 int index=key==1?0:key<=3?1:key==4?2:3;
                 if(chapters[index].Completed || (story!=null && story.IsComplete(index)))
-                {EditorCompletionNotice("Already complete. Shift + number opens a test entry.");yield break;}
+                {EditorCompletionNotice("This stage is already complete.");yield break;}
                 safeInspection?.Close();CurrentWorld?.CancelPointerGesture();
                 radioDeck?.SuspendInput();DarkroomWorld?.CancelInteraction();
                 if(!SaveStableProgress()){EditorCompletionNotice("Save failed: "+LastSaveError);yield break;}
@@ -36,7 +35,7 @@ namespace MemoryWhitebox
                     if(!DebugEnterChapter(entry)){EditorCompletionNotice("Test entry unavailable.");yield break;}
                     float deadline=Time.realtimeSinceStartup+45;
                     yield return null;
-                    while(loadingSpringRoom || transition>0 || ChapterIndex!=index || (key>=4 && !InStation))
+                    while(loadingSpringRoom || transition>0 || BrushSceneTransition.IsBusy || BrushSceneTransition.ExternalLoadActive || ChapterIndex!=index || (key>=4 && !InStation))
                     {
                         if(Time.realtimeSinceStartup>deadline){EditorCompletionNotice("Entry timed out. Progress kept; retry after loading.");yield break;}
                         yield return null;
@@ -56,6 +55,18 @@ namespace MemoryWhitebox
                         EditorCompletionNotice(message);
                         if(ok)
                         {
+                            if(key==2)
+                            {
+                                if(!Application.CanStreamedLevelBeLoaded(ParkFilmRoute.ParkScenePath))
+                                    throw new InvalidOperationException("ParkScene is missing from this build.");
+                                if(!SaveStableProgress() || !story.RememberReturn(Room.Camera.transform.position,Room.Camera.transform.rotation,Room.Camera.fieldOfView))
+                                {EditorCompletionNotice("Progress not saved. Stay here and retry.");yield break;}
+                                ParkFilmRoute.RememberHouseView(Room.Camera.transform.position,Room.Camera.transform.rotation,Room.Camera.fieldOfView);
+                                SuspendHouseInput();
+                                // Park loads the committed full roll and presents its normal return panel.
+                                BrushSceneTransition.LoadScene(ParkFilmRoute.ParkScenePath);
+                                yield break;
+                            }
                             PrepareContinuousDarkroom();
                             if(Curtain!=null && !Curtain.IsOpen){Curtain.Toggle();Curtain.Advance(1);}
                             Room.Camera.transform.SetPositionAndRotation(summerPhotoRoom.darkroomView.position,summerPhotoRoom.darkroomView.rotation);
@@ -73,7 +84,6 @@ namespace MemoryWhitebox
         }
 
         void EditorCompletionNotice(string message)
-        {cameraRouteNotice="EDITOR: "+message;cameraRouteNoticeUntil=Time.unscaledTime+7;Debug.Log(cameraRouteNotice,this);}
+        {cameraRouteNotice="Shortcut: "+message;cameraRouteNoticeUntil=Time.unscaledTime+7;Debug.Log(cameraRouteNotice,this);}
     }
 }
-#endif

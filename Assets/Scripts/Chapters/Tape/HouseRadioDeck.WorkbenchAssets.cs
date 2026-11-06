@@ -242,6 +242,7 @@ namespace MemoryWhitebox
         {
             if(workbenchVisuals==null || hit==null)return false;
             if(storageDelivery!=null || radioCameraMoving)return true;
+            if(TryDeliverStoredTape(hit))return true;
             if(StorageSurface(hit))
             {
                 if(!WorkbenchMode && !RecordingMode)OpenWorkbench();
@@ -250,7 +251,6 @@ namespace MemoryWhitebox
                 else ToggleStorageLidWithSound();
                 return true;
             }
-            if(TryDeliverStoredTape(hit))return true;
             if(FinishedSurface(hit)){ShowTapePointerNotice("Eject B, then drag the recorded tape into this compartment.");return true;}
             return false;
         }

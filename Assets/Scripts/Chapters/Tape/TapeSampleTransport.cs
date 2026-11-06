@@ -168,7 +168,6 @@ namespace MemoryWhitebox
         }
         // Submission only. This result never feeds transport or edits samples.
         public int[] SnapshotMapping(){lock(sync){var result=new int[length];Array.Copy(mapping,result,length);return result;}}
-#if UNITY_EDITOR
         // Explicit editor completion only. Normal transport never reads acceptance metadata.
         public bool EditorPrepareAcceptedCopy(TapeCommissionAudio audio)
         {
@@ -187,7 +186,6 @@ namespace MemoryWhitebox
             }
             return audio.Reject(SnapshotMapping())=="" && Save();
         }
-#endif
         public bool Save()
         {
             // Serialize writers, but never hold the audio callback lock during disk IO.

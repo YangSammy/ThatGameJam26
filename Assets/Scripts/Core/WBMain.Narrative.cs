@@ -10,7 +10,7 @@ namespace MemoryWhitebox
             if(!SpringActive || InStation)return false;
             var ray=Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f));
             bool handled=((EndingWorld3D)worlds[4]).StepHouse(dt,ray,Input.GetMouseButtonDown(0) && !DirectTapeHandling && !DirectDarkroomActive);
-            if(story.Finished){Room.StopMotion();return true;}
+            if(story.Finished){TickEndingPresentation(dt);return true;}
             if(DepartureRoom!=null){if(!handled)Room.WalkTick(dt);return true;}
             return handled;
         }

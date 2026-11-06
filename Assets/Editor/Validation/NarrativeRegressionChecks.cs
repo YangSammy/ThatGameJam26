@@ -25,7 +25,7 @@ namespace MemoryWhitebox.Editor
             {
                 Case("Autumn simultaneous writing and E",()=>{
                     var w=new WritingChapter();w.Player=w.ItemPositions[0];w.Tick(.02f,Keys(KeyCode.E));Require(!w.Carried,"E alone collected");
-                    Stroke(w);w.Tick(.02f,Keys());Require(!w.Carried,"Writing alone collected");w.Tick(.02f,Keys(KeyCode.E));Require(w.Phase=="crumple","Tutorial did not stall");
+                    w.Tick(.3f,Keys());Stroke(w);w.Tick(.02f,Keys());Require(!w.Carried,"Writing alone collected");Stroke(w);w.Tick(.02f,Keys(KeyCode.E));Require(w.Phase=="crumple","Tutorial did not stall");
                     w.PointerDown(new Vector2(800,200),0);w.PointerUp(new Vector2(1185,635));Require(w.Draft==2&&w.Phase=="collect"&&!w.Started&&!w.Carried,"Draft reset incorrect");
                 });
                 Case("Autumn re-entering paper resumes at the new contact point",()=>{

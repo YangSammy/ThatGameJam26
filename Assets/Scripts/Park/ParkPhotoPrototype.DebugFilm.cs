@@ -1,4 +1,3 @@
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System;
 using UnityEngine;
 
@@ -6,6 +5,24 @@ namespace MemoryWhitebox
 {
     public sealed partial class ParkPhotoPrototype
     {
+        public bool CompleteStageShortcut(int key)
+        {
+            if(key<1 || key>5 || !ScenePresentationReady || changingScene || BrushSceneTransition.IsBusy || BrushSceneTransition.ExternalLoadActive)return false;
+            if(HasPendingExposure){Notify("Wait for the photograph to finish saving, then retry.",6);return false;}
+            if(key==2){DebugFillCurrentRoll();return true;}
+            if(!Application.CanStreamedLevelBeLoaded(ParkFilmRoute.HouseScenePath))return false;
+            CancelInstrumentDrag();CancelCameraRaise();
+            if(!SavePhotoSettings() || !TryLoadCommittedForExit())return false;
+            StageCompletionShortcuts.PendingHouseStage=key;
+            changingScene=true;ParkFilmRoute.EnterDarkroomOnLoad=false;
+            SyncParkInput();InputContext.Handoff();
+            try{BrushSceneTransition.LoadScene(ParkFilmRoute.HouseScenePath);return true;}
+            catch(Exception error)
+            {
+                changingScene=false;StageCompletionShortcuts.PendingHouseStage=0;
+                Notify("Stage shortcut unavailable. Saved progress kept.",6);Debug.LogWarning(error.Message);return false;
+            }
+        }
         // Darkroom test entry: use the same durable exposure pipeline as normal shots.
         void DebugFillCurrentRoll()
         {
@@ -30,4 +47,3 @@ namespace MemoryWhitebox
         }
     }
 }
-#endif

@@ -47,7 +47,7 @@ namespace MemoryWhitebox
                 case DragReceiverProbe.Result.TooFar:return "Move closer to the recorder";
                 case DragReceiverProbe.Result.Occluded:return "Slot blocked. Find a clear angle";
                 case DragReceiverProbe.Result.Unavailable:return "Slot unavailable";
-                default:return "Drag to the slot / Release on desk / Esc Cancel";
+                default:return "Drag to the slot / Release on desk / RMB Cancel";
             }
         }
         void ShowTapeDropPreview(Transform receiver)

@@ -81,6 +81,13 @@ namespace MemoryWhitebox
             if(summerPreload!=null){summerPreload.allowSceneActivation=true;summerPreload=null;}
             RestoreBedroomLoadingPriority();
         }
+        public IEnumerator PrepareSceneDeparture()
+        {
+            // Cancel delayed preload starts and drain any existing activation barrier.
+            bedroomLoadGeneration++;
+            yield return DrainBedroomPreload(null);
+            RestoreBedroomLoadingPriority();
+        }
         void UnhookBedroomPreload()
         {
 #if UNITY_EDITOR

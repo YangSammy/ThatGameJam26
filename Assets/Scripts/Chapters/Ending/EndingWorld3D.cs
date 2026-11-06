@@ -40,6 +40,11 @@ namespace MemoryWhitebox
             if(bedroom==null){BuildSpring();if(!built)return false;Root.SetActive(true);}
             Ending.Tick(dt,idle);
             bool handled=false;
+            if(!Ending.DoorOpen && !Ending.Completed)
+            {
+                var next=bedroom!=null?bedroom.handle.transform:binding.doorHandle;
+                if(next)TaskOutlineCue.Show(next,Host.Room.Camera,next.GetComponentsInChildren<Renderer>(true));
+            }
             if(click && !Ending.DoorOpen && (bedroom!=null?bedroom.HitHandle(ray):HitDoor(ray)))
             {
                 Ending.OpenDoor();

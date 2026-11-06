@@ -35,8 +35,8 @@ namespace MemoryWhitebox.EditorTools
                 else if(ids[i]=="bag")visual.transform.position=target.position-Vector3.up*.045f;
                 else if(ids[i]=="print-frame")Align(visual,"PaperAnchor",binding.Placement(ids[i]).position);
                 else if(ids[i]=="print-exposure")Align(visual,"SwitchAnchor",target.position);
-                else if(ids[i]=="print-photo-clip"){visual.transform.rotation=Quaternion.Euler(0,270,0);Align(visual,"PaperHangAnchor",binding.Placement(ids[i]).position);}
-                else if(ids[i]=="print-negative-clip"){visual.transform.rotation=Quaternion.Euler(0,270,0);Align(visual,"PaperGrip",binding.Placement(ids[i]).position);}
+                else if(ids[i]=="print-photo-clip"){visual.transform.rotation=Quaternion.Euler(0,270,0);SetWorldScale(visual.transform,scales[i]);Align(visual,"PaperHangAnchor",binding.Placement(ids[i]).position);}
+                else if(ids[i]=="print-negative-clip"){visual.transform.rotation=Quaternion.Euler(0,270,0);SetWorldScale(visual.transform,scales[i]);Align(visual,"PaperGrip",binding.Placement(ids[i]).position);}
                 else if(ids[i]=="print-developer" || ids[i]=="print-stop" || ids[i]=="print-fixer" || ids[i]=="print-wash")Align(visual,"PaperRest",binding.Placement(ids[i]).position);
             }
             adapter.models=list.ToArray();
@@ -50,8 +50,8 @@ namespace MemoryWhitebox.EditorTools
             var clips=new List<AnimationClip>();foreach(var guid in AssetDatabase.FindAssets("t:AnimationClip",new[]{Folder+"Animations"}))clips.Add(AssetDatabase.LoadAssetAtPath<AnimationClip>(AssetDatabase.GUIDToAssetPath(guid)));adapter.clips=clips.ToArray();
             foreach(var id in new[]{"bag-grip","tank-lid","print-frame-lid","water","print-tap"})foreach(var r in binding.Get(id).target.GetComponentsInChildren<Renderer>(true))r.enabled=false;
             foreach(var id in new[]{"bag-grip","tank-lid","print-frame-lid","water","print-tap","print-exposure"})foreach(var c in binding.Get(id).target.GetComponentsInChildren<Collider>(true))if(c.GetComponent<PhotographyInteractionHit>()==null)c.gameObject.AddComponent<PhotographyInteractionHit>();
-            MoveParts(adapter.ModelRoot("film-drain-basin"),"ValveHandle",binding.Get("water").target.position,new[]{"TapBody","ValveHandle","WaterStream","WaterOutlet"});
-            MoveParts(adapter.ModelRoot("print-wash"),"WashValve",binding.Get("print-tap").target.position,new[]{"WashTap","WashValve","InletStream","WaterOutlet"});
+            binding.Get("water").target.position=DarkroomAssetVisuals.Node(adapter.ModelRoot("film-drain-basin"),"ValveHandle").position;
+            binding.Get("print-tap").target.position=DarkroomAssetVisuals.Node(adapter.ModelRoot("print-wash"),"WashValve").position;
             // Existing light object still owns activation; only its visual location follows the lamp head.
             if(binding.exposureLight!=null)
             {
@@ -76,6 +76,11 @@ namespace MemoryWhitebox.EditorTools
             foreach(var t in go.GetComponentsInChildren<Transform>(true))t.gameObject.layer=parent.gameObject.layer;
             var split=file.LastIndexOf('_');go.AddComponent<DarkroomVisualIdentity>().assetName=file.Substring(split+1)+"_"+file.Substring(0,split);
             return go;
+        }
+        static void SetWorldScale(Transform visual,float size)
+        {
+            var s=visual.lossyScale;
+            visual.localScale=Vector3.Scale(visual.localScale,new Vector3(size/s.x,size/s.y,size/s.z));
         }
         static void Align(GameObject visual,string anchor,Vector3 point){var node=DarkroomAssetVisuals.Node(visual.transform,anchor);if(node==null)throw new InvalidOperationException(anchor);visual.transform.position+=point-node.position;}
         static void MoveParts(Transform root,string reference,Vector3 point,string[] names)

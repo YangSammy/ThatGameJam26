@@ -149,6 +149,7 @@ namespace MemoryWhitebox
         public void ReleasePart(){if(HeldPart==null)return;var part=HeldPart;part.Release();HeldPart=null;Sound(part);}
         void Sound(SafeInspectionPart part){if(feedback!=null && part.contact!=null)feedback.PlayOneShot(part.contact,.35f);}
         public void SetFocus(bool focus){focused=focus;if(!focus)Close();InputContext.Handoff();}
+        public void PreparePauseInput(){CancelGesture();InputContext.Handoff();}
         bool CancelGesture()
         {
             if(HeldPart==null && gesture==Gesture.None && !leftHeld && !rightHeld)return false;
@@ -159,7 +160,7 @@ namespace MemoryWhitebox
         {if(!Active && allReleased && Time.frameCount>closeFrame+1)releaseGate=false;}
         void Update()
         {
-            if(!focused)return;
+            if(GamePauseMenu.PollEscape() || !focused)return;
             if(!Active)
             {
                 ReleaseInputGate(handoff.Ready);return;
@@ -318,6 +319,7 @@ namespace MemoryWhitebox
         }
         void OnGUI()
         {
+            if(GamePauseMenu.BlocksGameplay)return;
             if(!Active || entryGate || !InputContext.Allows(InputContextId.Inspection))return;
             var e=Event.current;
             if(!entryGate && (e.type==EventType.MouseDown || e.type==EventType.MouseUp || e.type==EventType.MouseDrag || e.type==EventType.ScrollWheel))
@@ -341,7 +343,7 @@ namespace MemoryWhitebox
             button.normal.textColor=new Color(.88f,.88f,.85f);
             button.hover.textColor=button.active.textColor=Color.white;
             if(DrawInspectionButton(ResetButtonRect,"Reset View   R",button))ResetView();
-            if(DrawInspectionButton(ExitButtonRect,"Exit     E / Esc",button)){InputContext.RequestExit(InputContextId.Inspection,null,Close);return;}
+            if(DrawInspectionButton(ExitButtonRect,"Exit     E / RMB",button)){InputContext.RequestExit(InputContextId.Inspection,null,Close);return;}
             string hint=Resetting?"Resetting...":tapeSession!=null?tapeSession.ActionHint:hovered==null?"":
                 hovered.motion==SafeInspectionPart.Motion.Button?"Hold LMB to press":
                 hovered.motion==SafeInspectionPart.Motion.Dial?"LMB drag / Hold LMB + Scroll to turn":"LMB drag to move";

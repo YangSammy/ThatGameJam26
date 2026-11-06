@@ -41,6 +41,7 @@ namespace MemoryWhitebox
         void ReleaseGuidedDeparture()
         {
             if(!guidedDeparturePending || Paused || !focused || applicationPaused || changingScene)return;
+            if(companion!=null)companion.ReleasePhotoStop(guidedDepartureNode);
             guidedDeparturePending=false;InitializeBridge();InitializeGuidedWalk();
         }
         static Vector3 ClampGuidedPhotoPosition(Vector3 position,Vector3 centre,Quaternion rotation,bool bridge)

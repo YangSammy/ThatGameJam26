@@ -61,6 +61,7 @@ namespace MemoryWhitebox
         string notice="",filmError="";
         bool inputGate=true,focused=true;
         bool returnUiGate,changingScene;
+        public bool ScenePresentationReady {get;private set;}
         readonly PlayerInputReleaseGate handoff=new PlayerInputReleaseGate(ignoreLocomotion:true);
         Vector3 moveVelocity;
         PlayerFootsteps footsteps;
@@ -77,7 +78,7 @@ namespace MemoryWhitebox
             {
                 companion.Paused=true;enabled=false;
                 if(Application.CanStreamedLevelBeLoaded(ParkFilmRoute.HouseScenePath))
-                    UnityEngine.SceneManagement.SceneManager.LoadScene(ParkFilmRoute.HouseScenePath);
+                    BrushSceneTransition.RedirectTo(ParkFilmRoute.HouseScenePath);
                 else Debug.LogError("Photography is locked; HouseScene must be available.",this);
                 return;
             }
@@ -92,6 +93,7 @@ namespace MemoryWhitebox
             InitializePhotographyModes();InitializeBridge();ResumeUnfinishedMemory();InitializeGuidedWalk();InitializePhotoFeedback();UpdateRegionalMetering();
             SetCursor(false);Notify(roll!=null && roll.state!=ParkFilmState.Loaded?"Film sealed. Develop in the darkroom.":OpeningPhotoInstruction(),7);
             if(CanReturnToDarkroom)OpenFilmReturnPanel();
+            ScenePresentationReady=true;
         }
         void SetCursor(bool free){PlayerInputPolicy.SetCursor(free);}
         void Notify(string text,float seconds=4){notice=text;noticeUntil=Time.unscaledTime+seconds;}
@@ -124,7 +126,7 @@ namespace MemoryWhitebox
                 changingScene=true;
                 PauseControls();
                 ParkFilmRoute.EnterDarkroomOnLoad=true;
-                UnityEngine.SceneManagement.SceneManager.LoadScene(ParkFilmRoute.HouseScenePath);
+                BrushSceneTransition.LoadScene(ParkFilmRoute.HouseScenePath);
             }
             catch(Exception ex)
             {
@@ -136,6 +138,7 @@ namespace MemoryWhitebox
         public bool LeaveParkMemory()
         {
             if(!Paused || changingScene || returnUiGate || !InputContext.Allows(InputContextId.Paused) || CanReturnToDarkroom)return false;
+            if(HasPendingExposure){Notify("Photograph not saved yet. Retry saving, or choose Leave with saved progress.",6);return false;}
             CancelInstrumentDrag();
             if(filmError=="" && !HasPendingExposure && !SavePhotoSettings())return false;
             try
@@ -144,7 +147,7 @@ namespace MemoryWhitebox
                 if(!TryLoadCommittedForExit())return false;
                 if(!Application.CanStreamedLevelBeLoaded(ParkFilmRoute.HouseScenePath))throw new InvalidOperationException("HouseScene is not in Build Settings.");
                 changingScene=true;ParkFilmRoute.EnterDarkroomOnLoad=false;SyncParkInput();InputContext.Handoff();
-                UnityEngine.SceneManagement.SceneManager.LoadScene(ParkFilmRoute.HouseScenePath);return true;
+                BrushSceneTransition.LoadScene(ParkFilmRoute.HouseScenePath);return true;
             }
             catch(Exception ex){changingScene=false;Notify("Return unavailable. Film progress kept.",6);Debug.LogWarning("Park memory return: "+ex.Message);return false;}
         }
@@ -156,6 +159,7 @@ namespace MemoryWhitebox
         {applicationPaused=value;RefreshApplicationSuspension();}
         void RefreshApplicationSuspension()
         {
+            ResetCameraEdgeGesture();
             moveVelocity=Vector3.zero;footsteps.Reset();
             if(!focused || applicationPaused)
             {
@@ -166,15 +170,16 @@ namespace MemoryWhitebox
         }
         void Update()
         {
-            if(GamePauseMenu.BlocksGameplay)return;
+            // Receiving finished encoding is save IO, not gameplay time. A pause
+            // must not strand a completed image behind its own Save/Exit guard.
             TickExposureEncoding();
+            if(GamePauseMenu.PollEscape())return;
+            if(shutterSampling)return;
             TickPhotographySfx(Mathf.Min(Time.unscaledDeltaTime,.1f));
             SyncParkInput();
             if(!focused || applicationPaused || changingScene)return;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if(Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
-            {DebugFillCurrentRoll();return;}
-#endif
+            int shortcut=StageCompletionShortcuts.Pressed();
+            if(shortcut!=0){CompleteStageShortcut(shortcut);return;}
             // The final shutter press must be released before it can activate UI.
             if(returnUiGate && handoff.Ready)returnUiGate=false;
             var controls=PlayerControlSettings.Current;
@@ -182,18 +187,20 @@ namespace MemoryWhitebox
             if(ExitParkContext())return;
             UpdateRegionalMetering();
             TickLoweredDeparture();
-            companion.Paused=Paused || (photoMode!=PhotographyMode.Exploration && photoMode!=PhotographyMode.Viewfinder);
-            companion.TravelPaused=!GuidedCanTravel;
+            SyncCompanionControl();
             SyncCameraPreview();
             if(Paused)return;
             if(TickGuidedRecovery(dt)){footsteps.Reset();return;}
             if(TickCameraRaise(dt))return;
+            // Returning the pointer is navigation, not a new gameplay action. Allow it
+            // before release gates; then stop this frame before wheel/shutter handling.
+            if(ReturnCameraDetailAtCentre(new Vector2(Input.mousePosition.x/Mathf.Max(1,Screen.width),Input.mousePosition.y/Mathf.Max(1,Screen.height))))return;
             if(!InputContext.Ready){moveVelocity=Vector3.zero;return;}
             if(inputGate){if(handoff.Ready)inputGate=false;return;}
             bool instrumentMode=TickPhotographyModes(dt);SyncCameraPreview();
             if(instrumentMode)return;
-            aimBlend=Mathf.MoveTowards(aimBlend,Aiming?1:0,dt/Mathf.Max(.01f,controls.aimTransitionSeconds));
-            var look=edgeCandidate>=0?Vector2.zero:PlayerInputPolicy.LookDelta;float sensitivity=controls.lookSensitivity*Mathf.Lerp(1,controls.aimingLookMultiplier,aimBlend);
+            aimBlend=Mathf.MoveTowards(aimBlend,Aiming || CameraDetailMode?1:0,dt/Mathf.Max(.01f,controls.aimTransitionSeconds));
+            var look=PreciseInstrumentPointer?Vector2.zero:PlayerInputPolicy.LookDelta;float sensitivity=controls.lookSensitivity*Mathf.Lerp(1,controls.aimingLookMultiplier,aimBlend);
             yaw+=look.x*sensitivity;pitch=controls.ClampPitch(pitch-look.y*sensitivity);
             transform.rotation=Quaternion.Euler(0,yaw,0);view.transform.localRotation=Quaternion.Euler(pitch,0,0);
             var move=Vector2.ClampMagnitude(new Vector2((Input.GetKey(KeyCode.D)?1:0)-(Input.GetKey(KeyCode.A)?1:0),
@@ -227,17 +234,25 @@ namespace MemoryWhitebox
             TickBridge(dt);
             if(Aiming)
             {
-                StepFocusControl(Input.mouseScrollDelta.y);
+                bool returningPointer=Input.GetMouseButton(1) || Input.GetMouseButtonUp(1) || Input.GetMouseButton(2);
+                if(!returningPointer)StepFinderWheel(Input.mouseScrollDelta.y);
                 SyncCameraPreview();
                 TickBridge(0); // Recheck a wheel change before accepting this frame's shutter.
                 TickPhotoFeedback(dt);
-                if(Input.GetMouseButtonDown(0) && shotCooldown<=0)Capture();
+                if(Input.GetMouseButtonDown(0) && !returningPointer && shotCooldown<=0 && FinderClickAllowed(virtualPointer,PointerOnHand))Capture();
             }
-            else {focusEffect.activeFocus=false;TickPhotoFeedback(dt);}
+            else {SyncCameraPreview();TickPhotoFeedback(dt);}
         }
         void SyncCameraPreview()
         {
-            focusEffect.activeFocus=Aiming && !Paused;
+            focusEffect.activeFocus=(Aiming || CameraDetailMode) && !Paused;
+            focusEffect.detailBackdrop=CameraDetailMode;
+            focusEffect.showFocusAid=false;
+            // Use the very same subject depth as shot acceptance. Authored tasks
+            // already retain a stable reference point rather than a moving face/hand.
+            focusEffect.subjectDepth=BridgePending && CurrentTask!=null && CurrentTask.hasReference?
+                TaskFocusDepth(CurrentTask):companion!=null && companion.chest!=null?
+                    Vector3.Dot(companion.chest.position-view.transform.position,view.transform.forward):0;
             focusEffect.distance=focusDistance;focusEffect.aperture=Aperture;focusEffect.exposureError=ExposureError;
         }
         bool Visible(Vector3 point)
@@ -315,15 +330,15 @@ namespace MemoryWhitebox
                 target=RenderTexture.GetTemporary(photoWidth,Mathf.Max(1,Mathf.RoundToInt(photoWidth/view.aspect)),24,RenderTextureFormat.ARGB32);
                 if(!HoldingPhotoHand)view.cullingMask&=~(1<<FirstPersonHands.HandLayer);
                 else view.cullingMask|=1<<FirstPersonHands.HandLayer;
-                view.targetTexture=target;view.Render();RenderTexture.active=target;
+                view.targetTexture=target;RenderPhotographicFrame();RenderTexture.active=target;
                 image=new Texture2D(target.width,target.height,TextureFormat.RGB24,false);image.ReadPixels(new Rect(0,0,target.width,target.height),0,0);image.Apply();
             }
             catch(Exception ex){if(image!=null)Destroy(image);Notify("Shot not saved. Frame kept; try again.");Debug.LogWarning("Park capture: "+ex.Message);return;}
             finally{view.targetTexture=previousTarget;view.cullingMask=previousMask;RenderTexture.active=previousActive;if(target!=null)RenderTexture.ReleaseTemporary(target);}
             PlayOpticalShutterSfx();
-            try{BeginExposureEncoding(record,image.GetRawTextureData<byte>().ToArray(),image.width,image.height);}
-            catch(Exception ex){Notify("Shot could not be encoded. Frame kept; press shutter to retry.",6);Debug.LogWarning("Park image encoding: "+ex.Message);return;}
-            finally{if(image!=null)Destroy(image);}
+            if(record.taskId=="bridge" && record.shutterSeconds>=1f/60)
+            {BeginBridgeExposure(record,image);return;}
+            QueueFinishedExposure(record,image);Destroy(image);
         }
         void ExposureCommitted(ParkPhotoRecord record)
         {
@@ -333,7 +348,7 @@ namespace MemoryWhitebox
             PhotoTaken?.Invoke(record);
             if(roll.Remaining==0)FilmFilled?.Invoke(roll.id);
         }
-        void OnDisable(){StopPhotographySfx();CancelCameraRaise();SavePhotoSettings();CancelInstrumentDrag();moveVelocity=Vector3.zero;InputContext.Select(InputContextId.Unfocused,PlayerControlState.Unfocused);InputContext.Handoff();if(companion!=null)companion.Paused=true;if(focusEffect!=null)focusEffect.activeFocus=false;}
+        void OnDisable(){CancelShutterSampling();StopPhotographySfx();CancelCameraRaise();SavePhotoSettings();CancelInstrumentDrag();moveVelocity=Vector3.zero;InputContext.Select(InputContextId.Unfocused,PlayerControlState.Unfocused);InputContext.Handoff();if(companion!=null)companion.Paused=true;if(focusEffect!=null)focusEffect.activeFocus=false;}
         void OnDestroy(){StopPhotographySfx();CancelExposureEncoding();DisposePhotographyModes();DisposePhotoFeedback();if(bridgeReference!=null)Destroy(bridgeReference);if(font!=null)Destroy(font);}
         void OnGUI()
         {
@@ -360,9 +375,9 @@ namespace MemoryWhitebox
             }
 
             DrawPhotographyModes();DrawBridgeReference();DrawPhotoFeedback();
-            string step=CanReturnToDarkroom?"Roll complete. Esc to return to the darkroom.":
+            string step=CanReturnToDarkroom?"Roll complete. Click Return to Darkroom.":
                 photoMode==PhotographyMode.Body?LoadingNextAction():
-                photoMode==PhotographyMode.Meter?(loadingStep>=2?(MeterIsoMatchesFilm?"Meter matches ISO "+FilmIso+". Use the suggested aperture and shutter.":"Meter ISO differs from loaded ISO "+FilmIso+". Scroll to match."):"Scroll to meter for the film you want to load."):
+                photoMode==PhotographyMode.Meter?MeterInstruction:
                 photoMode==PhotographyMode.Aperture?"f/"+Aperture:
                 photoMode==PhotographyMode.Shutter?"1/"+Mathf.RoundToInt(1f/ShutterSeconds)+" s":
                 guidedDeparturePending?"Photograph saved. Lower the camera to continue walking.":

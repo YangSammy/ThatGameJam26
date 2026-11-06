@@ -43,6 +43,7 @@ namespace MemoryWhitebox
             // A null string may deserialize as empty. Never resume a stale gesture
             // or treat the first post-compile mouse release as a new action.
             dragPart=null;bodyPointer.Clear();assetPull=0;
+            ResetCameraEdgeGesture();
             moveVelocity=Vector3.zero;inputGate=true;handoff.Arm();
             Aiming=photoMode==PhotographyMode.Viewfinder;
             SyncParkInput();InputContext.Handoff();

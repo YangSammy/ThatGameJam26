@@ -21,7 +21,7 @@ namespace MemoryWhitebox
         public bool Busy=>held>=0;
         public string Hint=>
             Busy?(torn?"Move to an upper-edge hole and release LMB":"Pull the strip across CUT HERE"):
-            data.Prepared?"E / Esc to return  /  Drag tape into cassette slot":
+            data.Prepared?"E / RMB to return  /  Drag tape into cassette slot":
             "Pull TAPE TAB across CUT HERE / Rotate tape to see both upper-edge holes";
 
         void PlaceTool(Camera camera)

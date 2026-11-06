@@ -4,22 +4,23 @@ namespace MemoryWhitebox
     public sealed partial class ParkPhotoPrototype
     {
         readonly ParkWalkStallDetector walkStall=new ParkWalkStallDetector();
-        Vector3 safetyPlayer,safetyGirl;
+        Vector3 safetyPlayer;
         bool safetySampled,needsWalkRecovery,recoverCurrentPhoto;
         float walkRetryHold,recoveryFade=-1,healthyTravel;
         int walkRetries;
         bool GuidedRecoveryBusy=>needsWalkRecovery || walkRetryHold>0 || recoveryFade>=0;
         void TickGuidedSafety(float dt,Vector3 requested)
         {
-            if(!safetySampled){safetyPlayer=transform.position;safetyGirl=companion.transform.position;safetySampled=true;return;}
+            if(!safetySampled){safetyPlayer=transform.position;safetySampled=true;return;}
             var playerDelta=transform.position-safetyPlayer;playerDelta.y=0;
-            var girlDelta=companion.transform.position-safetyGirl;girlDelta.y=0;
-            safetyPlayer=transform.position;safetyGirl=companion.transform.position;
+            safetyPlayer=transform.position;
             if(!GuidedCanTravel || GuidedPhotoAdjustment){walkStall.Reset();return;}
             healthyTravel+=playerDelta.magnitude;
             if(healthyTravel>=3){walkRetries=0;healthyTravel=0;}
-            bool girlExpected=!companion.AtPhotoNode && !companion.TravelPaused && Vector3.Distance(transform.position,companion.transform.position)>companion.personalSpace+1 && Vector3.Distance(transform.position,companion.transform.position)<companion.waitDistance;
-            if(!walkStall.Tick(false,girlExpected,playerDelta.magnitude,girlDelta.magnitude,dt))return;
+            // Read intent and progress from the same companion step, independent of
+            // Update ordering. Scenic/photo stops and yielding never request travel.
+            bool girlExpected=companion.TravelRequestedLastStep && !companion.Paused && !companion.TravelPaused;
+            if(!walkStall.Tick(false,girlExpected,playerDelta.magnitude,companion.TravelDistanceLastStep,dt))return;
             walkStall.Reset();moveVelocity=Vector3.zero;walkRetries++;
             if(walkRetries==1){walkRetryHold=.5f;Notify("Path blocked. Taking a moment to continue.");}
             else if(walkRetries==2){needsWalkRecovery=true;InputContext.Handoff();}

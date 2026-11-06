@@ -21,6 +21,13 @@ namespace MemoryWhitebox.Editor
                 Check(lines,wide<mid && mid<small,"Aperture orders clear range at "+distance+" m");
                 Check(lines,Mathf.Abs(mid-Mathf.Max(.2f,distance*.065f))<.0001f,"f/8 preserves existing tolerance at "+distance+" m");
                 Check(lines,ParkCameraResponse.IsSharp(distance+mid*.99f,distance,8) && !ParkCameraResponse.IsSharp(distance+mid*1.01f,distance,8),"Acceptance follows rendered clear band at "+distance+" m");
+                Check(lines,ParkCameraResponse.FocusBlur(distance+mid*.99f,distance,8)==0 && ParkCameraResponse.FocusBlur(distance+mid*1.01f,distance,8)>0,"Whole-image clarity matches acceptance at "+distance+" m");
+                float previous=0;
+                foreach(float error in new[]{0f,.1f,.3f,1f,3f})
+                {
+                    float blur=ParkCameraResponse.FocusBlur(distance+mid+error,distance,8);
+                    Check(lines,blur>=previous && blur>=0 && blur<=1,"Defocus grows continuously with excess distance at "+distance+" m");previous=blur;
+                }
             }
             float near=ParkCameraResponse.ScrollFocus(1.5f,1,.25f,1.2f,18)-1.5f;
             float far=ParkCameraResponse.ScrollFocus(10,1,.25f,1.2f,18)-10;
@@ -48,7 +55,7 @@ namespace MemoryWhitebox.Editor
                 material.SetFloat("_MaxBlurPixels",0);
                 for(int i=0;i<3;i++)
                 {
-                    material.SetFloat("_ExposureGain",gains[i]);Graphics.Blit(input,target,material);RenderTexture.active=target;
+                    material.SetFloat("_ExposureGain",gains[i]);Graphics.Blit(input,target,material,2);RenderTexture.active=target;
                     output.ReadPixels(new Rect(0,0,16,16),0,0);output.Apply();values[i]=output.GetPixel(8,8).r;
                 }
                 Check(lines,values[0]<values[1]-.04f,"Underexposure darkens actual GPU pixels");

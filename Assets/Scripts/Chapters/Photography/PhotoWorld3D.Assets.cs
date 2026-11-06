@@ -106,7 +106,9 @@ namespace MemoryWhitebox
             Nodes["spool"].GetComponent<Collider>().enabled=Photo.Phase==PhotoChapter.FilmPhase.LoadedOpen && !Photo.FilmThreaded;
             Nodes["back"].GetComponent<Collider>().enabled=ParkMode?!RewoundBackOpen && (Photo.Phase==PhotoChapter.FilmPhase.Exposed || Photo.Phase==PhotoChapter.FilmPhase.Rewound):
                 open || Photo.Phase==PhotoChapter.FilmPhase.Exposed || Photo.Phase==PhotoChapter.FilmPhase.Rewound;
-            if(looseFilm.activeSelf && dragged!="exposed-film" && !OperationArea.RestorePose(looseFilm.transform))looseFilm.transform.position=cameraVisual.insert.position;
+            if(looseFilm.activeSelf && dragged!="exposed-film" && !OperationArea.RestorePose(looseFilm.transform))
+                looseFilm.transform.SetPositionAndRotation(cameraVisual.insert.position,cameraVisual.insert.rotation);
+            if(looseFilm.activeSelf && dragged!="exposed-film")SetColliders(looseFilm,cameraVisual.BackOpen);
             for(int i=0;i<4;i++)extractedVisuals[i].SetActive(i==(Photo.Settings.ISO==200?1:Photo.Settings.ISO==400?2:Photo.Settings.ISO==800?3:0));
             focalNumber.text=Photo.Settings.Focus.ToString("0.00")+" m (50 mm)";
             meterHeldProgress=Mathf.MoveTowards(meterHeldProgress,Photo.MeterVisible?1:0,Time.deltaTime*4);

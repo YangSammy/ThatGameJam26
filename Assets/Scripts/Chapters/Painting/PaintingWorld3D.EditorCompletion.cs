@@ -1,4 +1,3 @@
-#if UNITY_EDITOR
 using UnityEngine;
 namespace MemoryWhitebox
 {
@@ -18,4 +17,3 @@ namespace MemoryWhitebox
         }
     }
 }
-#endif

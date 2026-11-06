@@ -9,7 +9,7 @@ namespace MemoryWhitebox
         bool skeletalPrepared,handFocused=true,handPaused;
         Vector3 photoPalmLocal;
         public Vector3 PhotoPalmPosition=>skeletalRig!=null&&skeletalRig.Valid?skeletalRig.wrists[0].TransformPoint(photoPalmLocal):transform.position;
-        void Awake(){if(skeletalRig!=null)PrepareSkeletalRig();HideParkHandMeshes();}
+        void Awake(){if(skeletalRig!=null)PrepareSkeletalRig();HideParkHandMeshes();ApplyDeskHandVisibility();}
         void PrepareSkeletalRig()
         {
             if(skeletalPrepared)return;
@@ -39,7 +39,7 @@ namespace MemoryWhitebox
             if(blocked && park==null){skeletalRig.ResetPose();return;}
             // Park input gates suspend gestures, not the player's body. Keep the same
             // authored rest/holding targets visible, including the first entry frame.
-            if(blocked){dt=0;immediate=true;}
+            if(blocked && !HandholdAutomaticRelease){dt=0;immediate=true;}
             var left=default(FirstPersonArmRig.Pose);var right=left;
             if(park!=null)
             {
@@ -56,21 +56,14 @@ namespace MemoryWhitebox
                 if(park.CameraRaiseSupport!=null)left=FirstPersonArmRig.Pose.At(park.CameraRaiseSupport.position,park.CameraRaiseSupport.rotation,1);
                 right.push=park.ShutterPulse;right.grip*=1-right.push;
                 right.position+=transform.up*(-park.ShutterPulse*.008f);
-                if(park.HoldingPhotoHand)
+                FirstPersonArmRig.Pose handhold;
+                if(AnimateHandhold(dt,blocked,out handhold))
                 {
-                    var girl=park.companion.visualPresentation;
-                    if(girl!=null && girl.palmContact!=null)
-                    {
-                        var normal=girl.PalmNormal;
-                        var fingers=Vector3.ProjectOnPlane(-park.companion.transform.forward,normal).normalized;
-                        if(fingers.sqrMagnitude<.01f)fingers=Vector3.ProjectOnPlane(park.companion.transform.right,normal).normalized;
-                        var rotation=Quaternion.LookRotation(Vector3.Cross(normal,fingers),fingers);
-                        var palm=girl.PalmPosition+normal*.024f;
-                        var wrist=palm-rotation*Vector3.Scale(photoPalmLocal,skeletalRig.wrists[0].lossyScale);
-                        left=FirstPersonArmRig.Pose.AtWrist(wrist,rotation,.85f);
-                        left.bodyReachLimit=.6f;
-                    }
-                    else left=FirstPersonArmRig.Pose.At(park.PhotoHandPosition,Quaternion.LookRotation(park.companion.transform.forward,Vector3.up),1);
+                    right=default(FirstPersonArmRig.Pose);
+                    left=handhold;
+                    // The gesture already interpolates position, rotation and finger closure.
+                    // A second spring here would close the fingers before the wrist arrives.
+                    immediate=true;
                 }
             }
             else if(house!=null)
@@ -86,14 +79,16 @@ namespace MemoryWhitebox
                 }
             }
             skeletalRig.Evaluate(left,right,dt,immediate);
+            if(park!=null){ApplyHandholdFingers();SeparateHandholdSkin();}
         }
         static FirstPersonArmRig.Pose TargetPose(Transform[] targets,int side,float grip)
         {
             var target=targets!=null && side<targets.Length?targets[side]:null;
             return target!=null?FirstPersonArmRig.Pose.At(target.position,target.rotation,grip):default(FirstPersonArmRig.Pose);
         }
-        void OnApplicationFocus(bool focused){handFocused=focused;if(!focused && skeletalRig!=null)skeletalRig.ResetPose();}
-        void OnApplicationPause(bool paused){handPaused=paused;if(paused && skeletalRig!=null)skeletalRig.ResetPose();}
-        void OnDisable(){if(skeletalRig!=null)skeletalRig.ResetPose();}
+        void OnApplicationFocus(bool focused){handFocused=focused;if(!focused && skeletalRig!=null)skeletalRig.ResetPose();ApplyDeskHandVisibility();}
+        void OnApplicationPause(bool paused){handPaused=paused;if(paused && skeletalRig!=null)skeletalRig.ResetPose();ApplyDeskHandVisibility();}
+        void OnEnable(){ApplyDeskHandVisibility();}
+        void OnDisable(){ResetHandhold();if(skeletalRig!=null)skeletalRig.ResetPose();ApplyDeskHandVisibility();}
     }
 }

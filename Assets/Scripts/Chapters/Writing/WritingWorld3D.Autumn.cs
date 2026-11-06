@@ -80,9 +80,9 @@ namespace MemoryWhitebox
             UpdateMemoryRestoration(dt);
             for(int i=0;i<4;i++)collectionProps[i].gameObject.SetActive(!State.HasItem(i));
             scarf.gameObject.SetActive(false);npcBox.gameObject.SetActive(false);doorHand.gameObject.SetActive(false);
-            door.localRotation=Quaternion.Euler(0,-100,0);
+            door.localRotation=Quaternion.Euler(0,100,0);
             float warmth=State.Completed?1:State.InkFresh?.85f:.35f;
-            memoryLight.intensity=Mathf.Lerp(memoryLight.intensity,.65f+warmth*1.7f,Mathf.Clamp01(dt*3));
+            memoryLight.intensity=Mathf.Lerp(memoryLight.intensity,1.0f+warmth*.25f,Mathf.Clamp01(dt*3));
             memoryWindow.sharedMaterial.color=Color.Lerp(new Color(.37f,.46f,.49f),new Color(.9f,.85f,.65f),warmth);
         }
     }

@@ -59,7 +59,7 @@ namespace MemoryWhitebox
                 if(Time.unscaledTime<darkroomNoticeUntil)return darkroomNotice+"\n"+DarkroomTask;
                 string task=DarkroomTask;if(!string.IsNullOrEmpty(task))return task;
                 if(Printing)return PrintHint;
-                if(Photo.Completed)return "Photo saved  /  Esc  Back";
+                if(Photo.Completed)return "Photo saved  /  RMB  Back";
                 switch(Photo.Phase){
                     case PhotoChapter.FilmPhase.Empty:return "Drag film into the left chamber";
                     case PhotoChapter.FilmPhase.LoadedOpen:return Photo.FilmThreaded?"Close the camera back":"Drag leader to the take-up spool";

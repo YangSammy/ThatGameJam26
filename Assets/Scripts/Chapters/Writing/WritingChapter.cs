@@ -6,7 +6,7 @@ namespace MemoryWhitebox
     public class WritingChapter:Chapter
     {
         public string Phase="tutorial";
-        public Vector2 Player=new Vector2(160,505),Npc=new Vector2(315,570);
+        public Vector2 Player=new Vector2(330,450),Npc=new Vector2(315,570);
         public float WritingProgress,Remaining=60;
         public int Draft=1,Row,Collected;
         public bool Started,AwaitingReturn;
@@ -15,14 +15,20 @@ namespace MemoryWhitebox
         public bool Carried=>Collected!=0;
         public bool DoorHeld=>Phase=="farewell";
         public bool DoorOpen=>true;
-        public bool InkFresh=>pressed && clock-lastInk<=.18f;
+        public bool InkFresh=>pressed && inkThisTick;
+        public const float WalkSpeed=33f;
+        public const float PickupBufferSeconds=.22f;
+        bool inkPending,inkThisTick,eWasHeld;
+        int bufferedItem=-1;
+        float pickupExpires=-1;
+        public bool PickupPrepared=>bufferedItem>=0 && clock<=pickupExpires && InPickupRange(bufferedItem);
         public float FarewellProgress=>handover;
-        public readonly Vector2[] ItemPositions={new Vector2(175,275),new Vector2(460,260),new Vector2(460,510),new Vector2(245,490)};
+        public readonly Vector2[] ItemPositions={new Vector2(200,320),new Vector2(330,240),new Vector2(485,505),new Vector2(485,360)};
         public static readonly string[] ItemIds={"pendant","flower","luggage","letter"};
         public bool HasItem(int i)=>(Collected&(1<<i))!=0;
         readonly Rect paper=new Rect(685,165,535,445);
         readonly List<float> rows=new List<float>{0};
-        float clock,lastInk=-100,handover,farewellTime;
+        float clock,handover,farewellTime,farewellInkGap;
         bool pressed,havePointer,dragging;
         Vector2 pointer;
         public override string Help=>"LMB drag  Write / WASD  Move / Hold E while writing  Pick up\nCrumple the stalled draft into the bin. The formal draft clock keeps running when you stop writing.";
@@ -46,25 +52,24 @@ namespace MemoryWhitebox
             var n=JsonUtility.FromJson<Checkpoint>(json);
             if(n==null || n.version<1 || n.version>3 || n.draft<1)throw new System.IO.InvalidDataException("Invalid writing checkpoint.");
             Draft=n.draft;
-            MissingItemHintUsed=n.version>=3 && n.missingItemHintUsed;
+            MissingItemHintUsed=false; // Legacy field retained for checkpoint compatibility; cue retired.
             if(n.version==1){Phase=n.crumple?"crumple":Draft>=2?"collect":"tutorial";return;}
             if(Array.IndexOf(new[]{"tutorial","crumple","collect","arrival","farewell","complete"},n.phase)<0 || n.collected<0 || n.collected>15 || !Finite(n.remaining) || n.remaining<0 || !Finite(n.player.x) || !Finite(n.player.y))throw new System.IO.InvalidDataException("Invalid autumn state.");
             if((n.phase=="arrival" || n.phase=="farewell" || n.phase=="complete") && n.collected!=15)throw new System.IO.InvalidDataException("Missing autumn delivery.");
             Phase=n.phase=="farewell"?"arrival":n.phase;Collected=n.collected;Started=n.started;Remaining=n.remaining;
             Player=new Vector2(Mathf.Clamp(n.player.x,82,577),Mathf.Clamp(n.player.y,202,610));
+            if(!CanStand(Player))Player=new Vector2(330,450); // Older room checkpoints may now lie inside furniture.
             rows.Clear();if(n.rows!=null && n.rows.Length>0 && n.rows.Length<=9)foreach(var amount in n.rows){if(!Finite(amount))throw new System.IO.InvalidDataException("Invalid ink.");rows.Add(Mathf.Clamp(amount,0,425));}else rows.Add(0);
             Row=Mathf.Clamp(n.row,0,rows.Count-1);WritingProgress=Mathf.Max(0,n.writingProgress);AwaitingReturn=n.awaitingReturn;
         }
         static bool Finite(float v)=>!float.IsNaN(v)&&!float.IsInfinity(v);
-        public void CancelInput(){pressed=havePointer=dragging=false;lastInk=-100;handover=0;}
-#if UNITY_EDITOR
+        public void CancelInput(){pressed=havePointer=dragging=false;inkPending=inkThisTick=eWasHeld=false;bufferedItem=-1;pickupExpires=-1;handover=0;farewellInkGap=0;}
         public void EditorBeginFarewell()
         {
             if(Completed || Phase=="farewell")return;
             CancelInput();Draft=Mathf.Max(2,Draft);Collected=15;
             Player=new Vector2(300,565);Phase="farewell";farewellTime=0;
         }
-#endif
         public override void PointerDown(Vector2 p,int button)
         {
             if(button!=0 || Completed)return;pressed=true;pointer=p;havePointer=true;
@@ -79,7 +84,7 @@ namespace MemoryWhitebox
             if(AwaitingReturn){if(p.x<820)NextRow();return;}
             if(!paper.Contains(old))return;
             float amount=Mathf.Min(Mathf.Max(0,p.x-old.x),425-rows[Row]);if(amount<.08f)return;
-            rows[Row]+=amount;WritingProgress+=amount;lastInk=clock;AwaitingReturn=rows[Row]>=425;
+            rows[Row]+=amount;WritingProgress+=amount;inkPending=true;AwaitingReturn=rows[Row]>=425;
             if(Draft>=2 && Phase=="collect")Started=true;
         }
         public override void PointerUp(Vector2 p)
@@ -92,38 +97,61 @@ namespace MemoryWhitebox
         {
             Draft=Mathf.Max(2,Draft+1);Phase="collect";Collected=0;Started=false;Remaining=NarrativeDefinition.Resolve(this)?.writingSeconds??60;
             MissingItemHintUsed=false;
-            Player=new Vector2(160,505);rows.Clear();rows.Add(0);Row=0;WritingProgress=0;AwaitingReturn=false;CancelInput();
+            Player=new Vector2(330,450);rows.Clear();rows.Add(0);Row=0;WritingProgress=0;AwaitingReturn=false;CancelInput();
+        }
+        static bool CanStand(Vector2 p)
+        {
+            float x=(p.x-80)*.012f,z=(610-p.y)*.012f;
+            // Bed, bedside cabinet, north flower stand, east desk, southeast wardrobe.
+            return !(x<1.25f && z>1.85f && z<4.95f)
+                && !(x>1.15f && x<1.78f && z>3.15f && z<3.85f)
+                && !(x>2.55f && x<3.45f && z>4.13f)
+                && !(x>4.65f && z>2.35f && z<3.95f)
+                && !(x>5.05f && z<1.75f);
         }
         public override void Tick(float dt,WBInput input)
         {
             if(Completed)return;dt=Mathf.Max(0,dt);clock+=dt;
+            inkThisTick=inkPending;inkPending=false;
+            bool eHeld=input.Keys.Contains(KeyCode.E);
+            if(eHeld && !eWasHeld && (Phase=="tutorial" || Phase=="collect"))
+            {
+                bufferedItem=-1;
+                for(int i=0;i<4;i++)if(InPickupRange(i)){bufferedItem=i;pickupExpires=clock+PickupBufferSeconds;break;}
+            }
+            eWasHeld=eHeld;
+            if(bufferedItem>=0 && (clock>pickupExpires || !InPickupRange(bufferedItem)))bufferedItem=-1;
             if(Phase=="complete"){Finish();return;}
             if(Phase=="crumple")return;
             if(Phase=="farewell"){farewellTime+=dt;if(farewellTime>=2){Phase="complete";Finish();}return;}
             if(Phase=="arrival")
             {
-                handover=InkFresh && input.Keys.Contains(KeyCode.E)?handover+dt:0;
+                // Input events need not occur on every rendered frame. Brief gaps pause
+                // progress; only fresh ink adds time, so a stopped pen cannot finish.
+                if(!eHeld){handover=0;farewellInkGap=0;}
+                else if(InkFresh){handover+=dt;farewellInkGap=0;}
+                else {farewellInkGap+=dt;if(farewellInkGap>.25f)handover=0;}
                 if(handover>=(NarrativeDefinition.Resolve(this)?.farewellHold??1.2f)){Phase="farewell";farewellTime=0;}
                 return;
             }
             float step=Phase=="collect" && Started?Mathf.Min(dt,Remaining):dt;
             var axes=new Vector2((input.Keys.Contains(KeyCode.D)?1:0)-(input.Keys.Contains(KeyCode.A)?1:0),(input.Keys.Contains(KeyCode.S)?1:0)-(input.Keys.Contains(KeyCode.W)?1:0));
-            var move=Vector2.ClampMagnitude(axes,1)*165*step;var next=Player+move;
+            var move=Vector2.ClampMagnitude(axes,1)*WalkSpeed*step;var next=Player+move;
             next.x=Mathf.Clamp(next.x,82,577);next.y=Mathf.Clamp(next.y,202,610);
-            bool passage=next.y>353 && next.y<436;
-            if(!(next.x>332 && next.x<368 && !passage))Player.x=next.x;
-            if(!(Player.x>332 && Player.x<368 && !passage))Player.y=next.y;
-            if(InkFresh && input.Keys.Contains(KeyCode.E))for(int i=0;i<4;i++)
+            // Axis-separated movement slides along the simplified furniture footprints.
+            if(CanStand(new Vector2(next.x,Player.y)))Player.x=next.x;
+            if(CanStand(new Vector2(Player.x,next.y)))Player.y=next.y;
+            if(InkFresh)for(int i=0;i<4;i++)
             {
-                if(InPickupRange(i))
-                {Collected|=1<<i;if(Phase=="tutorial"){Phase="crumple";CancelInput();return;}}
+                if(InPickupRange(i) && (eHeld || (bufferedItem==i && clock<=pickupExpires)))
+                {bufferedItem=-1;Collected|=1<<i;if(Phase=="tutorial"){Phase="crumple";CancelInput();return;}}
             }
             if(Phase!="collect" || !Started)return;
-            // Only a return with exactly one missing possession merits the girl's one cue.
-            if(!MissingItemHintUsed && Player.y>=555 && Player.x>=260 && Player.x<=410 &&
-                (Collected==7 || Collected==11 || Collected==13 || Collected==14))MissingItemHintUsed=true;
             // Arrival wins an exact deadline tie; movement is limited to the remaining time.
-            if(Collected==15 && Player.y>=555 && Player.x>=260 && Player.x<=410){Remaining=Mathf.Max(0,Remaining-step);Phase="arrival";CancelInput();return;}
+            if(Collected==15 && Player.y>=555 && Player.x>=260 && Player.x<=410){Remaining=Mathf.Max(0,Remaining-step);Phase="arrival";
+                // Preserve pressed/pointer so an ongoing drag continues into farewell.
+                bufferedItem=-1;pickupExpires=-1;handover=0;farewellInkGap=0;
+                inkPending=inkThisTick=false;return;}
             Remaining=Mathf.Max(0,Remaining-dt);
             if(Remaining<=0){Phase="crumple";CancelInput();}
         }

@@ -53,7 +53,7 @@ namespace MemoryWhitebox
         bool leavingSavedOnly;
         ParkExposureEncoder exposureEncoder;
         bool exposureEncodingDisposed;
-        bool HasPendingExposure=>(exposurePersistence!=null && exposurePersistence.HasPending) || (exposureEncoder!=null && exposureEncoder.HasPending);
+        bool HasPendingExposure=>shutterSampling || (exposurePersistence!=null && exposurePersistence.HasPending) || (exposureEncoder!=null && exposureEncoder.HasPending);
         void BeginExposureEncoding(ParkPhotoRecord record,byte[] rawRgb,int width,int height)
         {
             if(exposureEncodingDisposed || leavingSavedOnly || changingScene)throw new InvalidOperationException("Photography is leaving.");
@@ -122,7 +122,7 @@ namespace MemoryWhitebox
             // House will report that existing roll as unavailable rather than replacing it.
             TryLoadCommittedForExit();leavingSavedOnly=true;changingScene=true;
             ParkFilmRoute.EnterDarkroomOnLoad=false;SyncParkInput();InputContext.Handoff();
-            try{UnityEngine.SceneManagement.SceneManager.LoadScene(ParkFilmRoute.HouseScenePath);return true;}
+            try{BrushSceneTransition.LoadScene(ParkFilmRoute.HouseScenePath);return true;}
             catch(Exception ex){leavingSavedOnly=false;changingScene=false;Notify("Return unavailable. Film files kept.",5);Debug.LogWarning(ex.Message);return false;}
         }
     }

@@ -8,6 +8,13 @@ namespace MemoryWhitebox
         readonly Renderer[][] emptyShapeSurfaces=new Renderer[2][];
         void ShowEmptyShapes()
         {
+            // Discovery remains unmarked. Only an acquired, usable pendant gets a task cue.
+            if(State.Phase==1 && State.BookOpen && State.AtDoor && State.Painted[4] && !State.KeyInserted && !DoorPerformanceActive)
+            {
+                var target=keyDragging?layout.recessOutline:key;
+                var camera=keyDragging?albumCamera:PagePendant?pageCamera:albumCamera;
+                if(target)TaskOutlineCue.Show(target,camera,target.GetComponentsInChildren<Renderer>(true));
+            }
             for(int i=0;i<2;i++)
             {
                 if(State.Phase!=0 || State.Painted[i]){emptyShapeInk[i].Clear();continue;}

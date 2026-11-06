@@ -1,0 +1,294 @@
+{
+    "version": 3,
+    "chapterId": "summer.photography",
+    "id": "0188fb960e4a4994a089d029e6367744",
+    "createdUtc": "2026-11-06T12:41:17.7556230Z",
+    "updatedUtc": "2026-11-06T12:41:32.8582852Z",
+    "state": 1,
+    "darkroom": {
+        "workflowVersion": 3,
+        "tankSealed": true,
+        "needsDrain": false,
+        "backOpen": true,
+        "rewindTurns": 1.0,
+        "printStage": 8,
+        "printRemaining": 2.506007194519043,
+        "printProcessing": true,
+        "printObjects": {
+            "version": 1,
+            "frameClosed": false,
+            "negativeRemoved": true,
+            "negative": {
+                "instanceId": "darkroom.negative",
+                "definitionId": "photo.negative",
+                "ownerChapterId": "summer.photography",
+                "schemaVersion": 1,
+                "locationId": "print-frame",
+                "payload": ""
+            },
+            "paper": {
+                "instanceId": "darkroom.paper",
+                "definitionId": "photo.contact-sheet",
+                "ownerChapterId": "summer.photography",
+                "schemaVersion": 1,
+                "locationId": "print-photo-clip",
+                "payload": ""
+            }
+        },
+        "phase": 7,
+        "chemistry": 3,
+        "remaining": 0.0,
+        "bagTurns": 1.0,
+        "clockDuration": 1.0,
+        "agitated": true,
+        "selectedFrame": 1
+    },
+    "cameraLoading": {
+        "phase": 3,
+        "threaded": true,
+        "mechanicalStep": 7,
+        "iso": 100
+    },
+    "bridge": {
+        "hasReference": true,
+        "aligned": true,
+        "captured": true,
+        "handJoined": false,
+        "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "euler": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "subjectPoint": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "fov": 48.0,
+        "ev100": 13.0,
+        "savedFocus": 0.0,
+        "savedAperture": 0.0,
+        "savedShutter": 0.0
+    },
+    "entrance": {
+        "hasReference": true,
+        "aligned": true,
+        "captured": true,
+        "handJoined": false,
+        "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "euler": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "subjectPoint": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "fov": 48.0,
+        "ev100": 13.0,
+        "savedFocus": 0.0,
+        "savedAperture": 0.0,
+        "savedShutter": 0.0
+    },
+    "meadow": {
+        "hasReference": true,
+        "aligned": true,
+        "captured": true,
+        "handJoined": true,
+        "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "euler": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "subjectPoint": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "fov": 48.0,
+        "ev100": 13.0,
+        "savedFocus": 0.0,
+        "savedAperture": 0.0,
+        "savedShutter": 0.0
+    },
+    "frames": [
+        {
+            "id": "c062eefb245d43b2ab72e7b002ec41c0",
+            "filmId": "0188fb960e4a4994a089d029e6367744",
+            "capturedUtc": "2026-11-06T12:41:17.8317700Z",
+            "negativeFile": "c062eefb245d43b2ab72e7b002ec41c0.frame",
+            "moment": "DEV PLACEHOLDER 1",
+            "feedback": "Generated test negative; not a player photograph.",
+            "taskId": "entrance",
+            "frameNumber": 1,
+            "iso": 100,
+            "aperture": 8.0,
+            "shutterSeconds": 0.00800000037997961,
+            "sceneEv100": 13.0,
+            "exposureError": 0.0,
+            "cameraPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "cameraEuler": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "subjectPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "subjectEuler": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "headEuler": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "handContact": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "joinedHands": false,
+            "focusDistance": 3.0,
+            "subjectDepth": 3.0,
+            "fieldOfView": 48.0,
+            "subjectScreenHeight": 0.0,
+            "sharp": true,
+            "visible": true,
+            "framed": true,
+            "accepted": true
+        },
+        {
+            "id": "527ee58388e147a582beeef5db11fb51",
+            "filmId": "0188fb960e4a4994a089d029e6367744",
+            "capturedUtc": "2026-11-06T12:41:17.8887956Z",
+            "negativeFile": "527ee58388e147a582beeef5db11fb51.frame",
+            "moment": "DEV PLACEHOLDER 2",
+            "feedback": "Generated test negative; not a player photograph.",
+            "taskId": "bridge",
+            "frameNumber": 2,
+            "iso": 100,
+            "aperture": 8.0,
+            "shutterSeconds": 0.00800000037997961,
+            "sceneEv100": 13.0,
+            "exposureError": 0.0,
+            "cameraPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "cameraEuler": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "subjectPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "subjectEuler": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "headEuler": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "handContact": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "joinedHands": false,
+            "focusDistance": 3.0,
+            "subjectDepth": 3.0,
+            "fieldOfView": 48.0,
+            "subjectScreenHeight": 0.0,
+            "sharp": true,
+            "visible": true,
+            "framed": true,
+            "accepted": true
+        },
+        {
+            "id": "7d00a35950b24a809d33d604efb23f79",
+            "filmId": "0188fb960e4a4994a089d029e6367744",
+            "capturedUtc": "2026-11-06T12:41:17.9479785Z",
+            "negativeFile": "7d00a35950b24a809d33d604efb23f79.frame",
+            "moment": "DEV PLACEHOLDER 3",
+            "feedback": "Generated test negative; not a player photograph.",
+            "taskId": "meadow",
+            "frameNumber": 3,
+            "iso": 100,
+            "aperture": 8.0,
+            "shutterSeconds": 0.00800000037997961,
+            "sceneEv100": 13.0,
+            "exposureError": 0.0,
+            "cameraPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "cameraEuler": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "subjectPosition": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "subjectEuler": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "headEuler": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "handContact": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "joinedHands": true,
+            "focusDistance": 3.0,
+            "subjectDepth": 3.0,
+            "fieldOfView": 48.0,
+            "subjectScreenHeight": 0.0,
+            "sharp": true,
+            "visible": true,
+            "framed": true,
+            "accepted": true
+        }
+    ]
+}

@@ -15,13 +15,57 @@ namespace MemoryWhitebox
             OperationArea.Register("house.darkroom.work-area",looseFilm.transform,"house.photo.exposed-film");
         }
         public void DarkroomNotice(string message){darkroomNotice=message;darkroomNoticeUntil=Time.unscaledTime+3;}
-        public void NotifyDarkroomExitBlocked(){DarkroomNotice("Progress not saved. Stay here; press Esc to retry.");}
+        public void NotifyDarkroomExitBlocked(){DarkroomNotice("Progress not saved. Stay here; open settings and retry Save.");}
+        Transform returningVisual;
+        Vector3 returnStart,returnLocalPosition;
+        Quaternion returnRotation,returnLocalRotation;
+        float returnStarted;
+        void SettleToolReturn()
+        {
+            if(returningVisual){returningVisual.localPosition=returnLocalPosition;returningVisual.localRotation=returnLocalRotation;}
+            returningVisual=null;
+        }
+        void EndToolDrag(string id)
+        {
+            SettleToolReturn();
+            Transform visual=null;
+            if(id=="tank" || (id!=null && id.StartsWith("chemical-")))
+                visual=darkroomVisuals!=null?darkroomVisuals.ModelRoot(id):null;
+            else if(id=="exposed-film")
+            {
+                if(extractedVisuals!=null)foreach(var candidate in extractedVisuals)if(candidate && candidate.activeSelf){visual=candidate.transform;break;}
+            }
+            else if(id!=null && id.StartsWith("film-") && Nodes.ContainsKey(id) && Nodes[id].transform.childCount>0)
+                visual=Nodes[id].transform.GetChild(0);
+            var position=visual?visual.position:Vector3.zero;var rotation=visual?visual.rotation:Quaternion.identity;
+            objectDrag.End(true);
+            if(!visual || !visual.gameObject.activeInHierarchy)return;
+            returningVisual=visual;returnStart=position;returnRotation=rotation;
+            returnLocalPosition=visual.localPosition;returnLocalRotation=visual.localRotation;returnStarted=Time.time;
+        }
+        void RestoreToolReturnPose()
+        {
+            if(returningVisual){returningVisual.localPosition=returnLocalPosition;returningVisual.localRotation=returnLocalRotation;}
+        }
+        void TickToolReturn()
+        {
+            if(!returningVisual)return;
+            if(!returningVisual.gameObject.activeInHierarchy){SettleToolReturn();return;}
+            float t=Mathf.Clamp01((Time.time-returnStarted)/.4f);
+            var end=returningVisual.position;var rotation=returningVisual.rotation;
+            float u=Mathf.SmoothStep(0,1,t);
+            returningVisual.position=Vector3.Lerp(returnStart,end,u)+Vector3.up*(Mathf.Sin(t*Mathf.PI)*.06f);
+            returningVisual.rotation=Quaternion.Slerp(returnRotation,rotation,u);
+            if(t>=1)SettleToolReturn();
+        }
         string DrainTarget=>sceneProcessing?"film-drain-basin":"water";
         bool CanPourChemical(string id)=>Photo.Phase==PhotoChapter.FilmPhase.Tank && !Printing && id=="chemical-"+Photo.Chemistry && (!ManualTank || (tankSealed && !needsDrain));
         // Preview, hover feedback and release share the same reachable receiving region.
         bool CanDropDarkroom(Ray ray,string id)=>DarkroomReceiverResult(ray,id)==DragReceiverProbe.Result.Ready;
         DragReceiverProbe.Result DarkroomReceiverResult(Ray ray,string id)
         {
+            // Authored worktop edits and fitted model hits must reach physics before querying.
+            Physics.SyncTransforms();
             if(id=="print-frame" && printObjectsState!=null && printObjectsState.frameClosed)return DragReceiverProbe.Result.Unavailable;
             GameObject target;if(!Nodes.TryGetValue(id,out target) || !target.activeInHierarchy)return DragReceiverProbe.Result.Unavailable;
             float tolerance=printObjects!=null && printObjects.definition!=null?printObjects.definition.dropTolerance:.14f;
@@ -59,14 +103,24 @@ namespace MemoryWhitebox
             var receiver=Nodes[targetId];var collider=receiver.GetComponent<Collider>();
             float top=collider!=null?collider.bounds.max.y:receiver.transform.position.y;
             Bounds bounds=new Bounds(tool.transform.position,Vector3.zero);
-            foreach(var renderer in tool.GetComponentsInChildren<Renderer>())bounds.Encapsulate(renderer.bounds);
+            foreach(var renderer in tool.GetComponentsInChildren<Renderer>())
+                if(renderer.enabled && !renderer.forceRenderingOff && !(renderer is LineRenderer))bounds.Encapsulate(renderer.bounds);
             float z=receiver.transform.position.z;
             // Pour beside the rim instead of placing the tilted tank through the fixed tap.
             if(targetId==DrainTarget && collider!=null)z=collider.bounds.min.z-bounds.extents.z-.035f;
-            return new Vector3(receiver.transform.position.x,top+bounds.extents.y+.035f,z);
+            return new Vector3(receiver.transform.position.x,top+(tool.transform.position.y-bounds.min.y)+.035f,z);
         }
+        float extractionElapsed;
+        int extractionFrame=-1;
+        Vector3 extractionStart;
         Vector3 MoveDarkroomDrag(Ray ray)
         {
+            if(CarryingExposedFilm && cameraVisual!=null && extractionElapsed<.3f)
+            {
+                if(extractionFrame!=Time.frameCount){extractionFrame=Time.frameCount;extractionElapsed+=Time.deltaTime;}
+                var clear=cameraVisual.insert.TransformPoint(new Vector3(0,0,-.075f));
+                return objectDrag.MoveTo(Vector3.Lerp(extractionStart,clear,Mathf.SmoothStep(0,1,Mathf.Clamp01(extractionElapsed/.3f))));
+            }
             var receiver=DragReceiver(ray);
             if(receiver==null)
             {
@@ -81,7 +135,7 @@ namespace MemoryWhitebox
                 return objectDrag.Move(ray);
             }
             string target=CurrentDropTarget();
-            return objectDrag.MoveOverSurface(ToolDropPreview(target,objectDrag.Item.gameObject),receiver);
+            return objectDrag.MoveTo(ToolDropPreview(target,objectDrag.Item.gameObject),receiver);
         }
         string CurrentDropTarget()
         {

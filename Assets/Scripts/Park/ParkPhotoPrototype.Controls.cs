@@ -13,6 +13,9 @@ namespace MemoryWhitebox
         [Range(0,20)] public float sceneEv100=13;
         public PhotographyMode PhotoMode=>photoMode;
         public bool HandPresentationBlocked=>(inputGate && !raiseReleasePresentation) || !focused || changingScene || Paused;
+        // The automatic full-roll panel may finish an already visible release gesture.
+        // Manual pause, focus loss and scene changes still suspend/hide it normally.
+        public bool PhotoHandReleaseAllowed=>CurrentPauseReason==PauseReason.FilmComplete && focused && !applicationPaused && !changingScene && !GamePauseMenu.BlocksGameplay;
         public Transform HandContactTarget=>dragPart!=null && instrumentParts.ContainsKey(dragPart)?instrumentParts[dragPart]:null;
         public Transform CameraRaiseGrip=>CameraRaising && cameraRaiseElapsed<CameraRaiseSeconds*.6f && instrumentCamera!=null?instrumentCamera.grip:null;
         public Transform CameraRaiseSupport=>CameraRaising && cameraRaiseElapsed<CameraRaiseSeconds*.6f && instrumentCamera!=null?instrumentCamera.support:null;
@@ -25,7 +28,8 @@ namespace MemoryWhitebox
         static readonly float[] speeds=ParkCameraResponse.ShutterSpeeds;
         int apertureIndex=3,speedIndex=5,meterIsoIndex,loadingStep;
         PhotographyMode photoMode;
-        bool PreciseInstrumentPointer=>photoMode==PhotographyMode.Body || photoMode==PhotographyMode.Meter;
+        bool CameraDetailMode=>photoMode==PhotographyMode.Aperture || photoMode==PhotographyMode.Shutter;
+        bool PreciseInstrumentPointer=>photoMode==PhotographyMode.Body || photoMode==PhotographyMode.Viewfinder || CameraDetailMode;
         Vector2 virtualPointer=new Vector2(.5f,.5f);
         int edgeCandidate=-1;
         float dwell,cooldown;
@@ -64,6 +68,7 @@ namespace MemoryWhitebox
             if(!inputGate)raiseReleasePresentation=false;
             if(!CameraRaising)return false;
             if(Input.GetKeyDown(KeyCode.E)){SetPhotographyMode(PhotographyMode.Exploration);return true;}
+            if(Input.GetKeyDown(KeyCode.R)){SetPhotographyMode(PhotographyMode.Meter);return true;}
             cameraRaiseElapsed=Mathf.Min(CameraRaiseSeconds,cameraRaiseElapsed+Mathf.Max(0,dt));
             float u=cameraRaiseElapsed/CameraRaiseSeconds;
             float smooth=u*u*(3-2*u);
@@ -154,7 +159,7 @@ namespace MemoryWhitebox
             handJoinTransition=0;
             CancelInstrumentDrag();photoMode=mode;Aiming=mode==PhotographyMode.Viewfinder;
             PhotographyModeSfx(previousMode,mode);
-            // Esc and edge transitions can return before Update's normal render sync.
+            // Back and edge transitions can return before Update's normal render sync.
             if(focusEffect!=null)SyncCameraPreview();
             if(mode!=PhotographyMode.Aperture && mode!=PhotographyMode.Shutter)virtualPointer=new Vector2(.5f,.5f);
             dwell=0;cooldown=.2f;edgeCandidate=-1;edgeArmed=false;
@@ -162,6 +167,7 @@ namespace MemoryWhitebox
             InputContext.Handoff();SyncParkInput();
             if(instruments!=null)SyncInstruments();
             if(mode==PhotographyMode.Exploration)ReleaseGuidedDeparture();
+            SyncCompanionControl();
         }
         void CancelInstrumentDrag()
         {
@@ -174,6 +180,8 @@ namespace MemoryWhitebox
         {
             if(Input.GetKeyDown(KeyCode.E))
             {ToggleCamera();return true;}
+            if(Input.GetKeyDown(KeyCode.R))
+            {SetPhotographyMode(photoMode==PhotographyMode.Meter?PhotographyMode.Exploration:PhotographyMode.Meter);return true;}
             if(PreciseInstrumentPointer)
                 virtualPointer=new Vector2(Input.mousePosition.x/Mathf.Max(1,Screen.width),Input.mousePosition.y/Mathf.Max(1,Screen.height));
             else
@@ -181,37 +189,86 @@ namespace MemoryWhitebox
                 Vector2 motion=PlayerInputPolicy.LookDelta*virtualCursorSpeed;
                 virtualPointer+=new Vector2(motion.x/Mathf.Max(1,Screen.width),motion.y/Mathf.Max(1,Screen.height));
             }
-            virtualPointer=new Vector2(Mathf.Clamp01(virtualPointer.x),Mathf.Clamp01(virtualPointer.y));
+            // Preserve out-of-window coordinates for a free cursor. Clamping them
+            // would turn a pointer outside Game view into a valid edge gesture.
+            if(!PreciseInstrumentPointer)virtualPointer=new Vector2(Mathf.Clamp01(virtualPointer.x),Mathf.Clamp01(virtualPointer.y));
+            bool returningPointer=Input.GetMouseButton(1) || Input.GetMouseButtonUp(1) || Input.GetMouseButton(2);
+            if(TickCameraPointerEdge(dt,dragPart!=null || Input.GetMouseButton(0) || returningPointer || handJoinTransition>0 || (PhotoHandPointerActive && PointerOnHand)))return true;
+            float scroll=Input.mouseScrollDelta.y;
+            if(Mathf.Abs(scroll)>.01f && !returningPointer && (!PreciseInstrumentPointer || PointerInsideViewport(virtualPointer)))
+            {
+                int direction=scroll>0?1:-1;
+                if(StepInstrumentControl(direction))PlayInstrumentClick();
+            }
+            if(photoMode==PhotographyMode.Meter)TickTargetMeter();
+            if(photoMode==PhotographyMode.Body)HandleBody();
+            SyncInstruments();
+            return photoMode==PhotographyMode.Body || photoMode==PhotographyMode.Meter;
+        }
+        bool TickCameraPointerEdge(float dt,bool gestureBusy)
+        {
+            if(!PointerInsideViewport(virtualPointer)){ResetCameraEdgeGesture();return false;}
+            if(ReturnCameraDetailAtCentre(virtualPointer))return true;
             cooldown=Mathf.Max(0,cooldown-dt);
             bool centered=virtualPointer.x>.25f && virtualPointer.x<.75f && virtualPointer.y>.25f && virtualPointer.y<.75f;
-            if(centered && cooldown<=0)edgeArmed=true;
+            if(centered && cooldown<=0 && !gestureBusy)edgeArmed=true;
             int edge=-1;
-            if(dragPart==null && !Input.GetMouseButton(0) && !(PhotoHandPointerActive && PointerOnHand))
+            if(!gestureBusy)
             {
-                if(photoMode!=PhotographyMode.Exploration && virtualPointer.y>.94f)edge=0;
-                else if(photoMode==PhotographyMode.Exploration && virtualPointer.y<.2f && virtualPointer.x<.18f)edge=1;
-                else if(photoMode==PhotographyMode.Viewfinder)edge=virtualPointer.x<.08f?3:virtualPointer.x>.92f?4:-1;
+                // Only an explicit viewfinder pointer gesture opens a dial. Walking,
+                // loading, metering and vertical edges cannot accidentally select it.
+                if(photoMode==PhotographyMode.Viewfinder)
+                    edge=virtualPointer.x<.06f?1:virtualPointer.x>.94f?2:-1;
             }
             if(edgeArmed && cooldown<=0 && edge>=0)
             {
                 if(edgeCandidate!=edge){edgeCandidate=edge;dwell=0;}dwell+=dt;
                 if(dwell>=edgeDwell)
                 {
-                    SetPhotographyMode(edge==0?PhotographyMode.Exploration:edge==1?PhotographyMode.Meter:edge==2?PhotographyMode.Body:edge==3?PhotographyMode.Aperture:PhotographyMode.Shutter);return true;
+                    SetPhotographyMode(edge==1?PhotographyMode.Aperture:PhotographyMode.Shutter);return true;
                 }
             }
             else {edgeCandidate=-1;dwell=0;}
-            if((photoMode==PhotographyMode.Aperture || photoMode==PhotographyMode.Shutter) && centered && cooldown<=0)
-            {SetPhotographyMode(PhotographyMode.Viewfinder);return true;}
-            float scroll=Input.mouseScrollDelta.y;
-            if(Mathf.Abs(scroll)>.01f)
+            return false;
+        }
+        bool ReturnCameraDetailAtCentre(Vector2 pointer)
+        {
+            if(!CameraDetailMode || !PointerInsideViewport(pointer) || pointer.x<=.25f || pointer.x>=.75f || pointer.y<=.25f || pointer.y>=.75f)return false;
+            // Navigation is immediate, even during a held click. SetPhotographyMode
+            // arms the release gates, so that click cannot become a shutter/hand click.
+            SetPhotographyMode(PhotographyMode.Viewfinder);return true;
+        }
+        void ResetCameraEdgeGesture(){dwell=0;cooldown=.2f;edgeCandidate=-1;edgeArmed=false;}
+        internal static bool PointerInsideViewport(Vector2 pointer)=>pointer.x>=0 && pointer.x<=1 && pointer.y>=0 && pointer.y<=1;
+        internal static bool FinderClickAllowed(Vector2 pointer,bool palmHit)=>PointerInsideViewport(pointer) &&
+            (palmHit || (pointer.x>=.06f && pointer.x<=.94f));
+        void StepFinderWheel(float scroll)
+        {
+            if(photoMode!=PhotographyMode.Viewfinder || Mathf.Abs(scroll)<=.01f || !FinderClickAllowed(virtualPointer,false))return;
+            StepFocusControl(scroll);
+        }
+        void DrawFinderShortcuts()
+        {
+            if(photoMode!=PhotographyMode.Viewfinder || CameraRaising || changingScene)return;
+            var saved=GUI.color;
+            var style=new GUIStyle(GUI.skin.label){fontSize=13,alignment=TextAnchor.MiddleLeft};
+            float x=Screen.width-204,y=Screen.height-116;
+            string[] labels={"Scroll  Focus","Left edge  Aperture","Right edge  Shutter"};
+            for(int i=0;i<3;i++)
             {
-                int direction=scroll>0?1:-1;
-                if(StepInstrumentControl(direction))PlayInstrumentClick();
+                GUI.color=i==0?new Color(1,.78f,.35f,1):new Color(1,1,1,.8f);
+                var c=new Vector2(x+10,y+12+i*29);
+                IconCircle(c,8);
+                if(i==0)IconCircle(c,3);
+                else if(i==1)
+                {
+                    for(int n=0;n<6;n++)
+                    {float a=n*Mathf.PI/3;GUI.DrawTexture(new Rect(c.x+Mathf.Cos(a)*4-1,c.y+Mathf.Sin(a)*4-1,2,2),Texture2D.whiteTexture);}
+                }
+                else {GUI.DrawTexture(new Rect(c.x-1,c.y-5,2,6),Texture2D.whiteTexture);GUI.DrawTexture(new Rect(c.x,c.y-1,5,2),Texture2D.whiteTexture);}
+                GUI.Label(new Rect(x+26,y+i*29,176,25),labels[i],style);
             }
-            if(photoMode==PhotographyMode.Body)HandleBody();
-            SyncInstruments();
-            return photoMode!=PhotographyMode.Exploration && photoMode!=PhotographyMode.Viewfinder;
+            GUI.color=saved;
         }
         void ToggleCamera()
         {
@@ -223,6 +280,7 @@ namespace MemoryWhitebox
         {
             get
             {
+                if(CameraDetailMode || (PreciseInstrumentPointer && !PointerInsideViewport(virtualPointer)))return null;
                 var ray=view.ViewportPointToRay(virtualPointer);
                 if(dragPart!=null)
                 {
@@ -231,7 +289,7 @@ namespace MemoryWhitebox
                     if(receiver!="" && instrumentParts.TryGetValue(receiver,out var target))
                     {
                         var col=target.GetComponent<Collider>();
-                        return col.enabled && target.gameObject.activeInHierarchy && col.Raycast(ray,out var hit,2)?col:null;
+                        return InstrumentDropHit(receiver,ray,dragPart=="leader")?col:null;
                     }
                     return null;
                 }
@@ -268,6 +326,7 @@ namespace MemoryWhitebox
         void BeginBodyPointer(Ray ray)
         {
             string hit=PickInstrument(ray);
+            if(instrumentCamera!=null && instrumentCamera.MechanicalTransition)return;
             if(dragPart==null)
             {
                 if((hit=="rewind" && loadingStep==0) || (hit.StartsWith("film-") && loadingStep==1) || (hit=="leader" && loadingStep==2))
@@ -289,11 +348,39 @@ namespace MemoryWhitebox
                     var plane=new Plane(view.transform.forward,view.transform.position+view.transform.forward*.54f);
                     if(plane.Raycast(ray,out float distance))
                     {
-                        var before=instrumentParts[dragPart].position;instrumentParts[dragPart].position=ray.GetPoint(distance);
+                        var before=instrumentParts[dragPart].position;
+                        var point=ray.GetPoint(distance);
+                        if(dragPart.StartsWith("film-") && instrumentCamera!=null)point=instrumentCamera.ClearCarryPosition(view,instrumentParts[dragPart],ray,point);
+                        instrumentParts[dragPart].position=point;
                         LeaderMovementSfx(before,instrumentParts[dragPart].position);
                     }
                 }
             }
+        }
+        // Forgiving screen-space receiver; only the held leader gets this margin.
+        bool InstrumentDropHit(string id,Ray ray,bool forgivingLeader)
+        {
+            Transform target;
+            if(!instrumentParts.TryGetValue(id,out target) || !target.gameObject.activeInHierarchy)return false;
+            var col=target.GetComponent<Collider>();
+            if(col==null || !col.enabled)return false;
+            RaycastHit hit;if(col.Raycast(ray,out hit,2))return true;
+            if(!forgivingLeader)return false;
+            var bounds=col.bounds;
+            var screen=view.WorldToScreenPoint(bounds.center);
+            if(screen.z<=0 || screen.z>2)return false;
+            var lo=new Vector2(float.MaxValue,float.MaxValue);var hi=new Vector2(float.MinValue,float.MinValue);
+            for(int i=0;i<8;i++)
+            {
+                var corner=bounds.center+Vector3.Scale(bounds.extents,new Vector3((i&1)==0?-1:1,(i&2)==0?-1:1,(i&4)==0?-1:1));
+                var p=view.WorldToScreenPoint(corner);if(p.z<=0)return false;
+                lo=Vector2.Min(lo,p);hi=Vector2.Max(hi,p);
+            }
+            var plane=new Plane(view.transform.forward,bounds.center);float distance;
+            if(!plane.Raycast(ray,out distance) || distance>2)return false;
+            var pointer=view.WorldToScreenPoint(ray.GetPoint(distance));
+            float margin=Mathf.Min(view.pixelWidth,view.pixelHeight)*.035f;
+            return pointer.x>=lo.x-margin && pointer.x<=hi.x+margin && pointer.y>=lo.y-margin && pointer.y<=hi.y+margin;
         }
         void EndBodyPointer(Ray ray)
         {
@@ -303,9 +390,12 @@ namespace MemoryWhitebox
                 // Ignore the held object when finding its drop destination.
                 string destination=dragged.StartsWith("film-")?"chamber":dragged=="leader"?"spool":"";
                 Physics.SyncTransforms();
-                string hit=destination!="" && instrumentParts[destination].gameObject.activeInHierarchy &&
-                    instrumentParts[destination].GetComponent<Collider>().Raycast(ray,out RaycastHit drop,2)?destination:"";
-                if(dragged.StartsWith("film-") && hit=="chamber")SaveLoadingStep(2,int.Parse(dragged.Substring(5)));
+                string hit=destination!="" && InstrumentDropHit(destination,ray,dragged=="leader")?destination:"";
+                if(dragged.StartsWith("film-") && hit=="chamber")
+                {
+                    SaveLoadingStep(2,int.Parse(dragged.Substring(5)));
+                    if(loadingStep==2 && instrumentCamera!=null)instrumentCamera.BeginInsertion(instrumentParts[dragged].GetChild(0));
+                }
                 else if(dragged=="leader" && hit=="spool")SaveLoadingStep(4,FilmIso);
                 CancelInstrumentDrag();
             }
@@ -330,20 +420,45 @@ namespace MemoryWhitebox
             try{roll=ParkFilmStore.SaveCameraLoading(roll.id,progress);loadingStep=step;SyncMeterAfterLoadingStep(step,iso);PlayLoadingSfx(step);}
             catch(Exception e){Notify("Camera step not saved. Release and retry.",6);Debug.LogWarning("Camera step not saved; previous state retained: "+e.Message);}
         }
+        void ShowInstrumentTask(string id)
+        {
+            var target=instrumentCamera!=null?instrumentCamera.HoverPart(id):null;
+            if(target==null && instrumentParts.ContainsKey(id))target=instrumentParts[id];
+            if(target && target.gameObject.activeInHierarchy)
+                TaskOutlineCue.Show(target,view,target.GetComponentsInChildren<Renderer>(true));
+        }
         void SyncInstruments()
         {
             if(photoMode==PhotographyMode.Body && !HandPresentationBlocked && instrumentCamera!=null)
             {
-                string next=dragPart!=null?(dragPart=="leader"?"spool":"chamber"):
-                    loadingStep==0?"rewind":loadingStep==1?"film-"+FilmIso:loadingStep==2?"leader":
-                    loadingStep==4 || loadingStep==6?"advance":loadingStep==5?"back":"eyepiece";
-                var target=instrumentCamera.HoverPart(next);
-                if(target==null && instrumentParts.ContainsKey(next))target=instrumentParts[next];
-                if(target)TaskOutlineCue.Show(target,view,target.GetComponentsInChildren<Renderer>(true));
+                if(loadingStep==1 && dragPart==null)
+                {
+                    foreach(int iso in filmIsos)ShowInstrumentTask("film-"+iso);
+                }
+                else
+                {
+                    string next=dragPart=="leader"?"spool":
+                        dragPart!=null && dragPart.StartsWith("film-")?"chamber":
+                        loadingStep==0?"rewind":loadingStep==2 || loadingStep==3?"leader":
+                        loadingStep==4 || loadingStep==6?"advance":loadingStep==5?"back":"eyepiece";
+                    ShowInstrumentTask(next);
+                }
             }
 
+            if(!HandPresentationBlocked)
+            {
+                Transform control=photoMode==PhotographyMode.Aperture && instrumentCamera!=null?instrumentCamera.apertureRing:
+                    photoMode==PhotographyMode.Shutter && instrumentCamera!=null?instrumentCamera.dial:
+                    photoMode==PhotographyMode.Meter && instrumentMeter!=null?instrumentMeter.transform:null;
+                if(control && control.gameObject.activeInHierarchy)
+                    TaskOutlineCue.Show(control,view,control.GetComponentsInChildren<Renderer>(true));
+            }
             if(instruments==null)return;
-            if(instrumentCamera!=null){SyncAssetInstruments();return;}
+            // Move the complete kit together so film drag and mechanical hit targets
+            // stay aligned. Eyepiece raising owns this transform during its transition.
+            if(bodyRoot!=null && !CameraRaising)
+            {bodyRoot.localPosition=cameraOperationOffset+(CameraDetailMode?Vector3.right*20:Vector3.zero);bodyRoot.localRotation=Quaternion.identity;}
+            if(instrumentCamera!=null){SyncAssetInstruments();RenderCameraDetail();return;}
             meterRoot.gameObject.SetActive(photoMode==PhotographyMode.Meter);
             bodyRoot.gameObject.SetActive(photoMode==PhotographyMode.Body || photoMode==PhotographyMode.Aperture || photoMode==PhotographyMode.Shutter);
             foreach(int iso in filmIsos)instrumentParts["film-"+iso].gameObject.SetActive(loadingStep<2);
@@ -353,34 +468,85 @@ namespace MemoryWhitebox
             instrumentParts["speed"].localRotation=Quaternion.Euler(0,speedIndex*24,0);
             instrumentParts["aperture"].localRotation=Quaternion.Euler(0,0,apertureIndex*24);
             float suggested=ParkCameraResponse.SuggestedShutter(8,filmIsos[meterIsoIndex],MeterEv100);
-            meterReadout.text=filmIsos[meterIsoIndex]+"\nf/8\n1/"+Mathf.RoundToInt(1/suggested);
+            meterReadout.text=MeterNumbers;
             cameraReadout.text=photoMode==PhotographyMode.Aperture?"f/"+Aperture:photoMode==PhotographyMode.Shutter?"1/"+Mathf.RoundToInt(1/ShutterSeconds):FilmIso+"   "+ExposedFrames+"/"+(roll!=null?roll.Capacity:3);
+            RenderCameraDetail();
+        }
+        // Lightweight IMGUI icons share the existing photography HUD lifecycle.
+        void DrawInstrumentShortcuts()
+        {
+            if(changingScene || CameraRaising)return;
+            var saved=GUI.color;
+            var style=new GUIStyle(GUI.skin.label){alignment=TextAnchor.MiddleCenter,fontSize=15};
+            float y=Screen.height-72;
+            for(int i=0;i<2;i++)
+            {
+                float x=26+i*62;
+                bool selected=i==0?photoMode!=PhotographyMode.Exploration && photoMode!=PhotographyMode.Meter:photoMode==PhotographyMode.Meter;
+                bool suggested=photoMode==PhotographyMode.Exploration && loadingStep<2 && (i==1?!introductoryMeterRead:introductoryMeterRead);
+                GUI.color=selected || suggested?new Color(1,.78f,.35f,1):new Color(1,1,1,.8f);
+                if(i==0)
+                {
+                    IconBox(new Rect(x,y+8,38,25));IconBox(new Rect(x+5,y+3,12,6));
+                    IconCircle(new Vector2(x+22,y+20),8);
+                }
+                else
+                {
+                    IconBox(new Rect(x+9,y+8,22,28));IconCircle(new Vector2(x+20,y+6),5);
+                    IconBox(new Rect(x+13,y+13,14,9));
+                    GUI.DrawTexture(new Rect(x+19,y+14,2,7),Texture2D.whiteTexture);
+                }
+                GUI.Label(new Rect(x,y+38,40,22),i==0?"E":"R",style);
+            }
+            GUI.color=saved;
+        }
+        static void IconBox(Rect r)
+        {
+            GUI.DrawTexture(new Rect(r.x,r.y,r.width,2),Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(r.x,r.yMax-2,r.width,2),Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(r.x,r.y,2,r.height),Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(r.xMax-2,r.y,2,r.height),Texture2D.whiteTexture);
+        }
+        static void IconCircle(Vector2 centre,float radius)
+        {
+            for(int i=0;i<32;i++)
+            {
+                float a=i*Mathf.PI/16;
+                GUI.DrawTexture(new Rect(centre.x+Mathf.Cos(a)*radius-1,centre.y+Mathf.Sin(a)*radius-1,2,2),Texture2D.whiteTexture);
+            }
         }
         void DrawPhotographyModes()
         {
+            DrawInstrumentShortcuts();DrawFinderShortcuts();
+            DrawCameraDetail();
             if(photoMode==PhotographyMode.Aperture || photoMode==PhotographyMode.Shutter)
             {
                 bool aperture=photoMode==PhotographyMode.Aperture;
-                var panel=new Rect(Screen.width*.5f-150,Screen.height-116,300,94);
-                GUI.Box(panel,GUIContent.none);
-                var label=new GUIStyle(GUI.skin.label){alignment=TextAnchor.MiddleCenter,fontSize=22};
-                GUI.Label(new Rect(panel.x,panel.y+8,panel.width,34),aperture?"Aperture  f/"+Aperture:"Shutter  1/"+Mathf.RoundToInt(1/ShutterSeconds)+" s",label);
-                label.fontSize=14;
-                GUI.Label(new Rect(panel.x,panel.y+45,panel.width,38),"Scroll: change one stop\nCentre: viewfinder   E: lower camera",label);
+                var detail=CameraDetailRect();
+                int valueSize=CameraDetailValueSize;
+                float panelWidth=Mathf.Min(Screen.width-24,560);
+                float valueHeight=valueSize+8;
+                float hintHeight=CameraDetailHintSize*2+6;
+                var panel=new Rect((Screen.width-panelWidth)*.5f,detail.yMax+4,panelWidth,valueHeight+hintHeight);
+                var label=new GUIStyle(GUI.skin.label){alignment=TextAnchor.MiddleCenter,fontSize=valueSize,fontStyle=FontStyle.Bold};
+                GUI.Label(new Rect(panel.x,panel.y,panel.width,valueHeight),aperture?"Aperture  f/"+Aperture:"Shutter  1/"+Mathf.RoundToInt(1/ShutterSeconds)+" s",label);
+                label.fontSize=CameraDetailHintSize;label.fontStyle=FontStyle.Normal;
+                GUI.Label(new Rect(panel.x,panel.y+valueHeight,panel.width,hintHeight),"Scroll: change one stop\nCentre / RMB: viewfinder   Esc: pause",label);
             }
             if(photoMode==PhotographyMode.Meter)
             {
                 // Readable instrument values at small Game-view resolutions; no task box.
                 float seconds=ParkCameraResponse.SuggestedShutter(8,MeterIso,MeterEv100);
-                var numbers=new GUIStyle(GUI.skin.label){alignment=TextAnchor.MiddleCenter,fontSize=18};
-                GUI.Label(new Rect(Screen.width*.5f-210,Screen.height-60,420,30),
-                    "ISO "+MeterIso+"   EV "+MeterEv100.ToString("0.0")+"   f/8   1/"+Mathf.RoundToInt(1/seconds)+" s",numbers);
+                var numbers=new GUIStyle(GUI.skin.label){alignment=TextAnchor.MiddleCenter,fontSize=16,wordWrap=true};
+                GUI.Label(new Rect(160,Screen.height-60,Mathf.Max(1,Screen.width-320),48),
+                    MeterNumbers,numbers);
+                IconCircle(new Vector2(Screen.width*.5f,Screen.height*.5f),10);
             }
             if(photoMode==PhotographyMode.Viewfinder)
                 GUI.Label(new Rect(Screen.width*.5f-140,Screen.height-60,280,30),"f/"+Aperture+"   1/"+Mathf.RoundToInt(1/ShutterSeconds)+"   "+FilmIso+"   "+focusDistance.ToString("0.0")+"m");
             if(!PreciseInstrumentPointer && (photoMode!=PhotographyMode.Exploration || edgeCandidate>=0))
                 GUI.Label(new Rect(virtualPointer.x*Screen.width-5,(1-virtualPointer.y)*Screen.height-10,20,20),"Â·");
         }
-        void DisposePhotographyModes(){DisposeInstrumentClick();if(instruments!=null)Destroy(instruments.gameObject);if(instrumentMaterial!=null)Destroy(instrumentMaterial);}
+        void DisposePhotographyModes(){DisposeCameraDetail();DisposeInstrumentClick();if(instruments!=null)Destroy(instruments.gameObject);if(instrumentMaterial!=null)Destroy(instrumentMaterial);}
     }
 }

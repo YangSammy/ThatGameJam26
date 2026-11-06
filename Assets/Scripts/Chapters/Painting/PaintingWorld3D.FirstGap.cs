@@ -32,6 +32,12 @@ namespace MemoryWhitebox
             answerTime=closedTime=seatHintTime=0;shortPresses=0;
         }
 
+        public bool ReturnFromBook()
+        {
+            if(!State.BookOpen || State.Phase>=2)return false;
+            TurnPageForInput();return true;
+        }
+
         void TurnPageForInput()
         {
             ResetObservationPointer();

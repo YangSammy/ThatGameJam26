@@ -27,9 +27,9 @@ namespace MemoryWhitebox.Editor
             s.Player=new Vector2(300,565);s.Collected=3;s.Tick(.01f,Empty());
             Require(!s.MissingItemHintUsed,"One-item gesture fired with two objects missing.");
             s.Collected=7;s.Tick(.01f,Empty());
-            Require(s.MissingItemHintUsed && s.Phase=="collect","Doorway missing-one cue not issued.");
+            Require(!s.MissingItemHintUsed && s.Phase=="collect","Retired doorway cue must stay off.");
             var resumed=new WritingChapter();resumed.RestoreCheckpoint(s.CaptureCheckpoint());
-            Require(resumed.MissingItemHintUsed,"Cue replayed across save/reload.");
+            Require(!resumed.MissingItemHintUsed,"Retired cue restored from checkpoint.");
             resumed.Tick(100,Empty());Require(resumed.TimedOut && resumed.Phase=="crumple","Timeout must be distinguishable from tutorial stall.");
             var failed=new WritingChapter();failed.RestoreCheckpoint(resumed.CaptureCheckpoint());
             Require(failed.TimedOut,"Timeout lost on restore.");Restart(failed);
@@ -39,7 +39,7 @@ namespace MemoryWhitebox.Editor
             failed.Tick(120,Empty());Require(failed.Phase=="arrival","Arrival must stop timeout.");
             failed.RestoreCheckpoint("{\"version\":1,\"draft\":2,\"crumple\":true}");
             Require(failed.Phase=="crumple","Legacy v1 load failed.");
-            return "PASS tutorial untimed; first-ink start; stopped ink keeps time; doorway cue persists; timeout persists; retry resets; v1/v2 migration; exact deadline arrival and frozen arrival clock.";
+            return "PASS tutorial untimed; first-ink start; stopped ink keeps time; doorway cue retired; timeout persists; retry resets; v1/v2 migration; exact deadline arrival and frozen arrival clock.";
         }
 
         public static string RunPresentation()
@@ -60,24 +60,14 @@ namespace MemoryWhitebox.Editor
                 Require(player.GetComponentsInChildren<SkinnedMeshRenderer>().Any(r=>r.enabled),"Authored player skin missing.");
                 state.Player=new Vector2(300,565);state.Collected=7;state.Tick(.01f,Empty());
                 Call(world,"UpdateAutumnActors",.1f);
-                Require(Field<float>(world,"missingGestureTime")>1,"Missing-item gesture did not start.");
-                var girl=Field<AutumnFarewellVisual>(world,"farewellVisual");
-                var arm=girl.GetComponentsInChildren<Transform>(true).Single(t=>t.name=="Right_UpperArm");
-                var armStart=arm.rotation;var chestStart=girl.chest.rotation;
-                var hairStart=girl.hair.Select(t=>t.localRotation).ToArray();
-                Call(world,"UpdateAutumnActors",.2f);
-                Require(Quaternion.Angle(armStart,arm.rotation)>.5f,"Doorway cue did not move the authored arm.");
-                Require(Quaternion.Angle(chestStart,girl.chest.rotation)>.5f,"Doorway cue did not turn the shoulder line.");
-                Call(world,"UpdateAutumnActors",.2f);
-                Require(girl.hair.Where((t,i)=>Quaternion.Angle(hairStart[i],t.localRotation)>.1f).Any(),"Doorway cue did not move delayed hair tips.");
+                Require(!state.MissingItemHintUsed,"Retired girl cue fired.");
                 Call(world,"RestoreMemoryPresentation");Call(world,"UpdateAutumnActors",.1f);
-                Require(Field<float>(world,"missingGestureTime")==0,"Restore replayed one-shot gesture.");
                 state.Remaining=.01f;state.Tick(.02f,Empty());
                 for(int i=0;i<15;i++)Call(world,"UpdateAutumnActors",.1f);
                 Require(Field<float>(world,"memoryFade")>=.99f,"Timeout memory did not fade fully.");
                 Restart(state);Call(world,"UpdateAutumnActors",.1f);
                 Require(Field<float>(world,"memoryFade")==0 && vase.gameObject.activeInHierarchy && items[1].gameObject.activeSelf,"Retry did not restore room/flower/vase.");
-                return "PASS independent vase; no answer rings; authored skinned player; once-only gesture and restore; memory timeout fade and retry.";
+                return "PASS independent vase; no answer rings; authored skinned player; no missing-item cue and restore; memory timeout fade and retry.";
             }
             finally{if(world!=null)world.Dispose();}
         }

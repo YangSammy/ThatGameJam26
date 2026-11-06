@@ -40,8 +40,8 @@ namespace MemoryWhitebox
             bool washing=printStage==ParkPrintStage.PaperWash && printProcessing;
             v.Sample("print-wash",washing?"C10_WashTray_WaterOn":"C10_WashTray_WaterOff");
             v.Sample("print-wash",washing?"C10_WashTray_DrainOn":"C10_WashTray_DrainOff");
-            v.Sample("print-negative-clip",printDrag=="print-negative"?"C06_Open":"C06_Closed");
-            v.Sample("print-photo-clip",printDrag=="print-paper"?"C11_ClipsOpen":"C11_ClipsClosed");
+            v.Sample("print-negative-clip",(printDrag=="print-negative" || printLanding=="print-negative")?"C06_Open":"C06_Closed");
+            v.Sample("print-photo-clip",(printDrag=="print-paper" || printLanding=="print-paper")?"C11_ClipsOpen":"C11_ClipsClosed");
             if(printProcessing)
             {
                 string tray=printStage==ParkPrintStage.PaperDeveloper?"Developer":printStage==ParkPrintStage.PaperStop?"Stop":printStage==ParkPrintStage.PaperFixer?"Fixer":printStage==ParkPrintStage.PaperWash?"Wash":null;
@@ -69,13 +69,24 @@ namespace MemoryWhitebox
             visual.localPosition=Vector3.zero;visual.localRotation=Quaternion.identity;
             if(!dragging && (location=="print-photo-clip" || location=="print-negative-clip"))
             {
-                visual.rotation=darkroomVisuals.ModelRoot(location).rotation;
-                visual.position=printObjects.Placement(location).position;
+                var holder=darkroomVisuals.ModelRoot(location);
+                var grip=DarkroomAssetVisuals.Node(holder,location=="print-photo-clip"?"PaperHangAnchor":"PaperGrip");
+                visual.rotation=DarkroomAssetVisuals.HangingRotation(holder);
+                visual.position=grip!=null?grip.position:printObjects.Placement(location).position;
             }
             else if(!dragging && location=="print-frame")
             {
                 var frame=darkroomVisuals.ModelRoot("print-frame");visual.rotation=frame.rotation;
                 visual.position=DarkroomAssetVisuals.Node(frame,id=="print-paper"?"PaperAnchor":"NegativeAnchor").position;
+            }
+            if(printLanding==id)
+            {
+                var end=visual.position;var rotation=visual.rotation;
+                float t=Mathf.Clamp01((Time.time-printLandingTime)/PrintLandingDuration);
+                float u=Mathf.SmoothStep(0,1,Mathf.Min(1,t/.65f));
+                var above=new Vector3(end.x,Mathf.Max(printLandingVisualStart.y,end.y)+.025f,end.z);
+                visual.position=t<.65f?Vector3.Lerp(printLandingVisualStart,above,u):Vector3.Lerp(above,end,Mathf.SmoothStep(0,1,(t-.65f)/.35f));
+                visual.rotation=Quaternion.Slerp(printLandingVisualRotation,rotation,u);
             }
             // Original whitebox roots are non-uniformly scaled. Counter-scale the visual
             // after orientation changes so the paper remains metric, not stretched.

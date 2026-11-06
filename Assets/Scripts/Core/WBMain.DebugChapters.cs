@@ -1,4 +1,3 @@
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using UnityEngine;
 namespace MemoryWhitebox
 {
@@ -6,18 +5,23 @@ namespace MemoryWhitebox
     {
         bool PollDebugChapterKeys()
         {
+            int pending=StageCompletionShortcuts.PendingHouseStage;
+            if(pending!=0 && EditorCompleteStage(pending))
+            {
+                StageCompletionShortcuts.PendingHouseStage=0;
+                return true;
+            }
+            int completion=StageCompletionShortcuts.Pressed();
+            if(completion!=0){EditorCompleteStage(completion);return true;}
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             KeyCode[] row={KeyCode.Alpha1,KeyCode.Alpha2,KeyCode.Alpha3,KeyCode.Alpha4,KeyCode.Alpha5,KeyCode.Alpha6};
             KeyCode[] pad={KeyCode.Keypad1,KeyCode.Keypad2,KeyCode.Keypad3,KeyCode.Keypad4,KeyCode.Keypad5,KeyCode.Keypad6};
             for(int i=0;i<6;i++)if(Input.GetKeyDown(row[i])||Input.GetKeyDown(pad[i]))
             {
-#if UNITY_EDITOR
-                if(i<5 && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift))EditorCompleteStage(i+1);
-                else DebugEnterChapter(i+1);
-#else
                 DebugEnterChapter(i+1);
-#endif
                 return true;
             }
+#endif
             return false;
         }
         // Development saves only. Narrative shortcuts restart their selected test segment;
@@ -49,14 +53,15 @@ namespace MemoryWhitebox
                 StartCoroutine(OpenSeasonBedroom(true,false,2));return true;
             }
             Room.StopMotion();Room.EnableLook(true);
-            if(!FiveDayProgress.DevelopmentSession){FiveDayProgress.DevelopmentSession=true;story=FiveDayProgress.LoadForSession();}
+            if(!editorCompletionRunning && !FiveDayProgress.DevelopmentSession){FiveDayProgress.DevelopmentSession=true;story=FiveDayProgress.LoadForSession();}
             int index=key<=4?key-1:key==5?3:4;
             if(index>=2)
             {
                 worlds[index].Dispose();CreateHouseChapter(index);BindChapterData();playerHands.Register(index,worlds[index]);
                 if(key==5)((PaintingChapter)chapters[3]).RestoreCheckpoint("{\"version\":2,\"phase\":2,\"shapes\":[true,true,true,true,true],\"key\":true,\"high\":true,\"crate\":4}");
             }
-            if(!story.PrepareDevelopmentEntry(index,chapters[index].CaptureCheckpoint(),index>=2))return false;
+            if(!(editorCompletionRunning?story.PrepareShortcutEntry(index,chapters[index].CaptureCheckpoint(),index>=2):
+                story.PrepareDevelopmentEntry(index,chapters[index].CaptureCheckpoint(),index>=2)))return false;
             for(int i=0;i<Done.Length;i++)Done[i]=story.IsComplete(i);
             SetStudyPresentation(-1);radioDeck?.SetStationActive(true);
             Current=chapters[index];CurrentWorld=worlds[index];ChapterIndex=index;
@@ -90,4 +95,3 @@ namespace MemoryWhitebox
         }
     }
 }
-#endif

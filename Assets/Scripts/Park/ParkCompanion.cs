@@ -29,6 +29,7 @@ namespace MemoryWhitebox
         public AudioClip footstep;
         public Moment CurrentMoment {get;private set;}
         public bool Paused {get;set;}
+        public bool AnimationPaused=>Paused || GamePauseMenu.BlocksGameplay;
         public bool TravelPaused {get;set;}
         [System.NonSerialized] public ParkPhotoWaypoint photoHoldNode;
         [System.NonSerialized] public bool photoLookBack;
@@ -41,6 +42,11 @@ namespace MemoryWhitebox
         Vector3 rightArmScale;
         float hairResponse;
         float entranceShutterPose;
+        ParkPhotoWaypoint responseNode;
+        Quaternion responseHeading;
+        bool hasResponseHeading;
+        public bool PhotoResponseSettled=>AtPhotoNode && photoLookBack && hasResponseHeading &&
+            responseNode==photoHoldNode && Quaternion.Angle(transform.rotation,responseHeading)<10;
         public void PoseEntranceShutter()
         {
             entranceShutterPose=.6f;
@@ -57,6 +63,9 @@ namespace MemoryWhitebox
         }
         public bool AtPhotoNode=>atNode && route!=null && index<route.Length && route[index]==photoHoldNode;
         public bool Waiting {get;private set;}
+        // Paired samples from the same movement step; waiting is not a blocked move.
+        public bool TravelRequestedLastStep {get;private set;}
+        public float TravelDistanceLastStep {get;private set;}
         public bool Finished => route!=null && index>=route.Length;
         public string Line {get;private set;}
         int index;float stopRemaining,respondRemaining,callCooldown,phase,lineTime,stepTime;
@@ -91,6 +100,8 @@ namespace MemoryWhitebox
             {var forward=node.lookAt.position-transform.position;forward.y=0;if(forward.sqrMagnitude>.001f)transform.rotation=Quaternion.LookRotation(forward);}
             if(wasEnabled)motor.enabled=true;
             index=target;atNode=true;stopRemaining=node.pauseSeconds;verticalSpeed=0;
+            hasResponseHeading=false;responseNode=null;
+            TravelRequestedLastStep=false;TravelDistanceLastStep=0;
             respondRemaining=callCooldown=0;Waiting=false;CurrentMoment=Moment.None;Line="";
             return true;
         }
@@ -99,8 +110,19 @@ namespace MemoryWhitebox
             if(motor==null)motor=GetComponent<CharacterController>();
             if(spawn!=null){if(motor!=null)motor.enabled=false;transform.SetPositionAndRotation(spawn.position,spawn.rotation);if(motor!=null)motor.enabled=true;}
             verticalSpeed=0;
+            hasResponseHeading=false;responseNode=null;
             index=0;stopRemaining=respondRemaining=callCooldown=phase=0;atNode=false;Waiting=false;CurrentMoment=Moment.None;
+            TravelRequestedLastStep=false;TravelDistanceLastStep=0;
             Say("Let's walk.",4);
+        }
+        public bool ReleasePhotoStop(ParkPhotoWaypoint completedNode)
+        {
+            // Only the committed photo's current stop may skip its scenic dwell.
+            // Keep ordinary route pauses and do not advance the index twice on retry.
+            if(completedNode==null || !AtPhotoNode || photoHoldNode!=completedNode)return false;
+            stopRemaining=0;
+            photoHoldNode=null;
+            return true;
         }
         public bool Call()
         {
@@ -110,33 +132,68 @@ namespace MemoryWhitebox
         void Say(string text,float seconds){Line=text;lineTime=seconds;}
         void Face(Vector3 point,float dt)
         {var direction=point-transform.position;direction.y=0;if(direction.sqrMagnitude>.01f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(direction),160*dt);}
-        void Update()
+        void UpdateResponseHeading()
         {
-            if(Paused || player==null || route==null || route.Length==0){Animate(false,0);return;}
-            float dt=Mathf.Min(Time.deltaTime,.1f);callCooldown=Mathf.Max(0,callCooldown-dt);lineTime-=dt;if(lineTime<=0)Line="";
+            if(!AtPhotoNode || !photoLookBack){hasResponseHeading=false;responseNode=null;return;}
+            if(hasResponseHeading && responseNode==photoHoldNode)return;
+            // Stable authored composition also restores the same pose after reload.
+            // Only the head follows subsequent player movement; the palm anchor stays fixed.
+            var target=photoHoldNode.referenceView!=null?photoHoldNode.referenceView.position:player.position;
+            var forward=target-transform.position;forward.y=0;
+            responseHeading=forward.sqrMagnitude>.001f?Quaternion.LookRotation(forward)*Quaternion.Euler(0,-12,0):transform.rotation;
+            responseNode=photoHoldNode;hasResponseHeading=true;
+        }
+        void RecoverFromFall()
+        {
+            // photoHoldNode is the current unfinished task, including while travelling.
+            var target=photoHoldNode;
+            if(target==null || route==null || System.Array.IndexOf(route,target)<0)
+            {
+                target=null;
+                if(route!=null)for(int i=Mathf.Min(index,route.Length-1);i>=0;i--)
+                    if(route[i]!=null && route[i].photoTask!=ParkPhotoWaypoint.PhotoTask.None){target=route[i];break;}
+            }
+            if(target!=null && ResumeAtPhotoNode(target))return;
+            // Standalone companion previews without photography keep their old fallback.
+            RestartWalk();
+        }
+        void Update(){TickTravel(Mathf.Min(Time.deltaTime,.1f));}
+        void TickTravel(float dt)
+        {
+            TravelRequestedLastStep=false;TravelDistanceLastStep=0;
+            if(AnimationPaused)return;
+            if(player==null || route==null || route.Length==0){Animate(false,dt);return;}
+            if(transform.position.y< -3){RecoverFromFall();Animate(false,dt);return;}
+            UpdateResponseHeading();
+            callCooldown=Mathf.Max(0,callCooldown-dt);lineTime-=dt;if(lineTime<=0)Line="";
             Vector3 requestedMove=Vector3.zero;
             Waiting=false;bool walking=false;CurrentMoment=Moment.None;
-            if(respondRemaining>0)
+            if(respondRemaining>0 && !hasResponseHeading)
             {respondRemaining-=dt;Face(player.position,dt);CurrentMoment=Moment.Response;}
-            else if(Vector3.Distance(player.position,transform.position)>waitDistance)
+            else if(Vector3.Distance(player.position,transform.position)>waitDistance && !hasResponseHeading)
             {Waiting=true;Face(player.position,dt);}
             else if(!Finished)
             {
                 var node=route[index];if(node==null){index++;return;}
-                if(!atNode && !TravelPaused)
+                if(!atNode)
                 {
                     var delta=node.transform.position-transform.position;delta.y=0;
                     var toPlayer=player.position-transform.position;toPlayer.y=0;
                     if(delta.magnitude<waypointTolerance){atNode=true;stopRemaining=node.pauseSeconds;}
-                    else if(toPlayer.magnitude<personalSpace && Vector3.Dot(delta.normalized,toPlayer.normalized)>.25f)
+                    else if(!TravelPaused && toPlayer.magnitude<personalSpace && Vector3.Dot(delta.normalized,toPlayer.normalized)>.25f)
                     {Waiting=true;Face(player.position,dt);}
-                    else
+                    else if(!TravelPaused)
                     {Face(node.transform.position,dt);requestedMove=Vector3.ClampMagnitude(delta,walkSpeed*dt);}
                 }
                 if(atNode)
                 {
                     bool photoHold=node==photoHoldNode;
-                    if(photoHold && photoLookBack){Face(player.position,dt*photoTurnSpeed/160f);CurrentMoment=Moment.Response;}
+                    if(photoHold && photoLookBack)
+                    {
+                        UpdateResponseHeading();
+                        transform.rotation=Quaternion.RotateTowards(transform.rotation,responseHeading,photoTurnSpeed*dt);
+                        CurrentMoment=Moment.Response;
+                    }
                     else
                     {
                         if(node.lookAt!=null)Face(node.lookAt.position,dt);
@@ -146,6 +203,7 @@ namespace MemoryWhitebox
                 }
             }
             else Face(player.position,dt);
+            TravelRequestedLastStep=requestedMove.sqrMagnitude>0;
             if(motor!=null && motor.enabled)
             {
                 var before=transform.position;
@@ -158,10 +216,11 @@ namespace MemoryWhitebox
                     motor.Move(requestedMove*(step/Mathf.Max(.0001f,dt))+Vector3.up*verticalSpeed*step);
                 }
                 var travelled=transform.position-before;travelled.y=0;
+                TravelDistanceLastStep=travelled.magnitude;
                 walking=travelled.sqrMagnitude>.000001f;
                 if(walking)CurrentMoment=Moment.Walking;
                 else if(requestedMove.sqrMagnitude>0)Waiting=true;
-                if(transform.position.y< -3)RestartWalk();
+                if(transform.position.y< -3){RecoverFromFall();walking=false;}
             }
             Animate(walking,dt);
             if(walking){stepTime-=dt;if(stepTime<=0){stepTime=.48f;if(footsteps!=null && footstep!=null)footsteps.PlayOneShot(footstep,.3f);}}else stepTime=0;
@@ -171,7 +230,7 @@ namespace MemoryWhitebox
             entranceShutterPose=Mathf.Max(0,entranceShutterPose-dt);
             var pose=photoHeadPivot!=null?photoHeadPivot:head;var rest=photoHeadPivot!=null?photoHeadHome:headHome;
             float yaw=0;
-            if(photoLookBack && player!=null){var local=transform.InverseTransformDirection(player.position-transform.position);yaw=Mathf.Clamp(Mathf.Atan2(local.x,local.z)*Mathf.Rad2Deg,-45,45);}
+            if(photoLookBack && player!=null){var local=transform.InverseTransformDirection(player.position-transform.position);float limit=photoOfferHand?15:25;yaw=Mathf.Clamp(Mathf.Atan2(local.x,local.z)*Mathf.Rad2Deg,-limit,limit);}
             if(pose!=null)
             {
                 var target=rest*(entranceShutterPose>0?Quaternion.Euler(0,12,-7):Quaternion.Euler(0,yaw,0));
@@ -199,7 +258,7 @@ namespace MemoryWhitebox
                 }
             }
             if(visual!=null)visual.localPosition=visualHome+Vector3.up*(walking?Mathf.Abs(Mathf.Sin(phase))*.025f:0);
-            if(hasSpeed && animator!=null)animator.SetFloat("Speed",walking?walkSpeed:0,.18f,Time.deltaTime);
+            if(hasSpeed && animator!=null)animator.SetFloat("Speed",walking?walkSpeed:0,.18f,dt);
         }
     }
 }

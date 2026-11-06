@@ -118,7 +118,15 @@ namespace MemoryWhitebox
 #endif
                 return false;
             }
-            if(deskStudy){var entry=StudyEntry.Pick(Room.Camera);if(entry==null || entry.chapter!=index)return false;EnterHouseStation(index);return true;}
+            if(deskStudy)
+            {
+                var ray=Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f));
+                var hit=StudyEntry.PickVisible(ray);
+                var entry=hit!=null?hit.GetComponentInParent<StudyEntry>():null;
+                bool tapeEntry=index==0 && radioDeck!=null && radioDeck.IsEntryHit(hit);
+                if(!tapeEntry && (entry==null || entry.chapter!=index))return false;
+                EnterHouseStation(index);return true;
+            }
             Vector3 delta=HouseLayout.Targets[index]-Room.Camera.transform.position;
             if(delta.magnitude>2.5f || Vector3.Dot(Room.Camera.transform.forward,delta.normalized)<.9f)return false;
             EnterHouseStation(index);return true;
@@ -181,7 +189,7 @@ namespace MemoryWhitebox
                 if(!story.RememberReturn(returnEye,returnRotation,returnFov))return false;
                 SuspendHouseInput();
                 ParkFilmRoute.RememberHouseView(returnEye,returnRotation,returnFov);
-                UnityEngine.SceneManagement.SceneManager.LoadScene(ParkFilmRoute.ParkScenePath);
+                BrushSceneTransition.LoadScene(ParkFilmRoute.ParkScenePath);
                 return true;
             }
             catch(System.Exception e)
@@ -309,9 +317,7 @@ namespace MemoryWhitebox
             if(!houseReady || Room==null || !houseFocused || loadingSpringRoom)return;
             FinishSpringBedroomIfReady();
             if(loadingSpringRoom)return;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if(PollDebugChapterKeys())return;
-#endif
             TickStoryProgress();
             RestoreHouseCursor();
             if(radioDeck!=null && radioDeck.SuccessPopupOpen){Room.StopMotion();return;}
@@ -350,6 +356,8 @@ namespace MemoryWhitebox
                     if(Input.GetKeyDown(KeyCode.E)){TryInspectStudyEntry();return;}
                     if(Input.GetMouseButtonDown(0))
                     {
+                        // Native box/tape colliders enter through the existing desk workflow.
+                        if(radioTarget){TryEnterHouseStation(0);return;}
                         var entry=StudyEntry.Pick(Room.Camera);
                         if(entry!=null)TryEnterHouseStation(entry.chapter);
                     }
@@ -427,7 +435,7 @@ namespace MemoryWhitebox
         {
             if(loadingSpringRoom)return;
             if(!houseReady || Room==null)return;
-            if(StoryFinished){var old=GUI.color;GUI.color=new Color(1,.98f,.91f,1);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=old;return;}
+            if(StoryFinished){DrawEndingPresentation();return;}
             if(DepartureRoom!=null && !ShowHelp)return;
             if(InStation && CurrentWorld is PaintingWorld3D album && album.ActWhite>0)
             {
@@ -445,7 +453,7 @@ namespace MemoryWhitebox
             if(DirectDarkroomActive)
             {
                 if(ShowHelp)InteractionUI.Label(new Rect(28,60,Screen.width-56,80),"Paused / Esc: resume\nWASD: move / RMB: look / LMB: interact",style);
-                else {DarkroomWorld.DrawProgress(style);if(!DarkroomWorld.ParkGalleryOpen)InteractionUI.Label(new Rect(28,20,Screen.width-56,30),"WASD  Move / RMB  Look / Esc  Cancel or pause",style);}
+                else {DarkroomWorld.DrawProgress(style);if(!DarkroomWorld.ParkGalleryOpen)InteractionUI.Label(new Rect(28,20,Screen.width-56,30),"WASD  Move / RMB  Look / RMB click  Cancel / Esc  Settings",style);}
                 return;
             }
             if(InStation && Time.unscaledTime<cameraRouteNoticeUntil)
@@ -479,7 +487,7 @@ namespace MemoryWhitebox
                 if(ChapterIndex==3 && Current is PaintingChapter winter && winter.Phase>=2)return;
                 if(ChapterIndex==0 && radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode))return;
                 if(ChapterIndex==0 && radioDeck!=null){radioDeck.DrawStation(style);if(ShowHelp){InteractionUI.Label(new Rect(32,140,Mathf.Min(826,Screen.width-64),170),CurrentWorld.Help,style);}}
-                InteractionUI.Label(new Rect(Screen.width-230,12,220,30),"Esc  Back",style);
+                InteractionUI.Label(new Rect(Screen.width-230,12,220,30),"RMB  Back",style);
                 if(awaitRelease && transition<=0)InteractionUI.Label(new Rect(20,70,600,40),"Release controls to continue",style);
                 if(ChapterIndex!=0)
                 {
@@ -494,11 +502,11 @@ namespace MemoryWhitebox
         }
         string OperationHint()
         {
-            if(Current.Completed)return "Complete  /  Esc  Back";
+            if(Current.Completed)return "Complete  /  RMB  Back";
             var writing=Current as WritingChapter;if(writing!=null)return writing.TaskHint;
             var album=CurrentWorld as PaintingWorld3D;if(album!=null)return album.Guidance;
             if(Current is EndingChapter)return "LMB  Open door / Walk through";
-            return "LMB  Interact  /  Esc  Back";
+            return "LMB  Interact  /  RMB  Back";
         }
     }
 }

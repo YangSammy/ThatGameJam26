@@ -12,7 +12,8 @@ namespace MemoryWhitebox
         [Header("Natural face-obscuring pose study (no material override)")]
         public bool useNaturalPrivacyPose;
         public Transform neckBone;
-        [Range(0,40)] public float privacyLookDown=30;
+        // Retained for serialized prefab compatibility; no longer drives head pitch.
+        [HideInInspector] public float privacyLookDown;
         [Range(-55,55)] public float privacyLookAway=-42;
         [Min(.1f)] public float privacyPoseSeconds=.6f;
         public float PrivacyPitch {get;private set;}
@@ -25,11 +26,11 @@ namespace MemoryWhitebox
         public float OfferWeight {get;private set;}
         public float OfferElapsed {get;private set;}
         public Vector3 PalmPosition=>palmContact!=null?palmContact.position:rightHand.position;
-        public Vector3 PalmNormal=>rightHand.right.y>=0?rightHand.right:-rightHand.right;
+        // This rig's palm faces local -X. Do not flip the reported normal based on
+        // world height: that would mistake a palm-down hand for a palm-up one.
+        public Vector3 PalmNormal=>-rightHand.right;
         Animator performanceAnimator;
-        ParkPhotoPrototype photography;
         bool hasOfferParameter,wasOffering;
-        float gripWeight;
         static readonly int offerParameter=Animator.StringToHash("OfferHand");
         Transform[] gripBones=new Transform[0];
         Quaternion[] gripBase,gripApplied;
@@ -54,7 +55,6 @@ namespace MemoryWhitebox
             performanceAnimator=GetComponentInChildren<Animator>();
             if(neckBone==null && headBone!=null)neckBone=headBone.parent;
             if(performanceAnimator!=null)foreach(var p in performanceAnimator.parameters)if(p.nameHash==offerParameter && p.type==AnimatorControllerParameterType.Bool)hasOfferParameter=true;
-            if(companion!=null && companion.player!=null)photography=companion.player.GetComponent<ParkPhotoPrototype>();
             var fingers=new System.Collections.Generic.List<Transform>();
             if(rightHand!=null)foreach(var bone in rightHand.GetComponentsInChildren<Transform>())
                 if(!bone.name.Contains("Thumb") && (bone.name.EndsWith("Proximal")||bone.name.EndsWith("Intermediate")||bone.name.EndsWith("Distal")))fingers.Add(bone);
@@ -65,21 +65,20 @@ namespace MemoryWhitebox
             if(companion==null)return;
             bool offering=companion.photoOfferHand;
             if(hasOfferParameter && offering!=wasOffering)performanceAnimator.SetBool(offerParameter,offering);
-            if(performanceAnimator!=null)performanceAnimator.speed=companion.Paused?0:1;
-            float dt=companion.Paused?0:Time.deltaTime;
+            if(performanceAnimator!=null)performanceAnimator.speed=companion.AnimationPaused?0:1;
+            if(companion.AnimationPaused)return;
+            float dt=Time.deltaTime;
             if(offering){if(!wasOffering)OfferElapsed=0;OfferElapsed+=dt;}
             else OfferElapsed=0;
             float target=offering?Mathf.SmoothStep(0,1,Mathf.InverseLerp(.65f,offerContactSeconds,OfferElapsed)):0;
             OfferWeight=offering?target:Mathf.MoveTowards(OfferWeight,0,dt/.3f);
-            gripWeight=Mathf.MoveTowards(gripWeight,photography!=null&&photography.HoldingPhotoHand?1:0,dt/.4f);
             float pitch=0,yaw=0;
             if(useNaturalPrivacyPose)
             {
                 // Keep the authored side/back reference pose neutral. Applying the
                 // response's side turn here exposed the face at the meadow anchor.
-                // After turning back, look down past the offered palm: the existing
-                // fringe and sunlight conceal the eyes without blurring the subject.
-                pitch=companion.photoLookBack?privacyLookDown+(offering?4:0)+gripWeight*2:8;
+                // Preserve the authored animation's head height. Do not add a bow
+                // when turning, offering the hand or completing the grip.
                 yaw=companion.photoLookBack?privacyLookAway+(offering?6:0):0;
                 if(companion.CurrentMoment==ParkCompanion.Moment.Walking){pitch*=.7f;yaw*=.5f;}
             }
@@ -96,6 +95,7 @@ namespace MemoryWhitebox
             if(headBone==null)return;
             if(hairHomes==null){hairHomes=new Quaternion[hairBones.Length];for(int i=0;i<hairBones.Length;i++)hairHomes[i]=hairBones[i].localRotation;}
             if(companion==null)return;
+            if(companion.AnimationPaused)return;
             // Shutter capture can request this a second time before LateUpdate. Don't compound offsets.
             if(applied && Quaternion.Angle(headBone.localRotation,headApplied)<.001f)headBone.localRotation=headBase;
             if(applied && Quaternion.Angle(rightUpperArm.localRotation,upperApplied)<.001f)rightUpperArm.localRotation=upperBase;
@@ -115,7 +115,7 @@ namespace MemoryWhitebox
                 float yaw=Mathf.DeltaAngle(0,delta.eulerAngles.y);
                 if(dynamicsFrame!=Time.frameCount)
                 {
-                    float dt=companion.Paused?0:Mathf.Min(Time.deltaTime,.1f);
+                    float dt=Mathf.Min(Time.deltaTime,.1f);
                     ShoulderYaw=Mathf.SmoothDampAngle(ShoulderYaw,yaw*shoulderFollow,ref shoulderVelocity,shoulderDelay,90,dt);
                     float movement=Mathf.Clamp(Mathf.DeltaAngle(lastHeadYaw,yaw)/Mathf.Max(.001f,dt)*-.035f,-3.5f,3.5f);
                     HairLag=Mathf.SmoothDamp(HairLag,movement,ref hairVelocity,hairDelay,35,dt);
@@ -151,8 +151,18 @@ namespace MemoryWhitebox
             for(int i=0;i<gripBones.Length;i++)
             {
                 gripBase[i]=gripBones[i].localRotation;
-                float curl=gripBones[i].name.EndsWith("Intermediate")?22:12;
-                gripBones[i].localRotation=gripBase[i]*Quaternion.AngleAxis(curl*gripWeight,Vector3.forward);
+                // She offers a relaxed open palm underneath the player's hand.
+                // Replace the clip's curled fingers during the offer, rather than
+                // adding another closing rotation when the player takes her hand.
+                var bone=gripBones[i];
+                if(bone.childCount>0 && OfferWeight>0)
+                {
+                    float curl=bone.name.EndsWith("Proximal")?4:bone.name.EndsWith("Intermediate")?10:16;
+                    float spread=bone.name.Contains("Index")?-.08f:bone.name.Contains("Pinky")?.10f:0;
+                    var direction=rightHand.up*Mathf.Cos(curl*Mathf.Deg2Rad)+PalmNormal*Mathf.Sin(curl*Mathf.Deg2Rad)+rightHand.forward*spread;
+                    var targetRotation=Quaternion.FromToRotation(bone.GetChild(0).position-bone.position,direction)*bone.rotation;
+                    bone.rotation=Quaternion.Slerp(bone.rotation,targetRotation,OfferWeight);
+                }
                 gripApplied[i]=gripBones[i].localRotation;
             }
             headApplied=headBone.localRotation;upperApplied=rightUpperArm.localRotation;lowerApplied=rightLowerArm.localRotation;applied=true;

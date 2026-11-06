@@ -7,9 +7,7 @@ namespace MemoryWhitebox
         TapeSfxBank photographySfxBank;
         TapeSfxPlayer photographySfx;
         bool photographySfxLoaded;
-        float leaderSfxLease,meterAdviceSettle;
-        int meterAdviceIso=-1;
-        bool meterAdviceIssued;
+        float leaderSfxLease;
         bool automaticFilmPanelPause,automaticShutterTail;
         float opticalShutterDeadline;
         AudioSource opticalShutterVoice;
@@ -44,7 +42,6 @@ namespace MemoryWhitebox
         {
             if(before==after)return;
             StopPhotographyLoops();
-            meterAdviceSettle=0;meterAdviceIssued=false;meterAdviceIso=-1;
             if(before==PhotographyMode.Exploration && after!=PhotographyMode.Exploration)PlayPhotographyCue(21);
         }
         void LeaderMovementSfx(Vector3 before,Vector3 after)
@@ -82,17 +79,6 @@ namespace MemoryWhitebox
                 foreach(var source in photographySfx.GetComponentsInChildren<AudioSource>())
                     if(source!=opticalShutterVoice)source.Stop();
         }
-        bool MeterAdviceBecameReady(float dt)
-        {
-            if(photoMode!=PhotographyMode.Meter)
-            {meterAdviceSettle=0;meterAdviceIssued=false;meterAdviceIso=-1;return false;}
-            if(meterAdviceIso!=meterIsoIndex)
-            {meterAdviceIso=meterIsoIndex;meterAdviceSettle=0;meterAdviceIssued=false;}
-            if(float.IsNaN(MeterEv100) || float.IsInfinity(MeterEv100))return false;
-            meterAdviceSettle+=Mathf.Max(0,dt);
-            if(meterAdviceIssued || meterAdviceSettle<.3f)return false;
-            meterAdviceIssued=true;return true;
-        }
         void TickPhotographySfx(float dt)
         {
             if(!CanPlayPhotographySfx)
@@ -105,7 +91,7 @@ namespace MemoryWhitebox
             leaderSfxLease=Mathf.Max(0,leaderSfxLease-Mathf.Max(0,dt));
             if(leaderSfxLease<=0 || dragPart!="leader" || photoMode!=PhotographyMode.Body)StopPhotographyLoops();
             // Do not begin advice while the input/presentation handoff is still settling.
-            if(!inputGate && MeterAdviceBecameReady(dt))PlayPhotographyCue(51);
+            // Target metering acknowledges an explicit measurement, not elapsed panel time.
         }
         bool StepFocusControl(float scroll)
         {

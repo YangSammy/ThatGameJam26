@@ -111,20 +111,30 @@ namespace MemoryWhitebox
             npcBox = Child(npc, "carried-box", new Vector3(0, .47f, -.20f), new Vector3(.36f, .3f, .27f), "#957957").transform;
             scarf = Child(memory, "memory-scarf", new Vector3(1.3f, .61f, 1.50f), new Vector3(.55f, .045f, .14f), "#b66054").transform;
             Child(scarf, null, new Vector3(.19f, -.18f, 0), new Vector3(.11f, .37f, .13f), "#ad5149");
-            door = new GameObject("hinged memory door").transform; door.SetParent(memory, false); door.localPosition = new Vector3(3.12f, 0, 3.09f);
+            door = new GameObject("hinged memory door").transform; door.SetParent(memory, false); door.localPosition = new Vector3(2.45f, 0, .10f);
             Child(door, "memory-door", new Vector3(0, 1.04f, -.48f), new Vector3(.075f, 2.08f, .94f), "#8b775f");
             handle = Child(door, "memory-handle", new Vector3(-.075f, 1.0f, -.78f), new Vector3(.16f, .045f, .04f), "#d5bc87").GetComponent<Renderer>();
-            memoryWindow = Child(memory, "memory-window", new Vector3(4.80f, 1.5f, 5.1f), new Vector3(1.6f, 1.55f, .04f), "#b6cac6").GetComponent<Renderer>();
-            Child(memory, null, new Vector3(4.8f, 1.5f, 5.04f), new Vector3(.07f, 1.65f, .08f), "#ddd5ba");
-            Child(memory, null, new Vector3(4.8f, 1.5f, 5.04f), new Vector3(1.65f, .06f, .08f), "#ddd5ba");
+            memoryWindow = Child(memory, "memory-window", new Vector3(3f, 1.65f, 5.20f), new Vector3(1.6f, 1.55f, .04f), "#b6cac6").GetComponent<Renderer>();
+            Child(memory, null, new Vector3(3f, 1.65f, 5.14f), new Vector3(.07f, 1.65f, .08f), "#ddd5ba");
+            Child(memory, null, new Vector3(3f, 1.65f, 5.14f), new Vector3(1.65f, .06f, .08f), "#ddd5ba");
             var lamp = new GameObject("Memory warmth follows the pen"); lamp.transform.SetParent(memory, false); lamp.transform.localPosition = new Vector3(3.6f, 3.9f, 1.5f);
-            memoryLight = lamp.AddComponent<Light>(); memoryLight.type = LightType.Point; memoryLight.range = 11; memoryLight.intensity = 1.6f; memoryLight.color = new Color(1, .85f, .64f); memoryLight.cullingMask = 1 << MemoryLayer;
+            memoryLight = lamp.AddComponent<Light>(); memoryLight.type = LightType.Directional; lamp.transform.localRotation=Quaternion.Euler(48,155,0); memoryLight.shadows=LightShadows.Soft; memoryLight.shadowCustomResolution=1024; memoryLight.shadowStrength=.72f; memoryLight.shadowBias=.035f; memoryLight.shadowNormalBias=.12f; memoryLight.range = 11; memoryLight.intensity = 1.2f; memoryLight.color = new Color(1, .93f, .81f); memoryLight.cullingMask = 1 << MemoryLayer;
+            memoryWindow.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
+            if(memoryWindow.sharedMaterial.HasProperty("_EmissionColor"))
+            {
+                memoryWindow.sharedMaterial.EnableKeyword("_EMISSION");
+                memoryWindow.sharedMaterial.SetColor("_EmissionColor",new Color(.32f,.39f,.43f));
+            }
+            var fillObject=new GameObject("Memory soft sky fill");fillObject.transform.SetParent(memory,false);
+            fillObject.transform.localRotation=Quaternion.Euler(65,-25,0);
+            var fill=fillObject.AddComponent<Light>();fill.type=LightType.Directional;fill.intensity=.65f;
+            fill.color=new Color(.78f,.86f,1);fill.shadows=LightShadows.None;fill.cullingMask=1<<MemoryLayer;
             SetLayer(memory, MemoryLayer);
             var cameraObject = new GameObject("Right memory perspective camera"); cameraObject.transform.SetParent(Root.transform, false);
             MemoryCamera = cameraObject.AddComponent<Camera>(); MemoryCamera.orthographic = false;
-            MemoryCamera.transform.position = World(memoryOffset + new Vector3(3.10f, 6.4f, -5.1f));
-            MemoryCamera.transform.LookAt(World(memoryOffset + new Vector3(3.05f, .45f, 2.5f)));
-            MemoryCamera.fieldOfView = 49; MemoryCamera.nearClipPlane = .05f; MemoryCamera.farClipPlane = 25;
+            MemoryCamera.transform.position = World(memoryOffset + new Vector3(3.0f, 9.5f, -5.8f));
+            MemoryCamera.transform.LookAt(World(memoryOffset + new Vector3(3f, .55f, 2.6f)));
+            MemoryCamera.fieldOfView = 46; MemoryCamera.nearClipPlane = .05f; MemoryCamera.farClipPlane = 25;
             MemoryCamera.clearFlags = CameraClearFlags.SolidColor; MemoryCamera.backgroundColor = new Color(.12f, .17f, .18f); MemoryCamera.cullingMask = 1 << MemoryLayer;
             MemoryCamera.depth = View != null ? View.depth + 1 : 1; MemoryCamera.rect = new Rect(.5f, 0, .5f, 1); MemoryCamera.enabled = false;
             BuildAutumnProps();BuildWritingVisuals();UpdateActors(.02f);
@@ -132,18 +142,10 @@ namespace MemoryWhitebox
 
         void BuildMemoryRoom()
         {
-            Child(memory, null, new Vector3(3, -.08f, 2.6f), new Vector3(6.15f, .16f, 5.3f), "#837e6d");
-            Child(memory, null, new Vector3(0, 1.2f, 2.65f), new Vector3(.13f, 2.4f, 5.3f), "#8e9687");
-            Child(memory, null, new Vector3(6.0f, 1.2f, 2.65f), new Vector3(.13f, 2.4f, 5.3f), "#778278");
-            Child(memory, null, new Vector3(3, 1.2f, 5.25f), new Vector3(6.2f, 2.4f, .13f), "#8c9486");
-            // The foreground return is low enough to see both people and a pointing hand.
-            Child(memory, null, new Vector3(3.12f, .38f, .99f), new Vector3(.14f, .76f, 2.12f), "#a5a28b");
-            Child(memory, null, new Vector3(3.12f, .94f, 4.26f), new Vector3(.14f, 1.88f, 2.35f), "#a5a28b");
-            Child(memory, null, new Vector3(3.12f, 2.20f, 2.56f), new Vector3(.14f, .24f, 1.06f), "#a5a28b");
-            // The wall stops above the doorway. The player must actually pass its opening.
-            for (int i = 1; i < 7; i++)
-                Child(memory, null, new Vector3(i * .85f, .008f, 2.6f), new Vector3(.012f, .008f, 5.2f), "#645f52");
-
+            visualAssets=WritingVisualAssets.Load();
+            if(visualAssets==null || visualAssets.memoryBedroom==null)
+                throw new System.InvalidOperationException("Memory bedroom prefab is not bound.");
+            CreateVisual(visualAssets.memoryBedroom,memory);
         }
 
         Transform Person(string id, string coat, bool small)
@@ -333,7 +335,7 @@ namespace MemoryWhitebox
             bool clockRunning=State.Started && phase=="collect";
             float remaining=State.Remaining;
             State.Tick(elapsed, input);
-            pickupIntent=input.Keys.Contains(KeyCode.E);
+            pickupIntent=input.Keys.Contains(KeyCode.E) || State.PickupPrepared;
             PlayWritingStateEdges(collected,phase,clockRunning,remaining);
             bool reachBlocked=input.Keys.Contains(KeyCode.E) && State.NearPickup && !State.InkFresh
                 && (State.Phase=="tutorial" || State.Phase=="collect");

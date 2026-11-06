@@ -33,7 +33,7 @@ namespace MemoryWhitebox.EditorTools
                 var grip=new FirstPersonArmRig.Pose{grip=1};
                 rig.Evaluate(grip,default(FirstPersonArmRig.Pose),0,true);
                 Check(Quaternion.Angle(l,leftFinger.localRotation)>5,"Left grab clip did not animate fingers");
-                Check(Quaternion.Angle(r,rightFinger.localRotation)<.1f,"Left grab contaminates right hand");
+                Check(Quaternion.Angle(r,rightFinger.localRotation)<.1f,"Left grab contaminates left hand");
                 rig.Evaluate(default(FirstPersonArmRig.Pose),grip,0,true);
                 Check(Quaternion.Angle(r,rightFinger.localRotation)>5,"Right grab clip did not animate fingers");
                 Check(Quaternion.Angle(l,leftFinger.localRotation)<.1f,"Right grab contaminates left hand");
@@ -75,9 +75,10 @@ namespace MemoryWhitebox.EditorTools
         static void CheckPark(UnityEngine.SceneManagement.Scene scene,FirstPersonArmRig rig)
         {
             var cursor=Cursor.lockState;bool visible=Cursor.visible;
+            ParkPhotoPrototype player=null;
             try
             {
-                var player=ObjectIn(scene,"TestPlayer").AddComponent<ParkPhotoPrototype>();
+                player=ObjectIn(scene,"TestPlayer").AddComponent<ParkPhotoPrototype>();
                 var camera=ObjectIn(scene,"TestCamera").AddComponent<Camera>();camera.transform.SetParent(player.transform,false);player.view=camera;
                 var hands=camera.gameObject.AddComponent<FirstPersonHands>();hands.park=player;hands.skeletalRig=rig;rig.transform.SetParent(camera.transform,false);
                 Set(player,"inputGate",false);
@@ -100,8 +101,14 @@ namespace MemoryWhitebox.EditorTools
                 var roll=new ParkFilmRoll{meadow=new BridgePhotoCheckpoint{handJoined=true,aligned=true}};
                 roll.frames.Add(new ParkPhotoRecord());roll.frames.Add(new ParkPhotoRecord());Set(player,"roll",roll);Set(player,"bridgeNode",node);
                 Check(player.HoldingPhotoHand,"Joined-hand fixture unavailable");
+                hands.Advance(1f/60);
+                Check(rig.animator.GetLayerWeight(1)<.05f,"Handhold must start open, not in the previous camera grip");
+                for(int frame=0;frame<60;frame++)hands.Advance(1f/60);
                 hands.PosePhotoHandForShutter();
-                Check(Vector3.Distance(rig.wrists[0].position,player.PhotoHandPosition)<.015f,"Shutter did not synchronously solve joined hand");
+                Check(Vector3.Distance(rig.wrists[0].position,player.PhotoHandPosition)<.015f,"Shutter did not synchronously solve joined left hand");
+                var skin=rig.GetComponentInChildren<SkinnedMeshRenderer>();
+                Check(skin.enabled && !skin.forceRenderingOff && skin.sharedMesh==Resources.Load<Mesh>("Player/FirstPersonLeftArm"),"Joined hand must show only existing left arm geometry");
+                Check(rig.animator.GetLayerWeight(1)>.6f && rig.animator.GetLayerWeight(1)<.8f && rig.animator.GetLayerWeight(3)==0,"Joined pose must softly grip with left hand only");
                 Render(scene,rig,"QA/PSXArms-shutter.png");
                 // Current scene fallback: chest 1.24m, eye 1.6m, camera 1.2m forward,
                 // offered contact .38m forward / .18m below chest. Keep those anchors unchanged.
@@ -112,13 +119,20 @@ namespace MemoryWhitebox.EditorTools
                 Check(Vector3.Distance(rig.wrists[0].position,player.PhotoHandPosition)<.015f,"Actual meadow fallback geometry exceeds configured reach: "+Vector3.Distance(rig.wrists[0].position,player.PhotoHandPosition)+" lean="+(rig.model.localPosition-rig.modelOffset));
                 Check((rig.model.localPosition-rig.modelOffset).magnitude<=rig.maximumBodyReach+.001f,"Body lean exceeds limit");
                 Render(scene,rig,"QA/PSXArms-meadow.png");
-                Callback(hands,"OnApplicationFocus",false);Check(rig.animator.GetLayerWeight(1)==0,"Focus loss retains grasp");
+                Callback(hands,"OnApplicationFocus",false);Check(skin.forceRenderingOff,"Focus loss leaves left hand visible");
                 Callback(hands,"OnApplicationFocus",true);Set(player,"inputGate",true);hands.Advance(1);
-                Check(rig.animator.GetLayerWeight(1)==0,"Handoff gate resumes stale joined-hand gesture");
+                hands.PosePhotoHandForShutter();Check(skin.forceRenderingOff,"Handoff gate leaves left hand visible");
                 Set(player,"inputGate",false);Callback(hands,"OnApplicationPause",true);hands.Advance(1);
-                Check(rig.animator.GetLayerWeight(1)==0,"Application pause resumes joined-hand gesture");Callback(hands,"OnApplicationPause",false);
+                Check(skin.forceRenderingOff,"Application pause leaves left hand visible");Callback(hands,"OnApplicationPause",false);
+                hands.PosePhotoHandForShutter();Check(!skin.forceRenderingOff,"Resume fails to restore joined left hand");
+                roll.meadow.handJoined=false;hands.Advance(1f/60);hands.PosePhotoHandForShutter();
+                Check(!skin.forceRenderingOff,"Release must keep only the left arm visible until withdrawn");
+                for(int frame=0;frame<60;frame++)hands.Advance(1f/60);
+                hands.PosePhotoHandForShutter();Check(skin.forceRenderingOff,"Withdrawn park hand remains visible");
+                Check(skin.sharedMesh!=Resources.Load<Mesh>("Player/FirstPersonLeftArm"),"Leaving park hand override must restore complete desk mesh");
+                Set(player,"roll",null);
             }
-            finally{Cursor.lockState=cursor;Cursor.visible=visible;}
+            finally{if(player!=null)Set(player,"roll",null);Cursor.lockState=cursor;Cursor.visible=visible;}
         }
         static void Render(UnityEngine.SceneManagement.Scene scene,FirstPersonArmRig rig,string path)
         {

@@ -1,4 +1,3 @@
-#if UNITY_EDITOR
 namespace MemoryWhitebox
 {
     public sealed partial class WritingWorld3D
@@ -15,4 +14,3 @@ namespace MemoryWhitebox
         }
     }
 }
-#endif

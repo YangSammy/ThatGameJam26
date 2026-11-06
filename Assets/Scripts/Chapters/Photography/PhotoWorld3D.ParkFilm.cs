@@ -68,6 +68,8 @@ namespace MemoryWhitebox
                 printObjectsState=d.printObjects ?? new DarkroomPrintState();printObjectsState.Validate();
                 if(d.printStage>ParkPrintStage.NegativeDrying || printObjectsState.negative.locationId!="print-negative-home")printObjectsState.negativeRemoved=true;
                 resumedDarkroom=active.darkroom!=null;
+                // Held input and landing animations are never persistent progress.
+                printHeld=false;FinishPrintLanding();
                 printStage=d.printStage;printRemaining=d.printRemaining;printProcessing=d.printProcessing;
                 if(printStage==ParkPrintStage.Exposing){printStage=ParkPrintStage.ContactReady;if(darkroomWorkflow<3)printRemaining=0;printProcessing=false;}
                 RewindTurns=d.rewindTurns;RewoundBackOpen=d.backOpen;
@@ -228,7 +230,7 @@ namespace MemoryWhitebox
             {
 
                 string hint=ProgressHint;
-                if(ParkPrintsReady && saveNotice=="")hint="Roll: " + parkFilm.Capacity + (DirectDarkroom?" frames developed / Click the print to view.":" frames developed  /  Esc  Back");
+                if(ParkPrintsReady && saveNotice=="")hint="Roll: " + parkFilm.Capacity + (DirectDarkroom?" frames developed / Click the print to view.":" frames developed  /  RMB  Back");
                 string text="Film  " + parkFilm.Capacity + " / " + parkFilm.Capacity + " frames\n"+hint;
                 float width=Mathf.Max(1,Screen.width-56);
                 float height=InteractionUI.Text().CalcHeight(new GUIContent(text),width);

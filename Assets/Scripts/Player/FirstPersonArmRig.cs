@@ -33,6 +33,9 @@ namespace MemoryWhitebox
             public float grip,push,contact;
             public bool directWristRotation;
             public float bodyReachLimit;
+            public bool overrideElbowDirection;
+            public Vector3 elbowDirection;
+            public bool alignForearmToPalm;
             public static Pose At(Vector3 position,Quaternion rotation,float grip=0,float push=0)
             {return new Pose{position=position,rotation=rotation,grip=grip,push=push,contact=1};}
             public static Pose AtWrist(Vector3 position,Quaternion rotation,float grip)
@@ -43,12 +46,27 @@ namespace MemoryWhitebox
         readonly Quaternion[] rotations={Quaternion.identity,Quaternion.identity};
         readonly Quaternion[] directRotations={Quaternion.identity,Quaternion.identity};
         readonly float[] directWeights=new float[2];
+        readonly float[] elbowDirectionWeights=new float[2];
+        readonly Vector3[] elbowDirections={Vector3.down,Vector3.down};
         static readonly int idle=Animator.StringToHash("Idle.Relax");
         static readonly int[] grabs={Animator.StringToHash("LeftGrab.Grab"),Animator.StringToHash("RightGrab.Grab")};
         static readonly int[] pushes={Animator.StringToHash("LeftPush.Push"),Animator.StringToHash("RightPush.Push")};
         float elapsed;
         Vector3 bodyReach;
         bool initialized;
+        [SerializeField,HideInInspector] SkinnedMeshRenderer visibilitySkin;
+        [SerializeField,HideInInspector] Mesh bothArmsMesh;
+        Mesh leftArmMesh;
+        public bool SetLeftArmOnly(bool leftOnly)
+        {
+            if(visibilitySkin==null)visibilitySkin=GetComponentInChildren<SkinnedMeshRenderer>(true);
+            if(visibilitySkin==null)return false;
+            if(bothArmsMesh==null)bothArmsMesh=visibilitySkin.sharedMesh;
+            if(leftOnly && leftArmMesh==null)leftArmMesh=Resources.Load<Mesh>("Player/FirstPersonLeftArm");
+            if(leftOnly && leftArmMesh==null)return false;
+            visibilitySkin.sharedMesh=leftOnly?leftArmMesh:bothArmsMesh;
+            return true;
+        }
         public bool Valid=>animator!=null && model!=null && animator.runtimeAnimatorController!=null &&
             upperArms.Length==2 && forearms.Length==2 && wrists.Length==2 &&
             upperArms[0]!=null && upperArms[1]!=null && forearms[0]!=null && forearms[1]!=null && wrists[0]!=null && wrists[1]!=null;
@@ -90,6 +108,22 @@ namespace MemoryWhitebox
             requested=Vector3.ClampMagnitude(transform.InverseTransformVector(requested),reachLimit);
             bodyReach=Vector3.Lerp(bodyReach,requested,immediate?1:1-Mathf.Exp(-dt/Mathf.Max(.01f,reachSeconds)*4));
             model.localPosition=modelOffset+bodyReach;
+            if(left.alignForearmToPalm)
+            {
+                // Build the arm backwards from the contact frame. The forearm shares
+                // the palm axis; the shoulder absorbs the reach instead of the wrist.
+                var wrist=left.position;
+                float lower=Vector3.Distance(forearms[0].position,wrists[0].position);
+                float upper=Vector3.Distance(upperArms[0].position,forearms[0].position);
+                var elbow=wrist-left.rotation*Vector3.up*lower;
+                var shoulder=elbow+transform.TransformDirection(new Vector3(-.25f,-.9f,-.36f).normalized)*upper;
+                model.position+=shoulder-upperArms[0].position;
+                upperArms[0].rotation=Quaternion.FromToRotation(forearms[0].position-upperArms[0].position,elbow-shoulder)*upperArms[0].rotation;
+                forearms[0].rotation=Quaternion.FromToRotation(wrists[0].position-forearms[0].position,wrist-elbow)*forearms[0].rotation;
+                wrists[0].rotation=left.rotation;
+                Solve(1);
+                return;
+            }
             Solve(0);Solve(1);
         }
         void Prepare(int side,Pose pose,float dt,bool immediate)
@@ -99,6 +133,8 @@ namespace MemoryWhitebox
             push[side]=Mathf.MoveTowards(push[side],Mathf.Clamp01(pose.push),step);
             contact[side]=Mathf.MoveTowards(contact[side],Mathf.Clamp01(pose.contact),step);
             directWeights[side]=Mathf.MoveTowards(directWeights[side],pose.directWristRotation?1:0,step);
+            elbowDirectionWeights[side]=Mathf.MoveTowards(elbowDirectionWeights[side],pose.overrideElbowDirection?1:0,step);
+            if(pose.overrideElbowDirection)elbowDirections[side]=pose.elbowDirection;
             if(pose.contact>0)
             {
                 float blend=immediate?1:1-Mathf.Exp(-dt/Mathf.Max(.01f,reachSeconds)*4);
@@ -131,7 +167,9 @@ namespace MemoryWhitebox
             var delta=target-a.position;
             float length=Mathf.Clamp(delta.magnitude,Mathf.Abs(upper-lower)+.001f,(upper+lower)*maximumExtension);
             var direction=delta.sqrMagnitude>.000001f?delta.normalized:transform.forward;
-            var pole=Vector3.ProjectOnPlane(transform.TransformPoint(elbowHints[side])-a.position,direction).normalized;
+            var hint=Vector3.Lerp((transform.TransformPoint(elbowHints[side])-a.position).normalized,
+                transform.TransformDirection(elbowDirections[side]).normalized,elbowDirectionWeights[side]);
+            var pole=Vector3.ProjectOnPlane(hint,direction).normalized;
             if(pole.sqrMagnitude<.001f)pole=Vector3.ProjectOnPlane(transform.up,direction).normalized;
             float along=(upper*upper-lower*lower+length*length)/(2*length);
             var elbow=a.position+direction*along+pole*Mathf.Sqrt(Mathf.Max(0,upper*upper-along*along));
@@ -144,9 +182,9 @@ namespace MemoryWhitebox
         public void ResetPose()
         {
             elapsed=0;bodyReach=Vector3.zero;
-            for(int i=0;i<2;i++){grip[i]=push[i]=contact[i]=directWeights[i]=0;targets[i]=Vector3.zero;rotations[i]=directRotations[i]=Quaternion.identity;}
+            for(int i=0;i<2;i++){grip[i]=push[i]=contact[i]=directWeights[i]=elbowDirectionWeights[i]=0;targets[i]=Vector3.zero;rotations[i]=directRotations[i]=Quaternion.identity;}
             if(initialized && Valid && gameObject.activeInHierarchy)Evaluate(default(Pose),default(Pose),0,true);
         }
-        void OnDisable(){ResetPose();initialized=false;}
+        void OnDisable(){SetLeftArmOnly(false);ResetPose();initialized=false;}
     }
 }

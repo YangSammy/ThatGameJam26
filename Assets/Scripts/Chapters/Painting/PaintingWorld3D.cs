@@ -100,9 +100,7 @@ namespace MemoryWhitebox
             if(State.Phase>=2)RefreshWard();
         }
         public override void CancelPointerGesture(){StopWinterMotion();winterPressPending=false;focusHeld=false;ResetObservationPointer();if(keyDragging){keyDragging=false;key.localPosition=keyHome;}State.CancelInput();
-#if UNITY_EDITOR
             editorWardWalk=false;
-#endif
         }
         public override void Deactivate()
         {
@@ -188,9 +186,7 @@ namespace MemoryWhitebox
         public override void Tick(float dt,WBInput input)
         {
             if(!built)return;
-#if UNITY_EDITOR
             if(editorWardWalk)input=editorWardInput;
-#endif
             if(actTransition>0){AdvanceActTransition(dt);return;}
             if(DoorPerformanceActive)
             {

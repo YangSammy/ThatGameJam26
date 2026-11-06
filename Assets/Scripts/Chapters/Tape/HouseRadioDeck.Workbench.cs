@@ -132,7 +132,8 @@ namespace MemoryWhitebox
         {
             if(radioFocused){FocusRadio(false);return;}
             if(preparationFocused){FocusPreparation(false);return;}
-            GamePauseMenu.Open();
+            if(house.InStation){house.ExitTapeDeskView();return;}
+            CloseWorkbench();CloseRecording();house.SuspendHouseInput();
         }
         bool Hit(Collider col,Ray ray){RaycastHit h;return col!=null && col.enabled && col.gameObject.activeInHierarchy && col.Raycast(ray,out h,20);}
         int TapeAt(Ray ray)
@@ -292,7 +293,7 @@ namespace MemoryWhitebox
         }
         string NextTapeTask()
         {
-            if(Chapter.Completed)return "All 3 copies saved. Esc back to the desk, then Esc to leave for summer.";
+            if(Chapter.Completed)return "All 3 copies saved. RMB back to the desk, then RMB to stand up.";
             if(Selected<0 && Chapter.RecordingTapeIndex>=0 && transport.RecordedSeconds>0)
                 return "Open the box. Drag the recorded B tape into its finished compartment; reload B to revise.";
             if(!Chapter.SourceLoaded)return "Open the box. Choose Original "+(CurrentCopy+1).ToString("00")+" into A.";
@@ -324,7 +325,7 @@ namespace MemoryWhitebox
             if(benchGesture==BenchGesture.MoveTape && BenchIndex>=0 && OverFinishedCompartment(view.ScreenPointToRay(Input.mousePosition),tapes[BenchIndex].root))
                 return FinishedTapeGate(BenchIndex)??"Release LMB · Return copy for checking";
             if(benchDrag.AtEdge)return "Keep on this work area / Release LMB to place";
-            if(benchDrag.Blocked)return "Path blocked — move around the obstacle / Esc Cancel";
+            if(benchDrag.Blocked)return "Path blocked — move around the obstacle / RMB Cancel";
             if(benchGesture==BenchGesture.MoveTape && PreparationDrop(view.ScreenPointToRay(Input.mousePosition)))return "Release LMB · Place on preparation mat";
             if(movingOriginal || benchGesture==BenchGesture.MoveTape)
             {var slot=movingOriginal?sourceSlot:slotHit;return TapeDropHint(slot,view.ScreenPointToRay(Input.mousePosition),benchDrag);}
@@ -353,7 +354,7 @@ namespace MemoryWhitebox
                 GUI.Label(new Rect(24,24,Mathf.Min(440,Screen.width-160),48),NextTapeTask(),style);
                 var exit=new GUIStyle(style){alignment=TextAnchor.UpperRight,fontSize=13};
                 exit.normal.textColor=new Color(.7f,.72f,.7f);
-                GUI.Label(new Rect(Screen.width-224,24,200,24),"E  Inspect   /   Esc  Back",exit);
+                GUI.Label(new Rect(Screen.width-224,24,200,24),"E  Inspect   /   RMB  Back",exit);
             }
         }
         bool DirectTaskNearby()=>StationActive && Vector3.Distance(view.transform.position,transform.position)<2.5f;

@@ -313,7 +313,7 @@ namespace MemoryWhitebox
             }
         }
 
-        public override string Help => "LMB drag  Tape to slot / Release outside  Return\nE  Inspect / Seal both holes on the mat\nEsc / RMB  Cancel drag";
+        public override string Help => "LMB drag  Tape to slot / Release outside  Return\nE  Inspect / Seal both holes on the mat\nRMB  Cancel drag / Esc  Settings";
         public override void Draw(){}
         public void VerifyPlayback(){} // Loading alone no longer completes the chapter.
 

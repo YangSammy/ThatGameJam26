@@ -38,6 +38,15 @@ namespace MemoryWhitebox
             frameOpenProgress=Mathf.MoveTowards(frameOpenProgress,frameOpenTarget,Time.deltaTime/.45f);
             ApplyContactFramePose();
         }
+        // Hanging meshes extend along local -Y. Gravity stays vertical even when
+        // an authored hanger/parent is pitched or rolled while arranging the room.
+        public static Quaternion HangingRotation(Transform holder)
+        {
+            var forward=Vector3.ProjectOnPlane(holder.forward,Vector3.up);
+            if(forward.sqrMagnitude<.0001f)
+                forward=Vector3.Cross(Vector3.ProjectOnPlane(holder.right,Vector3.up),Vector3.up);
+            return Quaternion.LookRotation(forward.normalized,Vector3.up);
+        }
         public Transform ModelRoot(string id) { foreach(var m in models) if(m.id==id) return m.root.transform; return null; }
         public static Transform Node(Transform root,string name)
         { if(root==null)return null;foreach(var t in root.GetComponentsInChildren<Transform>(true))if(t.name==name)return t;return null; }

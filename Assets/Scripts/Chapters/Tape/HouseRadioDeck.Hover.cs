@@ -99,6 +99,7 @@ namespace MemoryWhitebox
         {
             ClearTapeHover();outline.Dispose();dropOutline.Dispose();
             if(holeInk)Destroy(holeInk);
+            if(taskHoleInk)Destroy(taskHoleInk);
         }
     }
 }

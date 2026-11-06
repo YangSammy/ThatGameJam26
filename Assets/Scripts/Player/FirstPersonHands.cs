@@ -25,12 +25,11 @@ namespace MemoryWhitebox
         }
         readonly Dictionary<int,Set> sets=new Dictionary<int,Set>();
         readonly List<Renderer> hidden=new List<Renderer>();
-        bool parkMeshesHidden;
         WBMain house;
         Transform rig;
         public int VisibleSet {get;private set;}=-1;
         public Transform RigRoot => rig;
-        public void BindHouse(WBMain host){house=host;}
+        public void BindHouse(WBMain host){house=host;ApplyDeskHandVisibility();}
         public void Register(int index,WorldChapter3D world)
         {
             if(sets.TryGetValue(index,out var existing))
@@ -85,12 +84,11 @@ namespace MemoryWhitebox
         void Hide(Transform source)
         {
             if(source==null)return;
-            foreach(var r in source.GetComponentsInChildren<Renderer>(true)){r.forceRenderingOff=true;hidden.Add(r);}
+            foreach(var r in source.GetComponentsInChildren<Renderer>(true)){r.forceRenderingOff=true;if(!hidden.Contains(r))hidden.Add(r);}
         }
         void HideParkHandMeshes()
         {
-            if(park==null || parkMeshesHidden)return;
-            parkMeshesHidden=true;
+            if(park==null)return;
             // Keep poses and contact targets alive; instruments share HandLayer and must remain visible.
             if(skeletalRig!=null)Hide(skeletalRig.transform);
             foreach(var hand in authoredHands)Hide(hand);
@@ -104,31 +102,54 @@ namespace MemoryWhitebox
         {
             ApplyDeskHandVisibility();
             if(GamePauseMenu.BlocksGameplay)return;
-            Advance(Time.unscaledDeltaTime);
+            Advance(Time.deltaTime);
             ApplyDeskHandVisibility();
             UpdateClothingSound();
         }
 
-        Renderer[] deskHandRenderers;
+        [SerializeField,HideInInspector] List<Renderer> handVisibilityRenderers=new List<Renderer>();
+        [SerializeField,HideInInspector] List<bool> handVisibilityEnabled=new List<bool>();
+        void SetHandMeshVisibility(Transform target,bool visible)
+        {
+            if(!target)return;
+            foreach(var r in target.GetComponentsInChildren<Renderer>(true))
+            {
+                int index=handVisibilityRenderers.IndexOf(r);
+                if(index<0){index=handVisibilityRenderers.Count;handVisibilityRenderers.Add(r);handVisibilityEnabled.Add(r.enabled);}
+                r.forceRenderingOff=!visible;
+                r.enabled=visible && handVisibilityEnabled[index];
+            }
+        }
+        void OnPreCull(){ApplyDeskHandVisibility();}
+
+        internal static bool DeskHandsAllowed(InputContextId context,bool parkScene,bool active,bool blocked)
+        {
+            return !parkScene && active && !blocked && (context==InputContextId.TapeWorkbench || context==InputContextId.TapeTransport || context==InputContextId.AutumnWriting || context==InputContextId.WinterBook);
+        }
         void ApplyDeskHandVisibility()
         {
             bool visible=false;
-            if(park==null && house!=null && !(house.safeInspection!=null && house.safeInspection.BlocksInput))
-            {
-                var context=house.InputContext.Current;
-                visible=context==InputContextId.TapeWorkbench || context==InputContextId.TapeTransport ||
-                    context==InputContextId.AutumnWriting || context==InputContextId.WinterBook;
-            }
+            if(house!=null)
+                visible=DeskHandsAllowed(house.InputContext.Current,park!=null,isActiveAndEnabled && house.isActiveAndEnabled,
+                    !handFocused || handPaused || GamePauseMenu.BlocksGameplay || house.AwaitingHouseRelease ||
+                    house.ControlState==PlayerControlState.Transition || house.ControlState==PlayerControlState.Paused ||
+                    (house.safeInspection!=null && house.safeInspection.BlocksInput));
             // Keep animation targets and the camera's instruments alive; only hide hand meshes.
+            bool joinedLeft=park!=null && isActiveAndEnabled && park.isActiveAndEnabled && handFocused && !handPaused &&
+                !GamePauseMenu.BlocksGameplay && (!park.HandPresentationBlocked || HandholdAutomaticRelease) && (skeletalRig!=null?HandholdVisible:park.HoldingPhotoHand) &&
+                (park.PhotoMode==ParkPhotoPrototype.PhotographyMode.Viewfinder || park.PhotoMode==ParkPhotoPrototype.PhotographyMode.Exploration);
             if(skeletalRig!=null)
             {
-                if(deskHandRenderers==null)deskHandRenderers=skeletalRig.GetComponentsInChildren<Renderer>(true);
-                foreach(var r in deskHandRenderers)if(r)r.forceRenderingOff=!visible;
+                bool ready=skeletalRig.SetLeftArmOnly(joinedLeft);
+                SetHandMeshVisibility(skeletalRig.transform,visible || (joinedLeft && ready));
             }
-            else foreach(var pair in sets)
+            // Legacy hands can coexist with the skeletal rig; never leave them outside the policy.
+            for(int i=0;i<authoredHands.Length;i++)SetHandMeshVisibility(authoredHands[i],skeletalRig==null && ((visible && park==null) || (joinedLeft && i==0)));
+            for(int i=0;i<parkArms.Length;i++)SetHandMeshVisibility(parkArms[i],skeletalRig==null && joinedLeft && i==0);
+            foreach(var pair in sets)
             {
-                foreach(var t in pair.Value.visuals)if(t)foreach(var r in t.GetComponentsInChildren<Renderer>(true))r.forceRenderingOff=!visible;
-                foreach(var t in pair.Value.arms)if(t)foreach(var r in t.GetComponentsInChildren<Renderer>(true))r.forceRenderingOff=!visible;
+                foreach(var t in pair.Value.visuals)SetHandMeshVisibility(t,visible && skeletalRig==null);
+                foreach(var t in pair.Value.arms)SetHandMeshVisibility(t,visible && skeletalRig==null);
             }
             if(!visible)VisibleSet=-1;
         }
@@ -251,7 +272,7 @@ namespace MemoryWhitebox
                 arm.localScale=new Vector3(.085f,Vector3.Distance(shoulder,wrist)*.5f,.085f);
             }
         }
-        void OnDestroy(){foreach(var r in hidden)if(r!=null)r.forceRenderingOff=false;}
-        public void PosePhotoHandForShutter(){HideParkHandMeshes();if(park!=null && park.HoldingPhotoHand){if(skeletalRig!=null)AdvanceSkeletal(0,true);else AdvancePark(1);}}
+        void OnDestroy(){foreach(var r in hidden)if(r!=null)r.forceRenderingOff=true;}
+        public void PosePhotoHandForShutter(){HideParkHandMeshes();if(park!=null && (park.HoldingPhotoHand || HandholdVisible)){if(skeletalRig!=null)AdvanceSkeletal(0);else AdvancePark(1);}ApplyDeskHandVisibility();}
     }
 }
