@@ -105,9 +105,19 @@ namespace MemoryWhitebox
         {
             if(PhysicalPrinting && printObjectsState!=null && printDrag==null && !printProcessing)
             {
+                // Tray rims/liquid can be hit before the thin paper surface.
+                // Only the occupied tray becomes a pickup area, after processing.
+                string paperLocation=printObjectsState.paper.locationId;
+                if(printStage>=ParkPrintStage.PaperDeveloper && printStage<=ParkPrintStage.PaperDrying &&
+                    id==paperLocation && (id=="print-developer" || id=="print-stop" || id=="print-fixer" || id=="print-wash"))return "print-paper";
                 bool readyToClose=(printStage==ParkPrintStage.ContactReady || printStage==ParkPrintStage.Exposing)
                     && printObjectsState.paper.locationId=="print-frame" && printObjectsState.negative.locationId=="print-frame";
                 bool readyToOpen=printStage==ParkPrintStage.PaperDeveloper && printObjectsState.frameClosed;
+                // Once exposed, the frame surface is the paper pickup area, not a
+                // second close command. The raised plate must not trap the paper.
+                if(printStage==ParkPrintStage.PaperDeveloper && !printObjectsState.frameClosed &&
+                    printObjectsState.paper.locationId=="print-frame" &&
+                    (id=="print-frame" || id=="print-frame-lid" || id=="print-negative"))return "print-paper";
                 if((readyToClose || readyToOpen) && (id=="print-frame" || id=="print-frame-lid" ||
                     (id=="print-paper" && printObjectsState.paper.locationId=="print-frame") ||
                     (id=="print-negative" && printObjectsState.negative.locationId=="print-frame")))return "print-frame-lid";
@@ -132,7 +142,7 @@ namespace MemoryWhitebox
                 {
                     bool before=printObjectsState.frameClosed;
                     if(printObjectsState.frameClosed)printObjectsState.frameClosed=false;
-                    else if(printObjectsState.negative.locationId=="print-frame" && printObjectsState.paper.locationId=="print-frame")printObjectsState.frameClosed=true;
+                    else if(printStage<ParkPrintStage.PaperDeveloper && printObjectsState.negative.locationId=="print-frame" && printObjectsState.paper.locationId=="print-frame")printObjectsState.frameClosed=true;
                     else DarkroomNotice("Place paper and negative in the frame first.");
                     if(before!=printObjectsState.frameClosed)PhotographySound(231,"print-frame-lid");
                     SaveProgress();SyncPhysicalPrint();
@@ -149,8 +159,11 @@ namespace MemoryWhitebox
             string location=negative?printObjectsState.negative.locationId:printObjectsState.paper.locationId;
             if(location=="print-frame" && printObjectsState.frameClosed){DarkroomNotice("Open the contact frame first.");return true;}
             printDrag=id;var item=Nodes[id].transform;
-            Transform container=location=="print-frame"?Nodes["print-frame"].transform:
-                negative && printStage==ParkPrintStage.NegativeDrying?Nodes["tank"].transform:null;
+            Transform container=null;
+            if(location=="print-frame" || location=="print-negative-clip" || location=="print-photo-clip" ||
+                location=="print-developer" || location=="print-stop" || location=="print-fixer" || location=="print-wash")
+                container=Nodes[location].transform;
+            else if(negative && printStage==ParkPrintStage.NegativeDrying)container=Nodes["tank"].transform;
             objectDrag.Begin(item,ray,Vector3.up,.025f,1.8f,true,container);
             SetColliders(item.gameObject,false);return true;
         }
@@ -166,6 +179,9 @@ namespace MemoryWhitebox
         {
             if(printDrag==null)return false;
             if(!PrintInput){CancelPhysicalPrint();return true;}
+            // Mouse-up can arrive at a different point from the last held frame.
+            // Refresh both the receiver preview and its collision result.
+            MoveDarkroomDrag(ray);
             string item=printDrag;
             string expected=item=="print-negative"?(printStage==ParkPrintStage.NegativeDrying?"print-negative-clip":"print-frame"):
                 printStage==ParkPrintStage.ContactReady?"print-frame":printStage==ParkPrintStage.PaperDeveloper?"print-developer":

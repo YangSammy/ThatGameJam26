@@ -135,7 +135,7 @@ namespace MemoryWhitebox
         {
             lock(sync)
             {
-                if(source==null || SaveError!=""){Array.Clear(output,0,output.Length);return;}
+                if(GamePauseMenu.Active || source==null || SaveError!=""){Array.Clear(output,0,output.Length);return;}
                 for(int i=0;i<output.Length;i+=channels)
                 {
                     float input=a<source.Length?source[a]:0;

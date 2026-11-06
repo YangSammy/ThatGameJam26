@@ -17,6 +17,8 @@ namespace MemoryWhitebox
             // Exploration/viewfinder retain mouse-look and the existing edge gestures.
             InputContext.Select(id,cursor,CameraRaising || !PreciseInstrumentPointer);
         }
+        public bool SaveForPauseMenu()=>!HasPendingExposure && SavePhotoSettings();
+        public void ResumeFromPauseMenu(){inputGate=true;handoff.Arm();SyncParkInput();InputContext.Handoff();}
         bool CancelParkGesture()
         {
             if(dragPart==null)return false;
@@ -28,7 +30,7 @@ namespace MemoryWhitebox
             {
                 if(Paused)Resume();
                 else if(photoMode!=PhotographyMode.Exploration)SetPhotographyMode(PhotographyMode.Exploration);
-                else PauseControls();
+                else GamePauseMenu.Open();
             });
         }
     }

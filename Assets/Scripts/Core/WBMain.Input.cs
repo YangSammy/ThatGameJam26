@@ -31,13 +31,14 @@ namespace MemoryWhitebox
             {
                 if(!DarkroomWorld.HasActiveGesture)return false;
                 DarkroomWorld.CancelInteraction();DarkroomWorld.SaveProgress();SuspendHouseInput();return true;
-            },()=>SetHelpVisible(true));
+            },GamePauseMenu.Open);
             if(id==InputContextId.Station || id==InputContextId.AutumnWriting || id==InputContextId.WinterObserve || id==InputContextId.WinterBook || id==InputContextId.WardWalk)return InputContext.ExitPressed(id,()=>
             {
                 if(CurrentWorld==null || !CurrentWorld.HasPointerGesture)return false;
                 CurrentWorld.CancelPointerGesture();InputState.Down=false;SuspendHouseInput();return true;
-            },ExitHouseStation);
+            },GamePauseMenu.Open);
             if(id==InputContextId.Exploration && DirectTapeHandling)return InputContext.ExitPressed(id,null,()=>{radioDeck.PutBack();SyncTapePointer();SuspendHouseInput();});
+            if(id==InputContextId.Exploration)return InputContext.ExitPressed(id,null,GamePauseMenu.Open);
             return false;
         }
     }

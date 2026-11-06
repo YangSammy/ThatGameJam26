@@ -114,6 +114,7 @@ namespace MemoryWhitebox
         }
         void Update()
         {
+            if(GamePauseMenu.BlocksGameplay)return;
             if(!initialized)return;
             if(!StationActive || waitingForRelease || !focused || (house!=null && house.ShowHelp) || (house!=null && house.safeInspection!=null && house.safeInspection.BlocksInput))return;
             if(dualDeck==null && State==Phase.Loading && animator.GetCurrentAnimatorStateInfo(0).IsName("PlaybackLoop"))
@@ -127,6 +128,7 @@ namespace MemoryWhitebox
         }
         void LateUpdate()
         {
+            if(GamePauseMenu.BlocksGameplay)return;
             if(initialized){TickWorkbenchAssets(Time.unscaledDeltaTime);TickSfx();}
             if(dualDeck!=null){TickDualDeck();FocusLoadedRadio();if(State==Phase.Returning)AdvanceReturn(Time.unscaledDeltaTime);else if(State==Phase.Dragging&&view!=null)PoseDraggedTape(Time.unscaledDeltaTime);return;}
             if(RecordingMode)return;

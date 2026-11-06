@@ -44,6 +44,14 @@ namespace MemoryWhitebox.EditorTools
             for(int y=0;y<7;y++)for(int x=0;x<7;x++)
             {var p=bounds.center+new Vector3((x/6f-.5f)*bounds.size.x,(y/6f-.5f)*bounds.size.y,-bounds.extents.z);if(w.Pick(new Ray(w.View.transform.position,p-w.View.transform.position))=="shape-pendant")visible++;}
             Check(visible>=5,"Pendant exposed region too small or occluded.");notes.Add("PASS exposed pendant hit samples="+visible+"/49 from the fixed room eye.");
+            // Exercise the actual observation path, not just an injected discovered flag.
+            var clueRay=new Ray(w.View.transform.position,bounds.center-w.View.transform.position);
+            string clue=w.Pick(clueRay);Check(clue=="shape-pendant","Exposed centre cannot be focused.");
+            w.Press(clue,clueRay,0);w.Move(clueRay);
+            for(int i=0;i<80;i++)w.Tick(.02f,default(WBInput));
+            w.Release(clue,clueRay);
+            Check(w.State.Painted[4] && !w.State.KeyInserted && !layout.observedPendant.gameObject.activeSelf,"Focus did not transfer unique pendant ownership.");
+            notes.Add("PASS production focus hold discovers the pendant without opening the door.");
             Stage(true,true);Check(!layout.observedPendant.gameObject.activeSelf && key.gameObject.activeSelf,"Duplicate discovered pendant.");
             var near=w.State.Actor;w.State.Actor=new Vector2(10.8f,3.2f);Call(w,"RestoreDoorView");Check(Mathf.Abs(camera.orthographicSize-5.2f)<.001f,"Wide view missing.");
             var keyBefore=key.position;var scale=key.lossyScale;w.State.Actor=near;Call(w,"TickDoorView",.375f);

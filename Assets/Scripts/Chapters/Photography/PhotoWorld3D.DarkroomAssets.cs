@@ -35,8 +35,7 @@ namespace MemoryWhitebox
                 v.FitPartHit(Nodes[id].GetComponent<BoxCollider>(),id,"Body_Mesh");
             }
             bool closed=printObjectsState!=null && printObjectsState.frameClosed;
-            v.Sample("print-frame","C07_LatchOpen",closed?0:1);v.Sample("print-frame","C07_PlateOpen",closed?0:1);
-            v.FitPartHit(framePlateHit,"print-frame","PressurePlate_Mesh");
+            v.SetContactFrameClosed(closed,framePlateHit);
             v.Sample("print-exposure",printHeld?"C08_Held":"C08_Release");
             bool washing=printStage==ParkPrintStage.PaperWash && printProcessing;
             v.Sample("print-wash",washing?"C10_WashTray_WaterOn":"C10_WashTray_WaterOff");

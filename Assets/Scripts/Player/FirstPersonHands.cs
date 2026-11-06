@@ -102,6 +102,7 @@ namespace MemoryWhitebox
 
         void LateUpdate()
         {
+            if(GamePauseMenu.BlocksGameplay)return;
             Advance(Time.unscaledDeltaTime);
             UpdateClothingSound();
         }

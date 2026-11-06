@@ -173,7 +173,7 @@ namespace MemoryWhitebox
         {
             if(!Printing || !printProcessing || (PhysicalPrinting && printObjects==null) || (printStage==ParkPrintStage.Exposing && !printHeld))return;
             printRemaining=Mathf.Max(0,printRemaining-Mathf.Max(0,dt));
-            clockHand.localRotation=clockHomeRotation*Quaternion.Euler(0,0,-printRemaining*120);
+            if(clockHand!=null)clockHand.localRotation=clockHomeRotation*Quaternion.Euler(0,0,-printRemaining*120);
             if(printRemaining>0)return;
             printProcessing=false;
             if(printStage==ParkPrintStage.NegativeDrying)printStage=ParkPrintStage.ContactReady;

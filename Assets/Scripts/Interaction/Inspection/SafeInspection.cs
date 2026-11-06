@@ -250,7 +250,7 @@ namespace MemoryWhitebox
                 }
             }
         }
-        void LateUpdate(){if(Active)Advance(Time.unscaledDeltaTime);}
+        void LateUpdate(){if(Active && !GamePauseMenu.BlocksGameplay)Advance(Time.unscaledDeltaTime);}
         public void Advance(float dt)
         {
             if(!Active)return;

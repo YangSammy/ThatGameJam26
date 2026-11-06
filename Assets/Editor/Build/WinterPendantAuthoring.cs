@@ -21,6 +21,20 @@ namespace MemoryWhitebox.EditorTools
         {
             var t=new GameObject(name).transform;t.SetParent(parent,false);t.localPosition=position;t.gameObject.layer=parent.gameObject.layer;return t;
         }
+        static Material DoorWood()
+        {
+            var path=Folder+"/DoorWood.mat";
+            var material=AssetDatabase.LoadAssetAtPath<Material>(path);
+            if(material==null)
+            {
+                material=new Material(AssetDatabase.LoadAssetAtPath<Material>("Assets/Art/Props/AlbumWinterE/Materials/M_E_Wood.mat"));
+                AssetDatabase.CreateAsset(material,path);
+            }
+            material.EnableKeyword("_EMISSION");
+            material.SetTexture("_EmissionMap",material.mainTexture);
+            material.SetColor("_EmissionColor",new Color(.65f,.65f,.65f));
+            EditorUtility.SetDirty(material);return material;
+        }
         static Transform Panel(Transform parent,string name,Vector3 p,Vector3 size,Material material)
         {
             var go=GameObject.CreatePrimitive(PrimitiveType.Cube);go.name=name;go.layer=parent.gameObject.layer;
@@ -40,7 +54,8 @@ namespace MemoryWhitebox.EditorTools
             var seam=Ink("PocketSeam",new Color(.37f,.35f,.28f));
             var metal=Ink("PendantMetal",new Color(.52f,.46f,.29f));
             var enamel=Ink("PendantEnamel",new Color(.25f,.43f,.36f));
-            var face=Ink("DoorFace",new Color(.33f,.37f,.34f));
+            var face=Ink("DoorRecess",new Color(.045f,.052f,.048f));
+            var wood=DoorWood();
             var frame=Ink("DoorFrame",new Color(.48f,.44f,.34f));
             var pocket=Node(w.observedSuitcase,"PendantPocket",new Vector3(.10f,.30f,-.155f));
             Panel(pocket,"InnerLining",new Vector3(0,.025f,.008f),new Vector3(.32f,.21f,.014f),lining);
@@ -66,7 +81,11 @@ namespace MemoryWhitebox.EditorTools
             foreach(var r in w.door.GetComponentsInChildren<Renderer>(true))
             {
                 if(r.transform.IsChildOf(embedded))r.sharedMaterial=r.name.Contains("PendantBody")?enamel:metal;
-                else if(r.name=="DoorHinge_Mesh")r.sharedMaterial=face;
+                else if(r.name=="DoorHinge_Mesh")
+                {
+                    // E07 slot zero is the carved cavity, slot one is the wooden face.
+                    var materials=r.sharedMaterials;materials[0]=face;materials[1]=wood;r.sharedMaterials=materials;
+                }
                 else if(r.name=="DoorFrame_Mesh")r.sharedMaterial=frame;
             }
             w.door.SetDoorState(1,0,0,true);

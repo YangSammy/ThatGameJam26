@@ -132,8 +132,7 @@ namespace MemoryWhitebox
         {
             if(radioFocused){FocusRadio(false);return;}
             if(preparationFocused){FocusPreparation(false);return;}
-            if(house!=null && house.tapeDeskView && house.InStation && house.ChapterIndex==0)house.ExitTapeDeskView();
-            else {CloseWorkbench();CloseRecording();}
+            GamePauseMenu.Open();
         }
         bool Hit(Collider col,Ray ray){RaycastHit h;return col!=null && col.enabled && col.gameObject.activeInHierarchy && col.Raycast(ray,out h,20);}
         int TapeAt(Ray ray)

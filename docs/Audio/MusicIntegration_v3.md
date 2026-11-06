@@ -54,3 +54,13 @@ Unity 2022.3.62f3 实际导入并编译，GameScore 配置引用可读。Play Mo
 AudioIntegrationValidation 对三份委托生成 PCM 并检查干净结果、现/旧录音源和对应验收、拒绝未知哈希；前两盘也检查无哈希 v1 的原始音源。生日带另逐采样验证没有重复插入杂音。记录在 output/QA/MusicBinding。
 
 本轮未构建独立包，未逐一实操触发桥边回应、送别尾、开门收尾和结局主题，也未对所有曲目做主观混音与无缝循环验收。
+
+## 2026-11-06：四季窗边环境声
+
+四季卧室的 SFX-002 已改为从各自 `Audio/WindowAmbience` 播放的空间环境声。节点真实保存于 Bedroom_Spring / Summer / Autumn / Winter，位于各季两块窗玻璃的中心，不改家具或操作定位。`BedroomWindowAmbience` 的 Near Distance=1.25 m、Far Distance=7 m，线性衰减、全 3D、Spread=120、Doppler=0。移动节点可调整声源位置；调整两个距离可改变近窗清晰区及远处淡出范围。峰值音量继续由 `Assets/Resources/GameAmbience.asset` 的 Season Volume 控制（0.22）。
+
+GameAmbience 继续管理原有两路换季渐变，不另建一套播放器。BGM 和 SFX-001 室内底噪维持 2D；公园仍使用原有 2D 户外循环。第五天抑制普通春季循环，继续播放既有 `Spring_Departure/Window_Thaw/Melting_eaves`，其原有空间参数不变。缺失/禁用窗边定位点时淡出四季循环，不从世界原点或全局泄漏播放；场景加载/卸载刷新缓存引用，运行时不搜索窗户名称。
+
+验证：四季场景定位及引用已检查；Unity 编译无错误。实际 HouseScene Play Mode 中春季窗声在窗边播放，BGM/001 保持 2D；脚本调用生产路由检查通过定位失效淡出、重新启用、四季片段选择、缺少相应场景时不误用春季窗口、公园 2D、第五天抑制普通春声。最后 Console 错误为 0；已有 ScreenSpaceReflection shader 警告未修改。未做真实走动/耳机主观试听或新包测试。测试前四个存档文件已按 SHA256 完整恢复，编辑器恢复干净的春季场景。证据与场景备份：`output/QA/WindowAmbience_20261106/`。
+
+人工试听：每季从门口走向窗边再退回，窗外声应平滑增减而音乐与底噪不随距离变化；停留窗边确认循环不重复启动；切季、暂停恢复和往返公园后不叠加；第五天确认没有两层春季窗声。

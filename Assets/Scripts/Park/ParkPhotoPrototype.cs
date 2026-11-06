@@ -166,6 +166,7 @@ namespace MemoryWhitebox
         }
         void Update()
         {
+            if(GamePauseMenu.BlocksGameplay)return;
             TickExposureEncoding();
             TickPhotographySfx(Mathf.Min(Time.unscaledDeltaTime,.1f));
             SyncParkInput();
@@ -336,6 +337,7 @@ namespace MemoryWhitebox
         void OnDestroy(){StopPhotographySfx();CancelExposureEncoding();DisposePhotographyModes();DisposePhotoFeedback();if(bridgeReference!=null)Destroy(bridgeReference);if(font!=null)Destroy(font);}
         void OnGUI()
         {
+            if(GamePauseMenu.BlocksGameplay)return;
             if(view==null || companion==null)return;
             CaptureBodyPointer(Event.current);
             if(font==null)font=Font.CreateDynamicFontFromOSFont(new[]{"Microsoft YaHei","Arial"},18);
