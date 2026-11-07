@@ -62,7 +62,7 @@ namespace MemoryWhitebox
         public void Submit(){if(CanOperate)deck.SubmitCurrentRecording();}
         public void ShowSuccess(string message)
         {
-            successText.text=message+"\n\nClick to continue";
+            successText.text=message;
             panel.SetActive(false);successPopup.SetActive(true);successPopup.transform.SetAsLastSibling();
             successDismiss.interactable=false;successGate.Arm();PlayerInputPolicy.SetCursor(true);
             deck.house.SyncInputContext();deck.house.InputContext.Handoff();

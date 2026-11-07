@@ -104,10 +104,8 @@ namespace MemoryWhitebox
         {
             lock(sync)
             {
-                bool writing=configured && play && write && length<target.Length;
-                // Listening and winding move b, never the append point. Every new recording
-                // gesture resumes at the end of the saved copy instead of overwriting it.
-                if(writing && !record)b=length;
+                bool writing=configured && play && write && b<target.Length;
+                // Recording resumes at the cursor; destructive rewind has removed its tail.
                 // Releasing REC while PLAY is held does not stop the tape motor.
                 // Remember that continuous gesture until PLAY is released; a fresh
                 // playback gesture still stops at the end of the existing copy.
@@ -130,7 +128,18 @@ namespace MemoryWhitebox
             }
             return Save();
         }
-        public void RewindTarget(){lock(sync){playB=record=runBlank=false;seek=0;b=0;dirty=true;}Save();}
+        // Legacy rewind-to-start has the same erase semantics as winding all the way back.
+        public void RewindTarget(){ClearTarget();}
+        // Audition navigation is not a player rewind gesture and must preserve the copy.
+        public void CueTargetPlayback(){lock(sync){playB=record=runBlank=false;seek=0;b=0;dirty=true;}Save();}
+        void TruncateTargetAtCursor()
+        {
+            // Called under sync. Clear both audio and provenance so erased content cannot return.
+            if(b>=length)return;
+            Array.Clear(target,b,length-b);
+            for(int i=b;i<length;i++)mapping[i]=-1;
+            length=b;
+        }
         void OnAudioFilterRead(float[] output,int channels)
         {
             lock(sync)
@@ -138,14 +147,25 @@ namespace MemoryWhitebox
                 if(GamePauseMenu.Active || source==null || SaveError!=""){Array.Clear(output,0,output.Length);return;}
                 for(int i=0;i<output.Length;i+=channels)
                 {
-                    float input=a<source.Length?source[a]:0;
-                    float heard=playA?input:0;
-                    if(seek!=0){b=seek<0?Math.Max(0,b-4):b<length?Math.Min(length,b+4):b;if(b==0 || b>=length)seek=0;dirty=true;}
+                    // Cursors lie between samples: reverse reads the sample before the cursor.
+                    int sourceIndex=sourceSeek<0?a-1:a;
+                    bool sourceAudible=(playA || sourceSeek!=0) && sourceIndex>=0 && sourceIndex<source.Length;
+                    float input=sourceAudible?source[sourceIndex]:0;
+                    float heard=input;
+                    if(seek!=0)
+                    {
+                        int targetIndex=seek<0?b-1:b;
+                        if(!sourceAudible && targetIndex>=0 && targetIndex<length)heard=target[targetIndex];
+                        b=seek<0?Math.Max(0,b-2):Math.Min(length,b+2);
+                        if(seek<0)TruncateTargetAtCursor();
+                        if(seek<0?b==0:b>=length)seek=0;
+                        dirty=true;
+                    }
                     else if(playB && b<target.Length)
                     {
                         if(record)
                         {
-                            target[b]=playA?input:0;mapping[b]=playA && a<source.Length?a:-1;
+                            target[b]=input;mapping[b]=sourceAudible?sourceIndex:-1;
                             b++;length=Math.Max(length,b);dirty=true;
                             if(b>=target.Length){playB=false;record=false;}
                         }
@@ -156,11 +176,11 @@ namespace MemoryWhitebox
                         }
                         else
                         {
-                            if(b<length){if(!playA)heard=target[b];b++;dirty=true;}
+                            if(b<length){if(!sourceAudible)heard=target[b];b++;dirty=true;}
                             if(b>=length){b=length;playB=false;}
                         }
                     }
-                    if(sourceSeek!=0){a=Math.Max(0,Math.Min(source.Length,a+sourceSeek*4));dirty=true;if(a==0 || a==source.Length)sourceSeek=0;}
+                    if(sourceSeek!=0){a=Math.Max(0,Math.Min(source.Length,a+sourceSeek*2));dirty=true;if(a==0 || a==source.Length)sourceSeek=0;}
                     if(playA){a++;dirty=true;if(a>=source.Length){a=source.Length;playA=false;}}
                     for(int c=0;c<channels;c++)output[i+c]=muted?0:heard*.65f;
                 }

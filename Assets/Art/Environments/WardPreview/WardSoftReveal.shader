@@ -10,20 +10,28 @@ Shader "Memory/WardSoftReveal"
         _PageRect ("Paper ink UV rectangle", Vector) = (0.10,0.055,0.80,0.15)
         _WhiteColor ("Warm white", Color) = (0.973, 0.957, 0.925, 1)
         _Progress ("Reveal progress", Range(0,1)) = 0
+        _MeltEase ("Melt deceleration", Range(1,4)) = 2.8
         _Feather ("Soft edge width", Range(0.005,0.3)) = 0.12
         _NoiseAmount ("Edge irregularity", Range(0,0.3)) = 0.17
         _NoiseScale ("Noise scale", Range(1,30)) = 4.3
         _FlowAmount ("Edge flow strength", Range(0,2)) = 0.8
         [Enum(Flow,0,SnowMelt,1)] _RevealStyle ("Reveal style", Float) = 0
-        _MeltScale ("Snow patch scale", Range(3,24)) = 8
+        _MeltScale ("Snow patch scale", Range(3,24)) = 5
         _MeltSpread ("Snow melt spread", Range(0.05,0.7)) = 0.58
-        _MeltSoftness ("Snow edge softness", Range(0.005,0.15)) = 0.060
+        _MeltSoftness ("Snow edge softness", Range(0.001,0.15)) = 0.008
+        _SnowRelief ("Snow edge relief", Range(0,1)) = 0.35
+        _SmokeStrength ("Smoke overlay strength", Range(0,1)) = 0.72
+        _SmokeWidth ("Smoke transition width", Range(0.01,0.4)) = 0.18
+        _SmokeScale ("Large smoke noise scale", Range(0.5,8)) = 2.2
+        _SmokeSpeed ("Smoke scrolling speed", Range(0,2)) = 0.35
+        _SmokeShadow ("Cold smoke shadow", Range(0,1)) = 0.65
+        _SmokeGrain ("Edge grain strength", Range(0,0.3)) = 0.10
+        _SmokeTime ("Smoke animation clock", Float) = 0
         _RevealTop ("Final reveal height (UV)", Range(0.4,1)) = 0.70
         _FaceEllipse ("Protected face: center XY, radii ZW", Vector) = (0.496,0.78,0.065,0.092)
         _FaceFeather ("Face mask feather", Range(0.01,0.8)) = 0.3
         _ImageAspect ("Source aspect ratio", Float) = 1.776833
         _ViewportAspect ("Viewport aspect ratio", Float) = 1.776833
-        _OrderedReveal ("Use calibrated body order", Float) = 0
     }
     SubShader
     {
@@ -39,10 +47,13 @@ Shader "Memory/WardSoftReveal"
             sampler2D _MainTex, _SceneTex, _PageTex;
             float4 _WhiteColor, _FaceEllipse, _PageRect, _SceneTex_TexelSize;
             float _SceneBlend, _UsePageInk;
+            float _MeltEase;
             float _Progress, _Feather, _NoiseAmount, _NoiseScale, _FlowAmount;
             float _RevealTop, _FaceFeather, _ImageAspect, _ViewportAspect;
-            float _RevealStyle, _MeltScale, _MeltSpread, _MeltSoftness;
-            float _OrderedReveal;
+            float _RevealStyle, _MeltScale, _MeltSpread, _MeltSoftness, _SnowRelief;
+
+            float _SmokeStrength, _SmokeWidth, _SmokeScale, _SmokeSpeed;
+            float _SmokeShadow, _SmokeGrain, _SmokeTime;
 
             float Hash(float2 p)
             {
@@ -71,27 +82,6 @@ Shader "Memory/WardSoftReveal"
                 }
                 return distance;
             }
-            // UV calibration belongs to WardRuntimeBlankPaper. These semantic regions
-            // defer low hands until after the torso; a plain vertical wipe cannot do that.
-            float OrderedThreshold(float2 uv, float melt)
-            {
-                float y=uv.y+(melt-0.5)*0.12;
-                float threshold;
-                if(y<0.32)threshold=lerp(0.02,0.20,saturate((y-0.22)/0.10));
-                else if(y<0.40)threshold=lerp(0.20,0.38,(y-0.32)/0.08);
-                else if(y<0.56)threshold=lerp(0.38,0.60,(y-0.40)/0.16);
-                else threshold=lerp(0.60,1.01,saturate((y-0.56)/0.12));
-                // Soft semantic mattes keep the actual melting contour continuous.
-                // They delay the body and hands without revealing rectangular crop edges.
-                float torso=length((uv-float2(0.496,0.505))/float2(0.13,0.13))+(melt-.5)*.32;
-                float bodyWeight=1-smoothstep(0.82,1.12,torso);
-                threshold=lerp(threshold,max(threshold,lerp(0.63,0.75,saturate(melt))),bodyWeight);
-                float hand=length((uv-float2(0.496,0.445))/float2(0.115,0.045))+(melt-.5)*.8;
-                threshold=lerp(threshold,max(threshold,lerp(0.81,0.85,saturate(melt))),1-smoothstep(0.65,1.45,hand));
-                float shoulder=(1-smoothstep(0.115,0.15,abs(uv.x-.496)))*smoothstep(.55,.59,uv.y);
-                threshold=lerp(threshold,max(threshold,lerp(.91,.98,saturate(melt))),shoulder);
-                return threshold;
-            }
             float4 frag(v2f_img input):SV_Target
             {
                 float2 sceneUV=input.uv;
@@ -106,47 +96,92 @@ Shader "Memory/WardSoftReveal"
                 if(any(uv<0)||any(uv>1)) return lerp(scene,_WhiteColor,_SceneBlend);
 
                 float4 source=tex2D(_MainTex,uv);
-                // Progress is time-driven by the preview. Flow evolves continuously with
-                // that progress, without random reseeding or unrelated wall-clock time.
-                float2 p=uv*float2(_ImageAspect,1)*_NoiseScale;
-                float flow=saturate(_Progress)*_FlowAmount;
-                float2 warp=float2(Noise(p*0.65+float2(flow,13.1)),
-                                   Noise(p*0.65+float2(27.3,-flow)))-0.5;
-                p+=warp*1.8;
-                float noise=Noise(p+float2(flow*0.9,-flow*0.6))*0.65
-                           +Noise(p*2.07+float2(17.1-flow,17.1+flow*0.5))*0.25
-                           +Noise(p*5.13+43.7)*0.10;
-                float threshold=uv.y+(noise-0.5)*2*_NoiseAmount;
-                float feather=max(_Feather,0.001);
-                float front=lerp(0.12-_NoiseAmount-feather,_RevealTop,saturate(_Progress));
-                float reveal=smoothstep(threshold-feather,threshold+feather,front);
+                // Ease-out maps travel progress to faster early / slower late melting.
+                // Fixed spatial noise keeps the base reveal monotonic.
+                float meltProgress=1-pow(1-saturate(_Progress),max(1,_MeltEase));
+                float2 contourUV=uv*float2(_ImageAspect,1);
+                float2 contourWarp=float2(Noise(contourUV*3.1+8),Noise(contourUV*3.1+29))-.5;
+                float contour=Noise(contourUV*5.3+contourWarp*2.1+41)*.7
+                             +Noise(contourUV*11.7+contourWarp+73)*.3;
+                float reveal;
+                float snowEdge=0;
+                float grain=0;
+                float smokeBand=0;
+                float cloud=0;
+                float smokeGrain=0;
                 if(_RevealStyle>0.5)
                 {
+                    // A fixed erosion field: advancing progress expands openings,
+                    // without sliding noise or refilling already melted regions.
                     float2 snowUV=uv*float2(_ImageAspect,1);
-                    float2 bend=float2(Noise(snowUV*3.1+19),Noise(snowUV*3.1+47))-0.5;
-                    float2 snowP=snowUV*_MeltScale+bend*1.6;
-                    float holes=MeltDistance(snowP)*0.22
-                               +Noise(snowP*1.3+20.7)*0.58
-                               +Noise(snowP*3.7+51.3)*0.20;
-                    float uneven=Noise(snowUV*3.3+float2(5,31))-0.5;
-                    float meltThreshold=uv.y+(holes-0.46)*_MeltSpread+uneven*0.19;
-                    float meltFront=lerp(-0.12,_RevealTop,saturate(_Progress));
-                    float soft=max(_MeltSoftness,0.001);
-                    // Rounded openings merge into a larger clear area. A wide, faint
-                    // halo keeps the melting margins soft rather than cut-out edges.
-                    float core=smoothstep(meltThreshold-soft,meltThreshold+soft,meltFront);
-                    float halo=smoothstep(meltThreshold-soft*3,meltThreshold+soft*3,meltFront);
-                    reveal=core*0.72+halo*0.28;
-                    if(_OrderedReveal>0.5)
-                    {
-                        float ordered=OrderedThreshold(uv,saturate(holes));
-                        float width=min(0.022,soft*0.36);
-                        reveal=smoothstep(ordered-width,ordered+width,saturate(_Progress));
-                        // The image's nose line is an upper bound, including the soft halo.
-                        float cap=_RevealTop-saturate(holes)*.035;
-                        reveal*=1-smoothstep(cap-.018,cap,uv.y);
-                    }
+                    float2 bend=float2(Noise(snowUV*2.7+19),Noise(snowUV*2.7+47))-0.5;
+                    float2 snowP=snowUV*_MeltScale+bend*1.7;
+                    float broad=Noise(snowP*.72+20.7);
+                    float islands=MeltDistance(snowP*1.25+7.3);
+                    float medium=Noise(snowP*2.3+31.9)-.5;
+                    float detail=Noise(snowP*9.1+51.3)-.5;
+                    // Broad, irregular sheets dominate; fine detail only roughens rims.
+                    float erosion=(broad-.5)*.70+medium*.65+(islands-.45)*.55+detail*.07;
+                    float meltThreshold=uv.y*.28+erosion*_MeltSpread*1.30;
+                    // Start below the picture, then melt upward to the nose.
+                    // Extra travel clears residual islands below the final cutoff.
+                    float meltFront=lerp(-.24,_RevealTop*.28+_MeltSpread*.28,meltProgress);
+                    float distance=meltFront-meltThreshold;
+                    float soft=max(_MeltSoftness,fwidth(meltThreshold)*.8);
+                    reveal=smoothstep(-soft,soft,distance);
+                    // A very thin cold rim, not the previous broad translucent halo.
+                    snowEdge=(1-smoothstep(soft,soft*4,abs(distance)));
+                    grain=(Noise(snowUV*380+11)-.5)*.006;
+                    // Independent drifting veil over the stable snow silhouette.
+                    // Clock is supplied by the caller so pauses/previews are controllable.
+                    float t=_SmokeTime*_SmokeSpeed;
+                    float2 drift=float2(t*.13,-t*.09);
+                    float2 smokeP=snowUV*_SmokeScale+drift;
+                    float2 smokeWarp=float2(Noise(smokeP+13+t*.08),Noise(smokeP+39-t*.06))-.5;
+                    smokeP+=smokeWarp*2.4;
+                    float2 curl=float2(Noise(smokeP*.8+float2(7,t*.10)),
+                                       Noise(smokeP*.8+float2(t*.08,61)))-.5;
+                    smokeP+=curl*1.2;
+                    cloud=Noise(smokeP)*.65+Noise(smokeP*2.13+17)*.25+Noise(smokeP*4.7+53)*.10;
+                    float width=max(_SmokeWidth,.001);
+                    smokeBand=1-smoothstep(width*.35,width*1.8,abs(distance));
+                    // Coverage depends only on position. Animated cloud noise changes
+                    // smoke shading/grain, never exposes new pixels while standing still.
+                    float smokyReveal=smoothstep(-width,width,distance);
+                    float smokeMix=_SmokeStrength*smokeBand*smoothstep(0,.08,_Progress);
+                    reveal=lerp(reveal,smokyReveal,smokeMix);
+                    // Fine grains advect slowly rather than reseeding each frame.
+                    smokeGrain=(Noise((snowUV+drift*.012+smokeWarp*.008)*340)-.5)*_SmokeGrain;
+
                 }
+                else
+                {
+                    float2 p=uv*float2(_ImageAspect,1)*_NoiseScale;
+                    float flow=meltProgress*_FlowAmount;
+                    float2 warp=float2(Noise(p*.65+float2(flow,13.1)),
+                                       Noise(p*.65+float2(27.3,-flow)))-.5;
+                    p+=warp*1.8;
+                    float noise=Noise(p+float2(flow*.9,-flow*.6))*.65
+                               +Noise(p*2.07+float2(17.1-flow,17.1+flow*.5))*.25
+                               +Noise(p*5.13+43.7)*.10;
+                    float threshold=uv.y+(noise-.5)*2*_NoiseAmount;
+                    float feather=max(_Feather,.001);
+                    float front=lerp(.12-_NoiseAmount-feather,_RevealTop,meltProgress);
+                    reveal=smoothstep(threshold-feather,threshold+feather,front);
+                }
+                // Warp the bottom-entry timing itself instead of imposing a horizontal
+                // wipe over the holes. Multiplying by height keeps first openings low.
+                float entryThreshold=uv.y*(.55+contour*.95);
+                float entryFront=meltProgress*(_RevealTop+.42);
+                float entryWidth=.025;
+                float bottomGate=1-smoothstep(entryFront-entryWidth,entryFront,entryThreshold);
+                // Bottom bias only governs entry. Afterwards independent patches can
+                // open throughout the image instead of following a rising wipe.
+                bottomGate=lerp(bottomGate,1,smoothstep(.08,.30,saturate(_Progress)));
+                reveal*=bottomGate;
+                // Uneven stopping edge stays entirely below the hard nose limit.
+                float noseCap=_RevealTop-contour*.075;
+                reveal*=1-smoothstep(noseCap-.018,noseCap,uv.y);
                 // The starting image must contain no early isolated hospital pixels.
                 if(_Progress<=0) reveal=0;
 
@@ -154,11 +189,20 @@ Shader "Memory/WardSoftReveal"
                 float faceDistance=length((uv-_FaceEllipse.xy)/max(_FaceEllipse.zw,float2(0.001,0.001)));
                 reveal*=smoothstep(1,1+max(_FaceFeather,0.001),faceDistance);
 
-                // Trapezoid fitted to this concept's desk, not a reveal-order texture.
-                float deskTop=min(0.227,min(0.167+uv.x*0.923,0.17+(1-uv.x)*1.425));
-                float foreground=1-smoothstep(deskTop-0.001,deskTop,uv.y);
-                reveal=max(reveal,foreground);
-                float4 result=float4(lerp(_WhiteColor.rgb,source.rgb,reveal),1);
+                // Both layers obey the same eye/nose and bottom-entry constraints.
+                float reliefGate=bottomGate*smoothstep(1,1+max(_FaceFeather,.001),faceDistance)
+                    *(1-smoothstep(noseCap-.035,noseCap,uv.y))*step(.00001,_Progress);
+                float rim=snowEdge*_SnowRelief*reliefGate;
+                float3 snowColor=_WhiteColor.rgb-float3(.045,.035,.022)*rim+grain*rim;
+                float smokeShade=smokeBand*_SmokeStrength*reliefGate;
+                float breath=1+sin(_SmokeTime*_SmokeSpeed*.7+cloud*4)*.035;
+                float shadow=smokeShade*_SmokeShadow*(.45+.55*cloud)*breath;
+                snowColor-=float3(.32,.25,.17)*shadow;
+                snowColor+=smokeGrain*smokeShade;
+                float3 imageColor=source.rgb*(1-rim*.045);
+                imageColor=lerp(imageColor,imageColor*float3(.72,.80,.90),shadow);
+                imageColor+=smokeGrain*smokeShade*.5;
+                float4 result=float4(lerp(snowColor,imageColor,reveal),1);
                 if(_UsePageInk>0.5)
                 {
                     float2 pageUV=(uv-_PageRect.xy)/max(_PageRect.zw,float2(0.001,0.001));
@@ -166,7 +210,7 @@ Shader "Memory/WardSoftReveal"
                     {
                         float4 ink=tex2D(_PageTex,pageUV);
                         float margin=smoothstep(0,0.012,min(min(pageUV.x,1-pageUV.x),min(pageUV.y,1-pageUV.y)));
-                        result.rgb=lerp(result.rgb,ink.rgb,ink.a*margin);
+                        result.rgb=lerp(result.rgb,ink.rgb,ink.a*margin*reveal);
                     }
                 }
                 return lerp(scene,result,_SceneBlend);

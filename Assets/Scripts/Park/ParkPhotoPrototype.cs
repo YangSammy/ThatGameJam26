@@ -50,7 +50,7 @@ namespace MemoryWhitebox
         public ParkFilmState FilmState=>roll!=null?roll.state:ParkFilmState.Loaded;
         public IReadOnlyList<ParkPhotoRecord> Records=>roll!=null?(IReadOnlyList<ParkPhotoRecord>)roll.frames.AsReadOnly():Array.Empty<ParkPhotoRecord>();
         public bool Aiming {get;private set;}
-        public enum PauseReason { None, Manual, FilmComplete }
+        public enum PauseReason { None, FilmComplete=2 }
         public PauseReason CurrentPauseReason {get;private set;}
         public bool Paused=>CurrentPauseReason!=PauseReason.None;
         public float MovementSpeed=>motor!=null?new Vector2(motor.velocity.x,motor.velocity.z).magnitude:0;
@@ -91,32 +91,32 @@ namespace MemoryWhitebox
             try{roll=ParkFilmStore.LoadOrCreate();if(roll.frames.Count>0)focusDistance=Mathf.Clamp(roll.frames[roll.frames.Count-1].focusDistance,minimumFocus,maximumFocus);}
             catch(Exception ex){filmError="Film unavailable. Shooting paused; records kept.";Debug.LogWarning("Park film load: "+ex.Message);}
             InitializePhotographyModes();InitializeBridge();ResumeUnfinishedMemory();InitializeGuidedWalk();InitializePhotoFeedback();UpdateRegionalMetering();
+            InitializeHandResponseView();
             SetCursor(false);Notify(roll!=null && roll.state!=ParkFilmState.Loaded?"Film sealed. Develop in the darkroom.":OpeningPhotoInstruction(),7);
-            if(CanReturnToDarkroom)OpenFilmReturnPanel();
+            if(CanReturnToDarkroom){if(roll.frames[roll.frames.Count-1].joinedHands)QueueHandPhotoReturn();else OpenFilmReturnPanel();}
             ScenePresentationReady=true;
         }
         void SetCursor(bool free){PlayerInputPolicy.SetCursor(free);}
         void Notify(string text,float seconds=4){notice=text;noticeUntil=Time.unscaledTime+seconds;}
         public void Resume(){SetPhotographyMode(PhotographyMode.Exploration);CurrentPauseReason=PauseReason.None;ReleaseGuidedDeparture();inputGate=true;moveVelocity=Vector3.zero;handoff.Arm();SyncParkInput();InputContext.Handoff();}
-        void PauseControls()
-        {
-            footsteps.Reset();
-            PausePhotographySfx();
-            SavePhotoSettings();
-            CurrentPauseReason=automaticFilmPanelPause?PauseReason.FilmComplete:PauseReason.Manual;SetPhotographyMode(PhotographyMode.Exploration);Aiming=false;moveVelocity=Vector3.zero;verticalSpeed=0;handoff.Arm();inputGate=true;
-            if(companion!=null)companion.Paused=true;
-            if(focusEffect!=null)focusEffect.activeFocus=false;SetCursor(true);
-            SyncParkInput();InputContext.Handoff();
-        }
+        // Only completed rolls use this handoff; Esc belongs to GamePauseMenu.
         void OpenFilmReturnPanel()
         {
+            if(!CanReturnToDarkroom)return;
+            footsteps.Reset();
             automaticFilmPanelPause=true;
-            try{PauseControls();returnUiGate=true;inputGate=true;}
+            try{PausePhotographySfx();}
             finally{automaticFilmPanelPause=false;}
+            SavePhotoSettings();CurrentPauseReason=PauseReason.FilmComplete;
+            SetPhotographyMode(PhotographyMode.Exploration);Aiming=false;
+            moveVelocity=Vector3.zero;verticalSpeed=0;handoff.Arm();inputGate=true;
+            if(companion!=null)companion.Paused=true;
+            if(focusEffect!=null)focusEffect.activeFocus=false;
+            SetCursor(true);SyncParkInput();InputContext.Handoff();returnUiGate=true;
         }
         public void ReturnToDarkroom()
         {
-            if(!CanReturnToDarkroom || changingScene || returnUiGate || !InputContext.Allows(InputContextId.Paused))return;
+            if(!CanReturnToDarkroom || changingScene || HasPendingExposure || (!finishingHandPhoto && (returnUiGate || !InputContext.Allows(InputContextId.Paused))))return;
             try
             {
                 // Reload the committed roll before leaving; never pass a transient capture.
@@ -124,7 +124,8 @@ namespace MemoryWhitebox
                 if(!CanReturnToDarkroom)return;
                 if(!Application.CanStreamedLevelBeLoaded(ParkFilmRoute.HouseScenePath))throw new InvalidOperationException("HouseScene is not in Build Settings.");
                 changingScene=true;
-                PauseControls();
+                if(finishingHandPhoto && companion!=null)companion.Paused=true;
+                PreparePauseInput();
                 ParkFilmRoute.EnterDarkroomOnLoad=true;
                 BrushSceneTransition.LoadScene(ParkFilmRoute.HouseScenePath);
             }
@@ -135,24 +136,6 @@ namespace MemoryWhitebox
                 Notify("Return unavailable. Film saved.",6);Debug.LogWarning("Park return: "+ex.Message);
             }
         }
-        public bool LeaveParkMemory()
-        {
-            if(!Paused || changingScene || returnUiGate || !InputContext.Allows(InputContextId.Paused) || CanReturnToDarkroom)return false;
-            if(HasPendingExposure){Notify("Photograph not saved yet. Retry saving, or choose Leave with saved progress.",6);return false;}
-            CancelInstrumentDrag();
-            if(filmError=="" && !HasPendingExposure && !SavePhotoSettings())return false;
-            try
-            {
-                // Validate the committed roll even when camera settings did not change.
-                if(!TryLoadCommittedForExit())return false;
-                if(!Application.CanStreamedLevelBeLoaded(ParkFilmRoute.HouseScenePath))throw new InvalidOperationException("HouseScene is not in Build Settings.");
-                changingScene=true;ParkFilmRoute.EnterDarkroomOnLoad=false;SyncParkInput();InputContext.Handoff();
-                BrushSceneTransition.LoadScene(ParkFilmRoute.HouseScenePath);return true;
-            }
-            catch(Exception ex){changingScene=false;Notify("Return unavailable. Film progress kept.",6);Debug.LogWarning("Park memory return: "+ex.Message);return false;}
-        }
-        // Focus suspension is not a user pause. Keep the chosen instrument and stable
-        // loading step; refocusing must never create a new pause menu.
         void OnApplicationFocus(bool value)
         {focused=value;RefreshApplicationSuspension();}
         void OnApplicationPause(bool value)
@@ -178,8 +161,9 @@ namespace MemoryWhitebox
             TickPhotographySfx(Mathf.Min(Time.unscaledDeltaTime,.1f));
             SyncParkInput();
             if(!focused || applicationPaused || changingScene)return;
+            if(finishingHandPhoto){TickHandPhotoReturn();return;}
             int shortcut=StageCompletionShortcuts.Pressed();
-            if(shortcut!=0){CompleteStageShortcut(shortcut);return;}
+            if(shortcut!=0 && !HandResponseLocked){CompleteStageShortcut(shortcut);return;}
             // The final shutter press must be released before it can activate UI.
             if(returnUiGate && handoff.Ready)returnUiGate=false;
             var controls=PlayerControlSettings.Current;
@@ -200,18 +184,20 @@ namespace MemoryWhitebox
             bool instrumentMode=TickPhotographyModes(dt);SyncCameraPreview();
             if(instrumentMode)return;
             aimBlend=Mathf.MoveTowards(aimBlend,Aiming || CameraDetailMode?1:0,dt/Mathf.Max(.01f,controls.aimTransitionSeconds));
-            var look=PreciseInstrumentPointer?Vector2.zero:PlayerInputPolicy.LookDelta;float sensitivity=controls.lookSensitivity*Mathf.Lerp(1,controls.aimingLookMultiplier,aimBlend);
+            var look=PreciseInstrumentPointer || HandResponseLocked?Vector2.zero:PlayerInputPolicy.LookDelta;float sensitivity=controls.lookSensitivity*Mathf.Lerp(1,controls.aimingLookMultiplier,aimBlend);
             yaw+=look.x*sensitivity;pitch=controls.ClampPitch(pitch-look.y*sensitivity);
             transform.rotation=Quaternion.Euler(0,yaw,0);view.transform.localRotation=Quaternion.Euler(pitch,0,0);
             var move=Vector2.ClampMagnitude(new Vector2((Input.GetKey(KeyCode.D)?1:0)-(Input.GetKey(KeyCode.A)?1:0),
                 (Input.GetKey(KeyCode.W)?1:0)-(Input.GetKey(KeyCode.S)?1:0)),1);
             float speed=controls.walkSpeed*Mathf.Lerp(controls.parkSpeedMultiplier,controls.aimingSpeedMultiplier,aimBlend);
-            var requestedMove=GuidedDesiredVelocity((transform.right*move.x+transform.forward*move.y)*speed,dt);
-            moveVelocity=controls.ApproachVelocity(moveVelocity,requestedMove,dt);
+            bool handLocksMovement=PhotoHandMovementLocked;
+            var requestedMove=handLocksMovement?Vector3.zero:GuidedDesiredVelocity((transform.right*move.x+transform.forward*move.y)*speed,dt);
+            moveVelocity=handLocksMovement?Vector3.zero:controls.ApproachVelocity(moveVelocity,requestedMove,dt);
+            if(handLocksMovement){verticalSpeed=0;footsteps.Reset();}
             // Bounded moves keep gravity/ground contact stable over bridge seams
             // and on slower frames. Ground geometry remains authored in ParkScene.
             var beforeMove = transform.position;
-            float moveRemaining=dt;
+            float moveRemaining=handLocksMovement?0:dt;
             while(moveRemaining>0)
             {
                 float step=Mathf.Min(.02f,moveRemaining);moveRemaining-=step;
@@ -229,7 +215,7 @@ namespace MemoryWhitebox
                 footsteps.Advance(beforeMove, transform.position, transform.position);
             else
                 footsteps.Reset();
-            TickGuidedSafety(dt,requestedMove);
+            if(!handLocksMovement)TickGuidedSafety(dt,requestedMove);
             view.fieldOfView=Mathf.Lerp(controls.parkWalkingFov,controls.parkAimingFov,Mathf.SmoothStep(0,1,aimBlend));
             TickBridge(dt);
             if(Aiming)
@@ -252,7 +238,7 @@ namespace MemoryWhitebox
             // already retain a stable reference point rather than a moving face/hand.
             focusEffect.subjectDepth=BridgePending && CurrentTask!=null && CurrentTask.hasReference?
                 TaskFocusDepth(CurrentTask):companion!=null && companion.chest!=null?
-                    Vector3.Dot(companion.chest.position-view.transform.position,view.transform.forward):0;
+                    Vector3.Dot(companion.chest.position-OpticalViewPosition,view.transform.forward):0;
             focusEffect.distance=focusDistance;focusEffect.aperture=Aperture;focusEffect.exposureError=ExposureError;
         }
         bool Visible(Vector3 point)
@@ -280,8 +266,8 @@ namespace MemoryWhitebox
                 photo.subjectDepth=TaskFocusDepth(CurrentTask);
                 photo.framed=TaskFramed(CurrentTask);photo.visible=SubjectVisible();
                 photo.sharp=ParkCameraResponse.IsSharp(photo.subjectDepth,focusDistance,Aperture);
-                photo.accepted=bridgeReady && (photo.taskId!="meadow" || HoldingPhotoHand);
-                photo.feedback=photo.accepted?"Captured: "+photo.moment+".":PhotographyNextAction();
+                photo.accepted=true;
+                photo.feedback="Captured: "+photo.moment+".";
                 return photo;
             }
             photo.sharp=ParkCameraResponse.IsSharp(chest.z,focusDistance,Aperture);
@@ -293,13 +279,14 @@ namespace MemoryWhitebox
             if(companion.CurrentMoment==ParkCompanion.Moment.Waterside && Mathf.Abs(facing)<.8f)moment=1;
             if(companion.CurrentMoment==ParkCompanion.Moment.Response && facing>.65f)moment=2;
             photo.moment=moment>=0?MomentName(moment):"Candid";
-            photo.accepted=photo.sharp && photo.visible && photo.framed && moment>=0;
-            photo.feedback=!photo.framed?"Keep head and body in frame.":!photo.visible?"Subject blocked. Move sideways.":!photo.sharp?"Out of focus. Scroll to adjust.":moment<0?"In focus. Watch for a moment.":"Captured: "+photo.moment+".";
+            photo.accepted=true;
+            photo.feedback="Captured: "+photo.moment+".";
             return photo;
         }
         static string MomentName(int i){return i==0?"Walking together":i==1?"By the bridge":"Looking back";}
         void Capture()
         {
+            if(finishingHandPhoto || changingScene)return;
             if(HasPendingExposure){RetryPendingExposure();return;}
             if(guidedDeparturePending){Notify(PhotographyNextAction());return;}
             if(CameraRaising)return;
@@ -312,6 +299,7 @@ namespace MemoryWhitebox
             if(BridgePending && CurrentTaskId=="meadow" && !HoldingPhotoHand){Notify(PhotographyNextAction());return;}
             if(BridgePending && !bridgeReady){Notify(PhotographyNextAction());shotCooldown=.25f;return;}
             SyncCameraPreview();shotCooldown=.7f;var record=Assess();
+            if(handResponseView!=null)record.cameraPosition=handResponseView.RenderPosition;
             if(BridgePending)
             {
                 companion.PosePhotoResponseForShutter();
@@ -342,6 +330,11 @@ namespace MemoryWhitebox
         }
         void ExposureCommitted(ParkPhotoRecord record)
         {
+            if(record.joinedHands && roll.Remaining==0)
+            {
+                QueueHandPhotoReturn();
+                PhotoTaken?.Invoke(record);FilmFilled?.Invoke(roll.id);return;
+            }
             if(roll.Remaining>0)HoldGuidedDeparture();else InitializeBridge();
             flash=1;Notify(roll.Remaining==0?"Frame " + RollCapacity + " exposed. Roll complete.":"Frame "+record.frameNumber+" exposed  /  Remaining "+roll.Remaining+" frames",4);
             if(roll.Remaining==0)OpenFilmReturnPanel();
@@ -353,42 +346,26 @@ namespace MemoryWhitebox
         void OnGUI()
         {
             if(GamePauseMenu.BlocksGameplay)return;
+            if(finishingHandPhoto)
+            {
+                if(!changingScene && !handPhotoReturnPending && GUI.Button(new Rect(Screen.width*.5f-145,Screen.height*.5f,290,40),"Retry return to darkroom"))ReturnToDarkroom();
+                return;
+            }
             if(view==null || companion==null)return;
             CaptureBodyPointer(Event.current);
             if(font==null)font=Font.CreateDynamicFontFromOSFont(new[]{"Microsoft YaHei","Arial"},18);
-            var text=new GUIStyle(GUI.skin.label){font=font,fontSize=18,wordWrap=true};var small=new GUIStyle(text){fontSize=15};var button=new GUIStyle(GUI.skin.button){font=font,fontSize=17};
+            var text=new GUIStyle(GUI.skin.label){font=font,fontSize=18,wordWrap=true};var button=new GUIStyle(GUI.skin.button){font=font,fontSize=17};
             if(!focused || applicationPaused)return;
-            if(Paused)
+            if(CurrentPauseReason==PauseReason.FilmComplete)
             {
-
-                InteractionUI.Label(new Rect(Screen.width*.5f-150,Screen.height*.5f-50,300,50),CanReturnToDarkroom?"Roll complete  " + RollCapacity + " / " + RollCapacity + " frames\nDevelop to view.":"Paused",text);
-                bool previousEnabled=GUI.enabled;GUI.enabled=previousEnabled && !returnUiGate && !changingScene && InputContext.Allows(InputContextId.Paused);
-                if(InteractionUI.Button(new Rect(Screen.width*.5f-100,Screen.height*.5f+10,200,40),CurrentPauseReason==PauseReason.FilmComplete?"Stay in park":"Resume  /  Esc",button))InputContext.RequestExit(InputContextId.Paused,null,Resume);
-                if(CanReturnToDarkroom && InteractionUI.Button(new Rect(Screen.width*.5f-145,Screen.height*.5f+66,290,40),"Return to darkroom",button))ReturnToDarkroom();
-                if(!CanReturnToDarkroom && InteractionUI.Button(new Rect(Screen.width*.5f-145,Screen.height*.5f+66,290,40),"Leave memory",button))LeaveParkMemory();
-                if(HasPendingExposure && InteractionUI.Button(new Rect(Screen.width*.5f-145,Screen.height*.5f+116,290,40),"Retry saving photograph",button))RetryPendingExposure();
-                if((HasPendingExposure || filmError!="" || settingsSaveFailed) && InteractionUI.Button(new Rect(Screen.width*.5f-145,Screen.height*.5f+166,290,40),"Leave with saved progress",button))LeaveWithSavedProgress();
-                if(HasPendingExposure)InteractionUI.Label(new Rect(Screen.width*.5f-210,Screen.height*.5f+214,420,44),"The unsaved photograph is kept for retry here; leaving discards only that pending photograph.",small);
+                bool previousEnabled=GUI.enabled;
+                GUI.enabled=previousEnabled && !returnUiGate && !changingScene && InputContext.Allows(InputContextId.Paused);
+                if(InteractionUI.Button(new Rect(Screen.width*.5f-145,Screen.height*.5f+20,290,40),"Return to darkroom",button))ReturnToDarkroom();
                 GUI.enabled=previousEnabled;
-                if(Time.unscaledTime<noticeUntil)InteractionUI.Label(new Rect(24,Screen.height-75,Screen.width-48,50),notice,text);
                 return;
             }
 
             DrawPhotographyModes();DrawBridgeReference();DrawPhotoFeedback();
-            string step=CanReturnToDarkroom?"Roll complete. Click Return to Darkroom.":
-                photoMode==PhotographyMode.Body?LoadingNextAction():
-                photoMode==PhotographyMode.Meter?MeterInstruction:
-                photoMode==PhotographyMode.Aperture?"f/"+Aperture:
-                photoMode==PhotographyMode.Shutter?"1/"+Mathf.RoundToInt(1f/ShutterSeconds)+" s":
-                guidedDeparturePending?"Photograph saved. Lower the camera to continue walking.":
-                roll!=null && !roll.ReadyForPark?OpeningPhotoInstruction():
-                !companion.AtPhotoNode?(companion.Waiting?"Your companion is waiting. Walk closer.":"WASD: walk with your companion. E: camera."):
-                photoMode==PhotographyMode.Exploration?"E: inspect camera. Click eyepiece to compose.":
-                PhotographyNextAction();
-            InteractionUI.Label(new Rect(24,Screen.height*.24f+32,Screen.width-48,48),step,small);
-            InteractionUI.Label(new Rect(Screen.width-190,20,170,28),"Film "+ExposedFrames+" / "+RollCapacity,small);
-            if(Time.unscaledTime<noticeUntil)
-                InteractionUI.Label(new Rect(24,Screen.height-104,Screen.width-48,40),notice,small);
             if(flash>0){var color=GUI.color;GUI.color=new Color(1,1,1,flash*.55f);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);GUI.color=color;}
             DrawGuidedRecovery(text,button);
         }

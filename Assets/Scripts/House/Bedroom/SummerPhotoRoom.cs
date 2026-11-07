@@ -16,6 +16,17 @@ namespace MemoryWhitebox
         public Transform curtain;
         public BoxCollider curtainHit, passageBarrier;
         public Material cameraProfile;
+        public Material[] darkroomMetalSources, darkroomMetalVariants;
+        [Tooltip("Fixed display exposure inside the darkroom; bedroom exposure is retained outside.")]
+        [Range(.1f,2f)] public float darkroomExposure=.55f;
+        [Header("Darkroom Beautify")]
+        [Range(0,5)] public float darkroomBloom=.8f;
+        [Range(0,2)] public float darkroomBloomThreshold=1.05f;
+        [Range(0,5)] public float darkroomSharpen=2.4f;
+        [Range(0,2)] public float darkroomSaturation=1.05f;
+        [Range(.5f,1.5f)] public float darkroomContrast=1.08f;
+        BeautifyEffect.Beautify darkroomBeautify;
+        Material runtimeCameraProfile;
         readonly List<GameObject> hidden=new List<GameObject>();
         readonly List<Action> restore=new List<Action>();
         readonly List<Texture2D> images=new List<Texture2D>();
@@ -50,6 +61,7 @@ namespace MemoryWhitebox
             foreach(var root in host.gameObject.scene.GetRootGameObjects())if(root.name=="Lighting")Hide(root);
             MoveTo(camera,cameraDock.position,cameraDock.rotation);
             host.BindSummerDarkroom(this);
+            ApplyDarkroomMetals(host.gameObject.scene);
             // The physical camera still uses the authored camera anchor when the roll returns.
             // Before the park the only photography entrance is one of the three frames.
             if(camera.gameObject.activeSelf)Hide(camera.gameObject);
@@ -61,7 +73,13 @@ namespace MemoryWhitebox
             if(!keepView || !host.Room.CanWalkAt(host.Room.Camera.transform.position))
                 host.Room.Camera.transform.SetPositionAndRotation(entrance.position,entrance.rotation);
             host.Room.EnableLook(true);
-            grade=host.Room.Camera.gameObject.AddComponent<BedroomColorResponse>();grade.Profile=cameraProfile;
+            // Bloom receives HDR light before the existing fixed display response.
+            darkroomBeautify=host.Room.Camera.gameObject.AddComponent<BeautifyEffect.Beautify>();
+            ConfigureDarkroomBeautify(darkroomBeautify);
+            grade=host.Room.Camera.gameObject.AddComponent<BedroomColorResponse>();
+            if(cameraProfile!=null)runtimeCameraProfile=new Material(cameraProfile){name="Summer darkroom display response"};
+            grade.Profile=runtimeCameraProfile;
+            UpdateDarkroomExposure(host.Room.Camera.transform.position);
             SceneManager.SetActiveScene(gameObject.scene);
             host.SuspendHouseInput();
             if(!keepView && frames.Length>0 && !host.DarkroomWorld.DirectDarkroomAvailable && host.DarkroomWorld.DevelopedRollId==null)
@@ -77,6 +95,9 @@ namespace MemoryWhitebox
         public void Refresh(WBMain host)
         {
             string id=host.DarkroomWorld.DevelopedRollId;
+            if(!host.ShowHelp && !host.InStation && !GamePauseMenu.BlocksGameplay &&
+                id==null && !host.DarkroomWorld.DirectDarkroomAvailable && frames.Length>0 && frames[0]!=null)
+                TaskOutlineCue.Show(frames[0].transform,host.Room.Camera,new Renderer[]{frames[0]},true);
             if(discovery)
             {
                 if(id!=null || host.DarkroomWorld.DirectDarkroomAvailable || host.InStation)DismissDiscovery();
@@ -108,6 +129,7 @@ namespace MemoryWhitebox
             if(hit==null)return false;
             if(hit==curtainHit)
             {
+                if(!CanOpenDarkroom(host))return true;
                 // Do not close through the player's capsule in the doorway.
                 if(!open || Mathf.Abs(host.Room.Camera.transform.position.z-passageBarrier.transform.position.z)>.35f)open=!open;
                 return true;
@@ -123,10 +145,67 @@ namespace MemoryWhitebox
             return false;
         }
 
+        void ApplyDarkroomMetals(Scene scene)
+        {
+            if(darkroomMetalSources==null || darkroomMetalVariants==null)return;
+            foreach(var root in scene.GetRootGameObjects())
+            foreach(var renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                var original=renderer.sharedMaterials;
+                var replacement=(Material[])original.Clone();bool changed=false;
+                for(int i=0;i<replacement.Length;i++)
+                for(int j=0;j<darkroomMetalSources.Length && j<darkroomMetalVariants.Length;j++)
+                    if(replacement[i]==darkroomMetalSources[j] && darkroomMetalVariants[j]!=null)
+                    {replacement[i]=darkroomMetalVariants[j];changed=true;break;}
+                if(!changed)continue;
+                renderer.sharedMaterials=replacement;
+                var captured=renderer;
+                restore.Add(()=>{if(captured!=null)captured.sharedMaterials=original;});
+            }
+        }
+
+        void ConfigureDarkroomBeautify(BeautifyEffect.Beautify effect)
+        {
+            effect.quality=BeautifyEffect.BEAUTIFY_QUALITY.BestQuality;
+            effect.tonemap=BeautifyEffect.BEAUTIFY_TMO.Linear;
+            effect.eyeAdaptation=false;
+            effect.depthOfField=false;
+            effect.dither=0;
+            effect.brightness=1;
+            effect.bloom=true;
+            effect.bloomAntiflicker=true;
+            effect.bloomThreshold=darkroomBloomThreshold;
+            effect.bloomIntensity=darkroomBloom;
+            effect.sharpen=darkroomSharpen;
+            effect.sharpenClamp=.08f;
+            effect.saturate=darkroomSaturation;
+            effect.contrast=darkroomContrast;
+        }
+
+        void UpdateDarkroomExposure(Vector3 eye)
+        {
+            if(runtimeCameraProfile==null || cameraProfile==null || passageBarrier==null)return;
+            // The annex begins beyond this authored doorway. Position, not image brightness,
+            // controls the transition, so looking at dark objects never pumps exposure.
+            float inside=Mathf.SmoothStep(0,1,Mathf.InverseLerp(
+                passageBarrier.transform.position.z-.15f,passageBarrier.transform.position.z+.65f,eye.z));
+            if(darkroomBeautify!=null)
+            {
+                darkroomBeautify.enabled=inside>.001f;
+                darkroomBeautify.bloomIntensity=darkroomBloom*inside;
+                darkroomBeautify.sharpen=darkroomSharpen*inside;
+                darkroomBeautify.saturate=Mathf.Lerp(1,darkroomSaturation,inside);
+                darkroomBeautify.contrast=Mathf.Lerp(1,darkroomContrast,inside);
+            }
+            runtimeCameraProfile.SetFloat("_Exposure",Mathf.Lerp(cameraProfile.GetFloat("_Exposure"),darkroomExposure,inside));
+        }
+
         public void TickCurtain(WBMain host,float dt)
         {
             var pos=host.Room.Camera.transform.position;
-            if(host.DarkroomWorld.CarryingExposedFilm && Mathf.Abs(pos.x)<.75f && Mathf.Abs(pos.z-passageBarrier.transform.position.z)<1.25f)open=true;
+            UpdateDarkroomExposure(pos);
+            if(!CanOpenDarkroom(host)){open=false;opening=0;}
+            else if(host.DarkroomWorld.CarryingExposedFilm && Mathf.Abs(pos.x)<.75f && Mathf.Abs(pos.z-passageBarrier.transform.position.z)<1.25f)open=true;
             opening=Mathf.MoveTowards(opening,open?1:0,dt*2);
             float width=Mathf.Lerp(1.05f,.13f,opening);
             curtain.localScale=new Vector3(width,1,1);
@@ -146,12 +225,14 @@ namespace MemoryWhitebox
         public string HoverHint(WBMain host,Ray ray)
         {
             var hit=StudyEntry.PickVisible(ray);if(hit==null)return null;
-            if(hit==curtainHit)return open?"LMB  Close darkroom curtain":"LMB  Open darkroom curtain";
+            if(hit==curtainHit)return !CanOpenDarkroom(host)?"Finish the park photographs first":open?"LMB  Close darkroom curtain":"LMB  Open darkroom curtain";
             foreach(var frame in frames)if(hit.transform==frame.transform)
                 return host.DarkroomWorld.DevelopedRollId!=null?"LMB  View photograph":
                     host.DarkroomWorld.DirectDarkroomAvailable?FilmHint(host):"LMB  Enter the park memory";
             return null;
         }
+
+        public bool CanOpenDarkroom(WBMain host)=>host!=null && host.DarkroomWorld!=null && host.DarkroomWorld.PhotographyCompleteForDarkroom;
 
         static string FilmHint(WBMain host)
         {
@@ -169,6 +250,7 @@ namespace MemoryWhitebox
         {
             host.UnbindSummerDarkroom(this);
             SceneManager.SetActiveScene(host.gameObject.scene);
+            if(darkroomBeautify){darkroomBeautify.enabled=false;Destroy(darkroomBeautify);}
             if(grade){grade.enabled=false;Destroy(grade);}
             foreach(var reset in restore)reset();
             host.StudyEntries.gameObject.SetActive(false);
@@ -176,6 +258,6 @@ namespace MemoryWhitebox
             host.Room.StopMotion();host.SuspendHouseInput();
             SceneManager.UnloadSceneAsync(gameObject.scene);
         }
-        void OnDestroy(){foreach(var image in images)if(image!=null)Destroy(image);}
+        void OnDestroy(){if(darkroomBeautify){darkroomBeautify.enabled=false;Destroy(darkroomBeautify);}if(runtimeCameraProfile!=null)Destroy(runtimeCameraProfile);foreach(var image in images)if(image!=null)Destroy(image);}
     }
 }

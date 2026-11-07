@@ -10,7 +10,7 @@ namespace MemoryWhitebox
             State.EditorBeginFarewell();
             PlayWritingStateEdges(State.Collected,previous,false,State.Remaining);
             UpdateActors(0);UpdateWritingVisuals(0,true);
-            // The normal two-second farewell Tick calls Finish and commits the story.
+            // The normal wave/turn/walk farewell Tick calls Finish and commits the story.
         }
     }
 }

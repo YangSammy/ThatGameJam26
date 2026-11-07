@@ -104,7 +104,7 @@ namespace MemoryWhitebox.Editor
                 var ink=new RenderTexture(1024,128,24);ink.Create();resources.Add(ink);camera.targetTexture=ink;camera.aspect=8;
                 camera.orthographicSize=s.WardWalkDistance/14.4f;camera.backgroundColor=Color.clear;camera.transform.SetPositionAndRotation(new Vector3(s.WardWalkDistance*.5f,.4f,-16),Quaternion.identity);
                 Render(camera,route);Save(ink,folder+"/04-ward-live-ink.png");
-                var material=new Material(Resources.Load<Material>("WardRuntimeReveal"));resources.Add(material);WardImageReveal.ConfigureOrderedMaterial(material);
+                var material=new Material(Resources.Load<Material>("WardRuntimeReveal"));resources.Add(material);WardImageReveal.ConfigureRevealMaterial(material);
                 material.SetFloat("_Progress",1);material.SetFloat("_SceneBlend",1);material.SetFloat("_UsePageInk",1);material.SetFloat("_ViewportAspect",960f/540);
                 material.SetTexture("_PageTex",ink);material.SetTexture("_SceneTex",Texture2D.blackTexture);
                 Graphics.Blit(material.mainTexture,rt,material);Save(rt,folder+"/05-ward-final-paper.png");

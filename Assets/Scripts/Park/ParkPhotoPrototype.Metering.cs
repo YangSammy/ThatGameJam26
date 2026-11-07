@@ -8,6 +8,8 @@ namespace MemoryWhitebox
         public float MeterEv100 {get;private set;}=13;
         bool introductoryMeterRead;
         bool meterReadingValid;
+        string meteredTask;
+        bool NeedsMeterGuidance=>!meterReadingValid || meteredTask!=CurrentTaskId;
         bool MeterLockedToFilm=>roll!=null && (loadingStep>=2 || roll.frames.Count>0);
         float MeterSuggestedAperture=>ParkCameraResponse.SuggestedAperture(Aperture,MeterIso,MeterEv100);
         string MeterNumbers=>meterReadingValid?
@@ -15,11 +17,11 @@ namespace MemoryWhitebox
             Mathf.RoundToInt(1/ParkCameraResponse.SuggestedShutter(MeterSuggestedAperture,MeterIso,MeterEv100))+" s   Held":
             "ISO "+MeterIso+"   Aim at her / LMB: measure";
         string MeterInstruction=>!meterReadingValid?"Aim at your companion. LMB: measure.":
-            MeterLockedToFilm?"Reading held. ISO synced to film; aperture follows camera. LMB: remeasure.":
+            MeterLockedToFilm?"Scroll: compare ISO. Film ISO "+FilmIso+". LMB: remeasure.":
             "Reading held. Scroll: compare ISO. E: lower meter, then E: load film.";
         void UpdateRegionalMetering()
         {
-            if(MeterLockedToFilm)meterIsoIndex=System.Array.IndexOf(filmIsos,FilmIso);
+            if(MeterLockedToFilm && photoMode!=PhotographyMode.Meter)meterIsoIndex=System.Array.IndexOf(filmIsos,FilmIso);
             // Live subject light remains the exposure authority. The meter holds a separate sample.
             if(regionalMetering!=null)
                 sceneEv100=regionalMetering.Sample(companion!=null && companion.chest!=null?companion.chest.position:transform.position);
@@ -39,7 +41,7 @@ namespace MemoryWhitebox
             if(!InView(target) || Vector3.Angle(view.transform.forward,target-view.transform.position)>12 || !Visible(target))
             {Notify("Aim at your companion; keep her visible.",3);return;}
             UpdateRegionalMetering();
-            MeterEv100=sceneEv100;meterReadingValid=true;introductoryMeterRead=true;
+            MeterEv100=sceneEv100;meterReadingValid=true;introductoryMeterRead=true;meteredTask=CurrentTaskId;
             PlayPhotographyCue(51);Notify("Reading held. R: lower meter.",3);
         }
         string OpeningPhotoInstruction()

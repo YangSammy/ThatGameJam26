@@ -59,7 +59,7 @@ namespace MemoryWhitebox
             {
                 case PhotoChapter.FilmPhase.Exposed:Guide("rewind",null,"Hold LMB + Scroll up","Rewind film — hold knob + scroll up ("+Mathf.RoundToInt(RewindTurns*100)+"%).");break;
                 case PhotoChapter.FilmPhase.Rewound:
-                    if(!RewoundBackOpen)Guide("back",null,"Click to open","Open the camera back.");
+                    if(!RewoundBackOpen)Guide("rewind",null,"Hold LMB + pull up","Pull the rewind knob up to open the camera back.");
                     else Guide("exposed-film","bag","Hold LMB to carry; WASD to move","Carry the film to the dark bag. Hold LMB + WASD; release over bag.");
                     break;
                 case PhotoChapter.FilmPhase.DarkBag:Guide("bag",null,"Hold LMB + Scroll up","Load reel — hold bag + scroll up ("+Mathf.RoundToInt(Photo.BagTurns*100)+"%).");break;
@@ -118,10 +118,10 @@ namespace MemoryWhitebox
             if(drop!=null)
             {
                 if(CanCommitDarkroom(ray,drop))hover=GuideSurfaces(drop);
-                return DarkroomName(dragged??printDrag)+" → "+DarkroomName(drop)+"\n"+DropInstruction(ray,drop)+" / RMB Cancel";
+                return DarkroomName(dragged??printDrag)+" → "+DarkroomName(drop)+"\n"+DropInstruction(ray,drop)+"";
             }
             if(objectDrag.AtEdge)return "Keep on this work area\nRelease LMB to place";
-            if(objectDrag.Blocked)return "Path blocked\nMove around the obstacle / RMB Cancel";
+            if(objectDrag.Blocked)return "Path blocked\nMove around the obstacle";
             if(name==null)return "";
             if(id=="tank-lid" && tankSealed && (guideSource=="tank" || guideTarget=="tank")){id="tank";name=DarkroomName(id);}
             hover=GuideSurfaces(id);

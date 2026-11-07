@@ -22,20 +22,23 @@ namespace MemoryWhitebox.Editor
         {
             var type=typeof(WBMain).Assembly.GetType("MemoryWhitebox.BrushSceneTransition");
             if(type==null)throw new Exception("Missing persistent Brush transition controller.");
-            var settings=Resources.Load<EasyTransition.TransitionSettings>("BrushSceneTransition");
-            if(settings==null || settings.transitionIn==null || settings.transitionOut==null)
-                throw new Exception("Brush resource must include both imported animation prefabs in player builds.");
-            foreach(var prefab in new[]{settings.transitionIn,settings.transitionOut})
+            foreach(var style in new[]{"Brush","Noise"})
             {
-                var anim=prefab.GetComponent<Animator>();
-                if(anim==null || anim.runtimeAnimatorController==null || anim.runtimeAnimatorController.animationClips.Any(c=>c.isLooping))
-                    throw new Exception("Brush animation must be present and non-looping: "+prefab.name);
+                var settings=Resources.Load<EasyTransition.TransitionSettings>(style+"SceneTransition");
+                if(settings==null || settings.transitionIn==null || settings.transitionOut==null)
+                    throw new Exception(style+" resource must include both imported animation prefabs in player builds.");
+                foreach(var prefab in new[]{settings.transitionIn,settings.transitionOut})
+                {
+                    var anim=prefab.GetComponent<Animator>();
+                    if(anim==null || anim.runtimeAnimatorController==null || anim.runtimeAnimatorController.animationClips.Any(c=>c.isLooping))
+                        throw new Exception("Transition animation must be present and non-looping: "+prefab.name);
+                }
             }
             var bypasses=System.IO.Directory.GetFiles("Assets/Scripts","*.cs",System.IO.SearchOption.AllDirectories)
                 .Where(p=>!p.EndsWith("BrushSceneTransition.cs") && !p.EndsWith("WBMain.SpringBedroom.cs") && !p.EndsWith("WBMain.BedroomPreload.cs"))
                 .Where(p=>System.IO.File.ReadAllText(p).Contains("SceneManager.LoadScene")).ToArray();
             if(bypasses.Length>0)throw new Exception("Scene navigation bypasses Brush: "+string.Join(", ",bypasses));
-            return "PASS: Brush assets included, non-looping animations, all scene navigation centralized.";
+            return "PASS: Brush and Noise assets included, non-looping animations, all scene navigation centralized.";
         }
     }
 

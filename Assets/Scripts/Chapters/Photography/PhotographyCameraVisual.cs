@@ -15,6 +15,7 @@ namespace MemoryWhitebox
         float lastFilmProgress=-1,door=1,transition=1;
         int targetStage=-1;
         float returningLeader;
+        float seatingPullStart=1;
         float displayedAperture=-1,displayedShutter;
         public bool BackOpen=>door>=.98f;
         public bool MechanicalTransition=>Inserting || transition<1 || returningLeader>0;
@@ -139,10 +140,21 @@ namespace MemoryWhitebox
             if(assets==null)assets=PhotographyVisualAssets.Load();
             if(LeaderTip==null && insert!=null)LeaderTip=insert.Find("Leader interaction tip");
             if(targetStage==1 && filmStage==0 && !instant)returningLeader=Mathf.Max(0,lastFilmProgress);
-            if(targetStage!=filmStage){transition=targetStage<0 || instant?1:0;targetStage=filmStage;}
+            if(targetStage!=filmStage)
+            {
+                if(filmStage==2)seatingPullStart=targetStage==1?Mathf.Clamp01(lastFilmProgress):1;
+                transition=targetStage<0 || instant?1:0;targetStage=filmStage;
+            }
             transition=instant?1:Mathf.MoveTowards(transition,1,Mathf.Max(0,dt)*4);
             float sampleProgress=(filmStage==2 || filmStage==3)?transition:progress;
             int sampledStage=filmStage;
+            if(filmStage==2 && seatingPullStart<.999f && transition<1)
+            {
+                // Complete the remaining pull before wrapping the take-up spool.
+                // Forgiving drop acceptance must not teleport an unextended leader.
+                sampledStage=transition<.5f?1:2;
+                sampleProgress=transition<.5f?Mathf.Lerp(seatingPullStart,1,Mathf.SmoothStep(0,1,transition*2)):Mathf.SmoothStep(0,1,(transition-.5f)*2);
+            }
             if(instant || filmStage!=0)returningLeader=0;
             else if(returningLeader>0){returningLeader=Mathf.MoveTowards(returningLeader,0,Mathf.Max(0,dt)*4);sampledStage=1;sampleProgress=returningLeader;}
             door=instant?(open?1:0):Mathf.MoveTowards(door,open?1:0,Mathf.Max(0,dt)*3);

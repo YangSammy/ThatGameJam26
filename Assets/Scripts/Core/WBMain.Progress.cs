@@ -123,7 +123,11 @@ namespace MemoryWhitebox
         {
             if(Time.unscaledTime>=nextCheckpoint){nextCheckpoint=Time.unscaledTime+1;SaveStableProgress();}
             if(leaveCompletedChapter && InStation && transition<=0)
-            {leaveCompletedChapter=false;ExitHouseStation();}
+            {
+                leaveCompletedChapter=false;
+                if(ChapterIndex==2 && HasNarrativeBedroom(CurrentDay))StartCoroutine(OpenNarrativeBedroom(CurrentDay));
+                else ExitHouseStation();
+            }
         }
         void OnApplicationPause(bool paused)
         {

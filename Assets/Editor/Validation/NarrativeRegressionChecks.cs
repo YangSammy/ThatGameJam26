@@ -41,7 +41,7 @@ namespace MemoryWhitebox.Editor
                 Case("Autumn four items any order; arrival latch",()=>{
                     var w=Formal();foreach(int i in new[]{2,0,3,1}){w.Player=w.ItemPositions[i];Stroke(w);w.Tick(.02f,Keys(KeyCode.E));w.PointerUp(Vector2.zero);}Require(w.Collected==15,"Missing items");
                     w.Player=new Vector2(310,560);w.Remaining=.02f;w.Tick(.02f,Keys());Require(w.Phase=="arrival","Deadline tie failed");w.Tick(80,Keys());Require(w.Phase=="arrival","Latched arrival expired");
-                    for(int i=0;i<100&&w.Phase=="arrival";i++){Stroke(w);w.Tick(.02f,Keys(KeyCode.E));}Require(w.Phase=="farewell","Writing/E farewell failed");w.Tick(2.1f,Keys());Require(w.Completed,"Farewell not completed");
+                    for(int i=0;i<100&&w.Phase=="arrival";i++){Stroke(w);w.Tick(.02f,Keys(KeyCode.E));}Require(w.Phase=="farewell","Writing/E farewell failed");w.Tick(WritingChapter.FarewellDuration+.1f,Keys());Require(w.Completed,"Farewell not completed");
                 });
                 Case("Autumn restore preserves ink/time but clears hold",()=>{
                     var w=Formal();Stroke(w);w.Tick(.02f,Keys());var copy=new WritingChapter();copy.RestoreCheckpoint(w.CaptureCheckpoint());Require(copy.Started&&copy.Remaining==w.Remaining&&copy.InkRows[0]==20&&!copy.InkFresh,"Restore lost ink or inherited input");

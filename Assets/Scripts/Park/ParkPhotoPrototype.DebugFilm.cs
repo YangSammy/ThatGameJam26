@@ -7,6 +7,7 @@ namespace MemoryWhitebox
     {
         public bool CompleteStageShortcut(int key)
         {
+            if(HandResponseLocked)return false;
             if(key<1 || key>5 || !ScenePresentationReady || changingScene || BrushSceneTransition.IsBusy || BrushSceneTransition.ExternalLoadActive)return false;
             if(HasPendingExposure){Notify("Wait for the photograph to finish saving, then retry.",6);return false;}
             if(key==2){DebugFillCurrentRoll();return true;}

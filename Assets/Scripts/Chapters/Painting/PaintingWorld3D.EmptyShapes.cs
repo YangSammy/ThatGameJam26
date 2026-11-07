@@ -3,9 +3,9 @@ namespace MemoryWhitebox
 {
     public sealed partial class PaintingWorld3D
     {
-        readonly HoverOutline[] emptyShapeInk={new HoverOutline(),new HoverOutline()};
-        readonly GameObject[] emptyShapes=new GameObject[2];
-        readonly Renderer[][] emptyShapeSurfaces=new Renderer[2][];
+        readonly HoverOutline[] emptyShapeInk={new HoverOutline(),new HoverOutline(),new HoverOutline(),new HoverOutline()};
+        readonly GameObject[] emptyShapes=new GameObject[4];
+        readonly Renderer[][] emptyShapeSurfaces=new Renderer[4][];
         void ShowEmptyShapes()
         {
             // Discovery remains unmarked. Only an acquired, usable pendant gets a task cue.
@@ -15,10 +15,11 @@ namespace MemoryWhitebox
                 var camera=keyDragging?albumCamera:PagePendant?pageCamera:albumCamera;
                 if(target)TaskOutlineCue.Show(target,camera,target.GetComponentsInChildren<Renderer>(true));
             }
-            for(int i=0;i<2;i++)
+            if(outdoorLayersReady && State.Phase==0)return; // Alpha-masked painted hints replace mesh-outline rectangles.
+            for(int i=0;i<4;i++)
             {
-                if(State.Phase!=0 || State.Painted[i]){emptyShapeInk[i].Clear();continue;}
-                var source=i==0?winterSwing.transform:winterBridge.transform;
+                if(State.Phase!=(i<2?0:1) || State.Painted[i]){emptyShapeInk[i].Clear();continue;}
+                var source=i==2?caseArt:i==3?wheelArt:i==0?(swingArt!=null?swingArt:winterSwing.transform):(bridgeArt!=null?bridgeArt:winterBridge.transform);
                 if(emptyShapes[i]==null)
                 {
                     var group=new GameObject(i==0?"Missing swing outline":"Missing bridge outline");
@@ -37,6 +38,6 @@ namespace MemoryWhitebox
                 emptyShapeInk[i].Show(albumCamera,emptyShapeSurfaces[i],dashed:true);
             }
         }
-        void DisposeEmptyShapes(){for(int i=0;i<2;i++){emptyShapeInk[i].Dispose();if(emptyShapes[i])ReleaseObject(emptyShapes[i]);}}
+        void DisposeEmptyShapes(){for(int i=0;i<4;i++){emptyShapeInk[i].Dispose();if(emptyShapes[i])ReleaseObject(emptyShapes[i]);}}
     }
 }

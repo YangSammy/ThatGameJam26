@@ -130,13 +130,13 @@ namespace MemoryWhitebox.Art.Editor
     var before=v.PalmPosition;var rotation=v.rightHand.rotation;for(int i=0;i<20;i++)v.ApplyPhotoPose();
     var drift=Vector3.Distance(before,v.PalmPosition);var angle=Quaternion.Angle(rotation,v.rightHand.rotation);
     Write("repeat-pose-check.json",new{calls=20,position_drift=drift,rotation_drift=angle});if(drift>.001f||angle>.1f)errors.Add("Repeated shutter pose compounded offsets.");
-    pausedPalm=v.PalmPosition;pausedOffer=v.OfferElapsed;Call(p,"PauseControls");checksAt=now;checksStage=1;Event("pause_check_started");return;
+    pausedPalm=v.PalmPosition;pausedOffer=v.OfferElapsed;GamePauseMenu.Open();checksAt=now;checksStage=1;Event("pause_check_started");return;
    }
    if(checksStage==1&&now-checksAt>.65f)
    {
     float drift=Vector3.Distance(pausedPalm,v.PalmPosition),elapsed=v.OfferElapsed-pausedOffer;
     Write("pause-check.json",new{seconds=now-checksAt,palm_drift=drift,offer_elapsed_delta=elapsed});if(drift>.005f||elapsed>.1f)errors.Add("Girl performance advanced while paused.");
-    Call(p,"OnApplicationFocus",true);p.Resume();Call(p,"SetPhotographyMode",ParkPhotoPrototype.PhotographyMode.Viewfinder);checksAt=now;checksStage=2;Event("resumed");return;
+    Call(p,"OnApplicationFocus",true);UnityEngine.Object.FindObjectOfType<GamePauseMenu>().Resume();Call(p,"SetPhotographyMode",ParkPhotoPrototype.PhotographyMode.Viewfinder);checksAt=now;checksStage=2;Event("resumed");return;
    }
    if(checksStage==2&&now-checksAt>1.2f)
    {

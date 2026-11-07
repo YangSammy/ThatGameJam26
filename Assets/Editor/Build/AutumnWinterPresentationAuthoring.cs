@@ -25,6 +25,7 @@ namespace MemoryWhitebox.Editor
                 v.rig=root.GetComponentInChildren<Animator>();v.rig.enabled=false;v.rig.runtimeAnimatorController=null;
                 v.idle=AssetDatabase.LoadAssetAtPath<AnimationClip>(Character+"/Animations/AN_ParkGirl_IdleLoop.anim");
                 v.wave=AssetDatabase.LoadAssetAtPath<AnimationClip>(Character+"/Animations/AN_wave_goodbye_01.anim");
+                v.walk=AssetDatabase.LoadAssetAtPath<AnimationClip>(Character+"/Animations/AN_ParkGirl_WalkInPlace.anim");
                 v.hips=root.GetComponentsInChildren<Transform>().Single(t=>t.name=="Hips");
                 v.head=old.headBone;v.chest=old.upperChest;v.hair=old.hairBones;
                 v.groundedBones=root.GetComponentsInChildren<Transform>().Where(t=>t==v.hips ||
@@ -48,7 +49,9 @@ namespace MemoryWhitebox.Editor
             var copy=new GameObject(source.name).transform;copy.SetParent(parent,false);
             copy.localPosition=source.localPosition;copy.localRotation=source.localRotation;copy.localScale=source.localScale;
             copy.gameObject.layer=28;
-            GameObjectUtility.SetStaticEditorFlags(copy.gameObject,StaticEditorFlags.BatchingStatic);
+            // Repeated observation geometry must keep sharing its source meshes.
+            // Baking every tree into static batches duplicated nearly 1 GiB in winter.
+            GameObjectUtility.SetStaticEditorFlags(copy.gameObject,(StaticEditorFlags)0);
             var mf=source.GetComponent<MeshFilter>();var mr=source.GetComponent<MeshRenderer>();
             if(mf!=null && mf.sharedMesh!=null && mr!=null && mr.enabled)
             {
@@ -103,7 +106,7 @@ namespace MemoryWhitebox.Editor
             }
         }
 
-        public static string AuthorWinter()
+        public static string AuthorWinter(bool parkOnly=false)
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Exit Play Mode first.");
             var previous=SceneManager.GetActiveScene();
@@ -112,6 +115,8 @@ namespace MemoryWhitebox.Editor
             if(!opened && winter.isDirty)throw new InvalidOperationException("Winter has unsaved edits; authoring stopped without saving them.");
             if(opened)winter=EditorSceneManager.OpenScene(path,OpenSceneMode.Additive);
             var park=SceneManager.GetSceneByPath("Assets/Scenes/ParkScene.unity");bool parkOpened=!park.isLoaded;
+            // The park is a read-only source: copy its current visible geometry,
+            // including unsaved edits, without saving or closing an already open scene.
             if(parkOpened)park=EditorSceneManager.OpenScene("Assets/Scenes/ParkScene.unity",OpenSceneMode.Additive);
             try
             {
@@ -127,9 +132,13 @@ namespace MemoryWhitebox.Editor
                     mf.gameObject.AddComponent<MeshCollider>().sharedMesh=mf.sharedMesh;
                 if(w.observedBridge!=null && w.observedBridge!=bridge)w.observedBridge.gameObject.SetActive(false);
                 w.observedBridge=bridge;w.bridgeFocus.enabled=false;
-                var room=winter.GetRootGameObjects().Single(o=>o.name=="Bedroom_Winter_Editable").transform;
-                var roomFrame=GeometrySet(w.roomObservation,w.roomView,room,new Vector3(0,1.60f,2.48f),Quaternion.Euler(0,180,0));
-                CopyLights(winter,roomFrame,w.roomObservation);
+                Transform roomFrame=w.roomObservation.Find("Realtime_Observation");
+                if(!parkOnly)
+                {
+                    var room=winter.GetRootGameObjects().Single(o=>o.name=="Bedroom_Winter_Editable").transform;
+                    roomFrame=GeometrySet(w.roomObservation,w.roomView,room,new Vector3(0,1.60f,2.48f),Quaternion.Euler(0,180,0));
+                    CopyLights(winter,roomFrame,w.roomObservation);
+                }
                 w.realtimeObservation=true;
                 w.parkObservation.gameObject.SetActive(parkActive);w.roomObservation.gameObject.SetActive(roomActive);w.gameObject.SetActive(active);
                 EditorSceneManager.MarkSceneDirty(winter);

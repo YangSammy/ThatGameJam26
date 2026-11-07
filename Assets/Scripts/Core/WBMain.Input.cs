@@ -30,22 +30,42 @@ namespace MemoryWhitebox
             else if(InStation && CurrentWorld!=null)CurrentWorld.CancelPointerGesture();
             SuspendHouseInput();
         }
+        public bool ReturnFromTapeButton()
+        {
+            if(!HouseInputReady || ChapterIndex!=0 || radioDeck==null || radioDeck.SuccessPopupOpen || !radioDeck.CanReturnFromWorkspace || GamePauseMenu.BlocksGameplay)return false;
+            return InputContext.RequestExit(InputContext.Current,null,radioDeck.ExitTapeWorkspace);
+        }
+        TapeReturnButton contextReturnButton;
+        bool ContextReturnVisible=>houseReady && houseFocused && !ShowHelp && !IsTransitioning && !GamePauseMenu.BlocksGameplay &&
+            !(safeInspection!=null && safeInspection.BlocksInput) &&
+            (InputContext.Current==InputContextId.Gallery || (InStation &&
+                (InputContext.Current==InputContextId.AutumnWriting || InputContext.Current==InputContextId.WinterObserve)));
+        public bool PointerOverReturnButton=>contextReturnButton!=null && contextReturnButton.ContainsScreenPoint(Input.mousePosition);
+        void EnsureContextReturnButton()
+        {
+            if(contextReturnButton==null)contextReturnButton=TapeReturnButton.Create(transform,()=>ContextReturnVisible,
+                ()=>InputContext.Ready && (CurrentWorld==null || !CurrentWorld.HasPointerGesture),ReturnFromContextButton);
+        }
+        void ReturnFromContextButton()
+        {
+            if(!ContextReturnVisible)return;
+            var id=InputContext.Current;
+            InputContext.RequestExit(id,null,()=>{
+                if(id==InputContextId.Gallery)
+                { (DirectDarkroomActive?DarkroomWorld:(PhotoWorld3D)CurrentWorld).CloseParkGallery();SuspendHouseInput(); }
+                else ExitHouseStation();
+            });
+        }
         bool ExitHouseContext()
         {
             var id=InputContext.Current;
             if(id==InputContextId.Paused)return InputContext.ExitPressed(id,null,()=>SetHelpVisible(false));
             if(id==InputContextId.Gallery)return InputContext.ExitPressed(id,null,()=>{(DirectDarkroomActive?DarkroomWorld:(PhotoWorld3D)CurrentWorld).CloseParkGallery();SuspendHouseInput();});
-            if(id==InputContextId.Darkroom)return InputContext.ExitPressed(id,()=>
-            {
-                if(!DarkroomWorld.HasActiveGesture)return false;
-                DarkroomWorld.CancelInteraction();DarkroomWorld.SaveProgress();SuspendHouseInput();return true;
-            },()=>{});
-            if(id==InputContextId.Station || id==InputContextId.AutumnWriting || id==InputContextId.WinterObserve || id==InputContextId.WinterBook || id==InputContextId.WardWalk)return InputContext.ExitPressed(id,()=>
-            {
-                if(CurrentWorld==null || !CurrentWorld.HasPointerGesture)return false;
-                CurrentWorld.CancelPointerGesture();InputState.Down=false;SuspendHouseInput();return true;
-            },()=>{var painting=CurrentWorld as PaintingWorld3D;if(painting!=null && painting.ReturnFromBook()){SuspendHouseInput();return;}ExitHouseStation();});
-            if(id==InputContextId.Exploration && DirectTapeHandling)return InputContext.ExitPressed(id,null,()=>{radioDeck.PutBack();SyncTapePointer();SuspendHouseInput();});
+            if(id==InputContextId.Darkroom)return InputContext.ExitPressed(id,()=>DarkroomWorld.HasActiveGesture,()=>{});
+            if(id==InputContextId.Station || id==InputContextId.AutumnWriting || id==InputContextId.WinterObserve || id==InputContextId.WinterBook || id==InputContextId.WardWalk)return InputContext.ExitPressed(id,
+                ()=>CurrentWorld!=null && CurrentWorld.HasPointerGesture,
+                ()=>{var painting=CurrentWorld as PaintingWorld3D;if(painting!=null && painting.ReturnFromBook()){SuspendHouseInput();return;}ExitHouseStation();});
+            if(id==InputContextId.Exploration && DirectTapeHandling)return InputContext.ExitPressed(id,()=>true,()=>{});
 
             return false;
         }

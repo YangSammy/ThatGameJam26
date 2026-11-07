@@ -6,15 +6,17 @@ namespace MemoryWhitebox
     public sealed class WardImageReveal : MonoBehaviour
     {
         Material material;
+        float runProgress;
         static readonly int ProgressId=Shader.PropertyToID("_Progress");
         static readonly int BlendId=Shader.PropertyToID("_SceneBlend");
         static readonly int PageId=Shader.PropertyToID("_PageTex");
         static readonly int SceneId=Shader.PropertyToID("_SceneTex");
+        static readonly int SmokeTimeId=Shader.PropertyToID("_SmokeTime");
         static readonly int AspectId=Shader.PropertyToID("_ViewportAspect");
-        // Calibrated against the currently bound 1672 x 941 image. Change this
+        // Calibrated against the cold-light long-hair v2 image (1672 x 941). Change this
         // profile with the image, never infer face positions from screen aspect.
-        internal static readonly Vector4 ProtectedFace=new Vector4(.496f,.694f,.051f,.079f);
-        internal const float NoseLine=.667f;
+        internal static readonly Vector4 ProtectedFace=new Vector4(.494f,.703f,.037f,.022f);
+        internal const float NoseLine=.688f;
         public bool Presenting=>enabled && material!=null;
 
         public void Present(float progress,float blend,RenderTexture ink)
@@ -24,9 +26,10 @@ namespace MemoryWhitebox
                 var template=Resources.Load<Material>("WardRuntimeReveal");
                 if(template==null)throw new System.InvalidOperationException("WardRuntimeReveal material is missing.");
                 material=new Material(template){hideFlags=HideFlags.HideAndDontSave};
-                ConfigureOrderedMaterial(material);
+                ConfigureRevealMaterial(material);
             }
-            material.SetFloat(ProgressId,Mathf.Clamp01(progress));
+            runProgress=Mathf.Clamp01(progress);
+            material.SetFloat(ProgressId,Mathf.Pow(runProgress,2.5f));
             material.SetFloat(BlendId,Mathf.Clamp01(blend));
             material.SetTexture(PageId,ink);
             // This camera always owns live ink composition; do not inherit the
@@ -35,19 +38,30 @@ namespace MemoryWhitebox
             enabled=true;
         }
         public void End(){enabled=false;}
-        public static void ConfigureOrderedMaterial(Material target)
+        public static void ConfigureRevealMaterial(Material target)
         {
-            target.SetFloat("_OrderedReveal",1);
             target.SetFloat("_RevealStyle",1);
+            target.SetFloat("_MeltEase",1);
             target.SetFloat("_RevealTop",NoseLine);
             target.SetVector("_FaceEllipse",ProtectedFace);
         }
         void OnRenderImage(RenderTexture source,RenderTexture destination)
         {
             if(material==null){Graphics.Blit(source,destination);return;}
+            material.SetFloat(SmokeTimeId,runProgress*2);
             material.SetTexture(SceneId,source);
             material.SetFloat(AspectId,(float)source.width/source.height);
             Graphics.Blit(material.mainTexture,destination,material);
+        }
+        void OnGUI()
+        {
+            if(!Presenting || runProgress>=1)return;
+            float width=Mathf.Min(320,Screen.width*.35f),x=(Screen.width-width)*.5f,y=Screen.height-65;
+            GUI.Box(new Rect(x-48,y,38,34),"D");
+            var old=GUI.color;GUI.color=new Color(.15f,.18f,.18f,.9f);
+            GUI.DrawTexture(new Rect(x,y+5,width,24),Texture2D.whiteTexture);
+            GUI.color=new Color(.8f,.75f,.56f,1);
+            GUI.DrawTexture(new Rect(x+3,y+8,(width-6)*runProgress,18),Texture2D.whiteTexture);GUI.color=old;
         }
         void OnDestroy()
         {

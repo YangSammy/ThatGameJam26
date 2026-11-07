@@ -18,6 +18,7 @@ namespace MemoryWhitebox.Art.Editor
   const BindingFlags Flags=BindingFlags.Instance|BindingFlags.NonPublic;
   static readonly List<object> frames=new List<object>();static readonly List<object> events=new List<object>();static readonly List<string> errors=new List<string>();
   static float start,lastFrame,readyAt=-1,shutterAt=-1,joinAt=-1;static int imageIndex;static string film,taskCamera="";static bool setup,looked,offered;static Camera review,contactCamera,portrait;
+  static string pendingShot;static int pendingCount;static float pendingAt;
   static int checksStage;static float checksAt,pausedOffer;static Vector3 pausedPalm;
   static ParkGirlPosePrivacyValidation(){EditorApplication.update+=Tick;EditorApplication.playModeStateChanged+=Changed;Application.logMessageReceived+=Log;}
   static object Get(object o,string n)=>o.GetType().GetField(n,Flags).GetValue(o);
@@ -37,7 +38,7 @@ namespace MemoryWhitebox.Art.Editor
   static void Changed(PlayModeStateChange state)
   {
    if(!SessionState.GetBool(Key,false))return;
-   if(state==PlayModeStateChange.EnteredPlayMode){checksStage=0;setup=false;looked=offered=false;taskCamera="";imageIndex=0;readyAt=shutterAt=joinAt=-1;start=Time.realtimeSinceStartup;lastFrame=-1;frames.Clear();events.Clear();errors.Clear();film=ParkFilmStore.SaveCameraLoading(null,new ParkCameraLoading{phase=PhotoChapter.FilmPhase.Ready,threaded=true,mechanicalStep=7,iso=100}).id;}
+   if(state==PlayModeStateChange.EnteredPlayMode){checksStage=0;pendingShot=null;setup=false;looked=offered=false;taskCamera="";imageIndex=0;readyAt=shutterAt=joinAt=-1;start=Time.realtimeSinceStartup;lastFrame=-1;frames.Clear();events.Clear();errors.Clear();film=ParkFilmStore.SaveCameraLoading(null,new ParkCameraLoading{phase=PhotoChapter.FilmPhase.Ready,threaded=true,mechanicalStep=7,iso=100}).id;}
    if(state==PlayModeStateChange.EnteredEditMode){EditorPrefs.SetBool(GameSavePaths.ResetPreferenceKey,SessionState.GetBool(Key+".pref",true));SessionState.SetBool(Key,false);SessionState.SetBool(Key+".restorePending",true);}
   }
   static void Tick()
@@ -62,6 +63,13 @@ namespace MemoryWhitebox.Art.Editor
     contactCamera=new GameObject("TemporaryMeadowContactCamera").AddComponent<Camera>();contactCamera.enabled=false;contactCamera.fieldOfView=40;contactCamera.nearClipPlane=.03f;
     portrait=new GameObject("TemporaryPrivacyPortrait").AddComponent<Camera>();portrait.enabled=false;portrait.fieldOfView=30;portrait.nearClipPlane=.03f;Directory.CreateDirectory(Out+"/Frames/Portrait");Directory.CreateDirectory(Out+"/Frames/Contact");Directory.CreateDirectory(Out+"/Frames/Observer");Directory.CreateDirectory(Out+"/Frames/Player");
    }
+   if(pendingShot!=null)
+   {
+    if(p.ExposedFrames<pendingCount){if(now-pendingAt>15)throw new InvalidOperationException("Photo save timed out.");return;}
+    var saved=p.Records[p.ExposedFrames-1];File.Copy(Path.Combine(ParkFilmStore.Root,film,saved.negativeFile),Out+"/"+pendingShot+"-exposure.png",true);
+    Event(pendingShot+"_saved");if(pendingShot=="entrance")shutterAt=now;
+    pendingShot=null;readyAt=-1;Call(p,"SetPhotographyMode",ParkPhotoPrototype.PhotographyMode.Exploration);return;
+   }
    if(joinAt>0&&now-joinAt>5.5f){CheckCompletion(p,now);return;}
    if(p.Paused){Call(p,"OnApplicationFocus",true);p.Resume();}
    var roll=(ParkFilmRoll)Get(p,"roll");string task=roll.NextTask;var checkpoint=roll.Task(task);
@@ -83,16 +91,20 @@ namespace MemoryWhitebox.Art.Editor
       review.transform.position=c.transform.position+direction*2.6f+Vector3.up*1.42f;review.transform.LookAt(c.transform.position+Vector3.up*1.05f);Event(task+"_reference_ready");
      }
      if(!p.Aiming)Call(p,"SetPhotographyMode",ParkPhotoPrototype.PhotographyMode.Viewfinder);
-     Position(p,checkpoint.position-Vector3.up*PlayerControlSettings.Current.eyeHeight,Quaternion.Euler(checkpoint.euler));Set(p,"virtualPointer",new Vector2(.5f,.5f));Set(p,"apertureIndex",3);Set(p,"speedIndex",5);
+     Position(p,checkpoint.position-Vector3.up*PlayerControlSettings.Current.eyeHeight,Quaternion.Euler(checkpoint.euler));Set(p,"virtualPointer",new Vector2(.5f,.5f));Set(p,"apertureIndex",3);
+     // Meter the current scene instead of assuming the historical lighting EV.
+     int bestSpeed=0;float bestExposure=float.MaxValue;
+     int speedCount=((float[])typeof(ParkPhotoPrototype).GetField("speeds",BindingFlags.Static|BindingFlags.NonPublic).GetValue(null)).Length;
+     for(int i=0;i<speedCount;i++)
+     {Set(p,"speedIndex",i);float error=Mathf.Abs(p.ExposureError);if(error<bestExposure){bestExposure=error;bestSpeed=i;}}
+     Set(p,"speedIndex",bestSpeed);
      p.focusDistance=Mathf.Clamp(Vector3.Dot(checkpoint.subjectPoint-p.view.transform.position,p.view.transform.forward),p.minimumFocus,p.maximumFocus);
      if(task=="bridge"&&c.photoLookBack&&!looked){looked=true;Event("bridge_turn_start");}
      if(task=="meadow"&&c.photoOfferHand&&!offered){offered=true;Event("meadow_offer_start");}
      bool ready=(bool)Get(p,"bridgeReady");if(ready&&readyAt<0){readyAt=now;Event(task+"_ready");}
      if(ready&&readyAt>0&&task!="meadow"&&now-readyAt>(task=="entrance"?1.2f:4.5f))
      {
-      if(task=="bridge")CaptureOrbit(p,"Bridge");int before=p.ExposedFrames;Event(task+"_shutter");Call(p,"Capture");if(p.ExposedFrames!=before+1)throw new InvalidOperationException("Shutter did not save a frame.");var record=p.Records[p.ExposedFrames-1];
-      File.Copy(Path.Combine(ParkFilmStore.Root,film,record.negativeFile),Out+"/"+task+"-exposure.png",true);
-      if(task=="entrance"){shutterAt=now;Capture(review,Out+"/entrance-shutter-observer.png",720,720);}readyAt=-1;
+      if(task=="bridge")CaptureOrbit(p,"Bridge");pendingShot=task;pendingCount=p.ExposedFrames+1;pendingAt=now;Event(task+"_shutter");Call(p,"Capture");return;
      }
      if(ready&&task=="meadow"&&readyAt>0&&now-readyAt>7&&joinAt<0)
      {
@@ -133,19 +145,24 @@ namespace MemoryWhitebox.Art.Editor
     var drift=Vector3.Distance(before,v.PalmPosition);var angle=Quaternion.Angle(rotation,v.rightHand.rotation);
     Write("repeat-pose-check.json",new{calls=20,position_drift=drift,rotation_drift=angle});if(drift>.001f||angle>.1f)errors.Add("Repeated shutter pose compounded offsets.");
     CaptureOrbit(p,"Joined");
-    pausedPalm=v.PalmPosition;pausedOffer=v.OfferElapsed;Call(p,"PauseControls");checksAt=now;checksStage=1;Event("pause_check_started");return;
+    pausedPalm=v.PalmPosition;pausedOffer=v.OfferElapsed;GamePauseMenu.Open();checksAt=now;checksStage=1;Event("pause_check_started");return;
    }
    if(checksStage==1&&now-checksAt>.65f)
    {
     float drift=Vector3.Distance(pausedPalm,v.PalmPosition),elapsed=v.OfferElapsed-pausedOffer;
     Write("pause-check.json",new{seconds=now-checksAt,palm_drift=drift,offer_elapsed_delta=elapsed});if(drift>.005f||elapsed>.1f)errors.Add("Girl performance advanced while paused.");
-    Call(p,"OnApplicationFocus",true);p.Resume();Call(p,"SetPhotographyMode",ParkPhotoPrototype.PhotographyMode.Viewfinder);checksAt=now;checksStage=2;Event("resumed");return;
+    Call(p,"OnApplicationFocus",true);UnityEngine.Object.FindObjectOfType<GamePauseMenu>().Resume();Call(p,"SetPhotographyMode",ParkPhotoPrototype.PhotographyMode.Viewfinder);checksAt=now;checksStage=2;Event("resumed");return;
    }
    if(checksStage==2&&now-checksAt>1.2f)
    {
-    int before=p.ExposedFrames;Call(p,"Capture");if(p.ExposedFrames!=before+1||p.ExposedFrames!=3)errors.Add("Final meadow shutter did not consume exactly one frame.");
-    else {var record=p.Records[p.ExposedFrames-1];File.Copy(Path.Combine(ParkFilmStore.Root,film,record.negativeFile),Out+"/meadow-exposure.png",true);if(!record.joinedHands)errors.Add("Meadow photo did not retain joined-hands state.");}
-    Event("meadow_shutter");p.Resume();checksAt=now;checksStage=3;return;
+    pendingCount=p.ExposedFrames+1;Call(p,"Capture");Event("meadow_shutter");checksAt=now;checksStage=4;return;
+   }
+   if(checksStage==4)
+   {
+    if(p.ExposedFrames<pendingCount){if(now-checksAt>15){errors.Add("Final photo save timed out.");Finish(false,"Photo timeout");}return;}
+    var record=p.Records[p.ExposedFrames-1];File.Copy(Path.Combine(ParkFilmStore.Root,film,record.negativeFile),Out+"/meadow-exposure.png",true);
+    if(p.ExposedFrames!=3||!record.joinedHands)errors.Add("Final photo frame count or joined hands flag invalid.");
+    p.Resume();checksAt=now;checksStage=3;return;
    }
    if(checksStage==3&&now-checksAt>1)
    {

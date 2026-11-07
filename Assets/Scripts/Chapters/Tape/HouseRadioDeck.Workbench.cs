@@ -14,6 +14,25 @@ namespace MemoryWhitebox
         bool benchLeft,benchRight;
         Vector2 benchLast,benchPress;
         Vector3 pullStart;
+        int stripStartIndex=-1;
+        bool stripStartHoleA,stripStartHoleB,stripStartLoose;
+        float stripStartUsedLength;
+        Vector3 stripStartPosition;
+        Quaternion stripStartRotation;
+        void CaptureStripStart()
+        {
+            stripStartIndex=BenchIndex;stripStartLoose=Chapter.LooseStripReady;
+            stripStartUsedLength=workbenchVisuals!=null?workbenchVisuals.UsedLength:0;
+            if(stripStartIndex>=0){var data=Chapter.Tape.Candidates[stripStartIndex];stripStartHoleA=data.HoleA;stripStartHoleB=data.HoleB;}
+            stripStartPosition=adhesiveStrip.position;stripStartRotation=adhesiveStrip.rotation;
+        }
+        void RestoreStripStart()
+        {
+            if(stripStartIndex>=0){var data=Chapter.Tape.Candidates[stripStartIndex];data.HoleA=stripStartHoleA;data.HoleB=stripStartHoleB;}
+            Chapter.LooseStripReady=stripStartLoose;adhesiveStrip.SetPositionAndRotation(stripStartPosition,stripStartRotation);
+            workbenchVisuals?.RestorePull(stripStartUsedLength);adhesiveStrip.gameObject.SetActive(stripStartLoose);
+            AdvanceInspection(0);
+        }
 
         Ray benchGrabRay;
         readonly ObjectDragSession benchDrag=new ObjectDragSession();
@@ -62,8 +81,7 @@ namespace MemoryWhitebox
             ShowTapeDropPreview(null);
             if(movingOriginal){movingOriginal=false;originalHit.enabled=true;RestoreSource();}
             if(benchGesture==BenchGesture.MoveTape)PoseWorkbenchTape();
-            if(benchGesture==BenchGesture.PullStrip){adhesiveStrip.gameObject.SetActive(false);workbenchVisuals?.CancelPull();}
-            if(benchGesture==BenchGesture.MoveStrip)RestStrip();
+            if(benchGesture==BenchGesture.PullStrip || benchGesture==BenchGesture.MoveStrip)RestoreStripStart();
             adhesiveRibbon.gameObject.SetActive(false);ReleaseSpindle();
             benchGesture=BenchGesture.None;benchLeft=benchRight=false;benchWaiting=true;benchGate.Arm();
             house.InputContext.Handoff();
@@ -120,7 +138,6 @@ namespace MemoryWhitebox
             TickHeldTargetDuringHandoff();
             house.Room.StopMotion();TickPreparationCamera(Time.unscaledDeltaTime);TickRadioCamera(Time.unscaledDeltaTime);
             if(dualDeck!=null && transport!=null)TickAudition();
-            if(house.InputContext.ExitPressed(InputContextId.TapeWorkbench,CancelWorkbenchGesture,ExitTapeWorkspace))return;
             if(preparationCameraMoving || radioCameraMoving || storageDelivery!=null)return;
             if(benchWaiting){if(benchGate.Ready)benchWaiting=false;return;}
             if(PollWorkspaceInspection())return;
@@ -128,7 +145,9 @@ namespace MemoryWhitebox
 
             AdvanceInspection(Time.unscaledDeltaTime);
         }
-        void ExitTapeWorkspace()
+        public bool CanReturnFromWorkspace=>!radioCameraMoving && !preparationCameraMoving && !benchDrag.Active && !movingOriginal &&
+            benchGesture==BenchGesture.None && !draggingTape && storageDelivery==null;
+        public void ExitTapeWorkspace()
         {
             if(radioFocused){FocusRadio(false);return;}
             if(preparationFocused){FocusPreparation(false);return;}
@@ -149,6 +168,7 @@ namespace MemoryWhitebox
             var ray=view.ScreenPointToRay(point);Physics.SyncTransforms();
             if(type==EventType.MouseDown && !movingOriginal && benchGesture==BenchGesture.None && TapeUIAt(point))return;
             if(type==EventType.MouseDown && button==0 && StorageClick(PickWorkbenchTarget(ray)))return;
+            if(button==1 && (movingOriginal || (benchGesture!=BenchGesture.None && benchGesture!=BenchGesture.Rotate)))return;
             if(SourcePointer(type,button,ray))return;
             if(type==EventType.MouseDown && button==0 && benchGesture==BenchGesture.None)
             {
@@ -169,8 +189,19 @@ namespace MemoryWhitebox
             if(type==EventType.ScrollWheel)return;
             if(type==EventType.MouseDown)
             {
-                if(button==0)benchLeft=true;if(button==1)benchRight=true;
-                if(benchGesture==BenchGesture.Pending && benchLeft && benchRight){benchGesture=BenchGesture.Rotate;return;}
+                if(button==1)
+                {
+                    // Right drag owns shell rotation; it cannot also trigger workspace exit.
+                    if(benchGesture!=BenchGesture.None)return;
+                    int index=TapeAt(ray);
+                    if(index<0 || index==Selected)return;
+                    string reason=WorkTapeLockReason(index);
+                    if(reason!=null){ShowTapePointerNotice(reason);return;}
+                    if(index!=BenchIndex){PlaceOnWorkbench(index);benchWaiting=false;house.AdoptPointerGesture();}
+                    benchRight=true;benchPress=benchLast=point;benchSpindle=-1;
+                    benchGesture=BenchGesture.Rotate;return;
+                }
+                if(button==0)benchLeft=true;
                 if(benchGesture!=BenchGesture.None || button!=0)return;
                 benchPress=benchLast=point;benchGrabRay=ray;
                 if(workbenchVisuals!=null && BenchIndex>=0 && !Chapter.LooseStripReady)
@@ -180,6 +211,7 @@ namespace MemoryWhitebox
                     {
                         var socket=tapes[BenchIndex].preparation.pieces[i];
                         if(!(i==0?data.HoleA:data.HoleB) || !Hit(socket.GetComponent<Collider>(),ray))continue;
+                        CaptureStripStart();
                         if(i==0)data.HoleA=false;else data.HoleB=false;
                         Chapter.LooseStripReady=true;adhesiveStrip.gameObject.SetActive(true);workbenchVisuals.strip.gameObject.SetActive(true);
                         adhesiveStrip.position=socket.transform.position;benchGesture=BenchGesture.MoveStrip;
@@ -187,22 +219,22 @@ namespace MemoryWhitebox
                         return;
                     }
                 }
-                if(Chapter.LooseStripReady && Hit(adhesiveStrip.GetComponent<Collider>(),ray)){benchGesture=BenchGesture.MoveStrip;pullStart=adhesiveStrip.position;benchDrag.Begin(adhesiveStrip,ray,view.transform.forward);return;}
+                if(Chapter.LooseStripReady && Hit(adhesiveStrip.GetComponent<Collider>(),ray)){CaptureStripStart();benchGesture=BenchGesture.MoveStrip;pullStart=adhesiveStrip.position;benchDrag.Begin(adhesiveStrip,ray,view.transform.forward);return;}
                 if(Hit(adhesiveTab,ray))
                 {
                     if(Chapter.LooseStripReady)return;
-                    benchGesture=BenchGesture.PullStrip;pullStart=adhesiveTab.bounds.center;adhesiveStrip.position=pullStart;adhesiveStrip.gameObject.SetActive(true);benchDrag.Begin(adhesiveStrip,ray,view.transform.forward,0,.12f,false,workbenchVisuals!=null?workbenchVisuals.dispenser.transform:null);return;
+                    CaptureStripStart();benchGesture=BenchGesture.PullStrip;pullStart=adhesiveTab.bounds.center;adhesiveStrip.position=pullStart;adhesiveStrip.gameObject.SetActive(true);benchDrag.Begin(adhesiveStrip,ray,view.transform.forward,0,.12f,false,workbenchVisuals!=null?workbenchVisuals.dispenser.transform:null);return;
                 }
                 int candidate=TapeAt(ray);
                 if(candidate>=0 && candidate!=Selected && candidate!=BenchIndex){PlaceOnWorkbench(candidate);benchWaiting=false;WorkbenchPointer(type,button,point,delta,wheel);return;}
                 if(BenchIndex<0)return;
                 var tape=tapes[BenchIndex];var target=PickWorkbenchTarget(ray);benchSpindle=-1;
-                if(candidate==BenchIndex || benchSpindle>=0){benchGesture=benchSpindle>=0?BenchGesture.Spindle:benchRight?BenchGesture.Rotate:BenchGesture.Pending;}
+                if(candidate==BenchIndex || benchSpindle>=0){benchGesture=benchSpindle>=0?BenchGesture.Spindle:BenchGesture.Pending;}
                 return;
             }
             if(type==EventType.MouseDrag)
             {
-                if(benchGesture==BenchGesture.Rotate && benchLeft && benchRight)
+                if(benchGesture==BenchGesture.Rotate && benchRight)
                 {Chapter.WorkbenchEuler+=new Vector3(-delta.y*.4f,delta.x*.4f,0);PoseWorkbenchTape();}
                 if(benchGesture==BenchGesture.Pending && benchSpindle<0 && Vector2.Distance(point,benchPress)>7)
                 {preparationDragFromMat=preparationFocused && OnPreparationMat(tapes[BenchIndex].root);preparationDragPoint=benchPress;benchGesture=BenchGesture.MoveTape;TapeSound(5,tapes[BenchIndex].root.position);benchDrag.BeginScreenCarry(tapes[BenchIndex].root,benchGrabRay,view.transform.forward);}
@@ -244,9 +276,17 @@ namespace MemoryWhitebox
             if(type==EventType.MouseUp)
             {
                 if(button==0)benchLeft=false;if(button==1)benchRight=false;
-                if(benchGesture==BenchGesture.Rotate){benchGesture=BenchGesture.WaitRelease;}
+                if(benchGesture==BenchGesture.Rotate)
+                {
+                    if(button!=1)return;
+                    benchGesture=benchLeft?BenchGesture.WaitRelease:BenchGesture.None;
+                    house.SaveStableProgress();return;
+                }
                 if(button==0)
                 {
+                    // Use the release point even if the last drag event was elsewhere.
+                    if(benchGesture==BenchGesture.MoveStrip || benchGesture==BenchGesture.PullStrip)
+                        WorkbenchPointer(EventType.MouseDrag,0,point,Vector2.zero,0);
                     if(benchGesture==BenchGesture.MoveTape && BenchIndex>=0)
                     {
                         ShowTapeDropPreview(null);
@@ -257,7 +297,7 @@ namespace MemoryWhitebox
                         bool accepted=!benchDrag.Blocked && over;
                         string rejection=accepted?null:TapeDropHint(slotHit,ray,benchDrag);
                         bool onMat=!accepted && !benchDrag.Blocked && PreparationDrop(ray);
-                        bool placed=!accepted && !onMat && !OverStorageFootprint(tapes[index].root) && benchDrag.TryPlaceInArea();benchDrag.End(!accepted && !placed && !onMat);
+                        bool placed=!TapeUIAt(point) && !accepted && !onMat && !OverStorageFootprint(tapes[index].root) && benchDrag.TryPlaceInArea();benchDrag.End(!accepted && !placed && !onMat);
                         if(!accepted && !onMat && !placed)ShowTapePointerNotice(rejection);
                         if(onMat || placed)TapeSound(5,tapes[BenchIndex].root.position);
                         if(onMat){if(!PlaceTapeOnPreparationMat(false))PoseWorkbenchTape();}
@@ -279,11 +319,11 @@ namespace MemoryWhitebox
                         }
                         else
                         {
-                            RestStrip();
+                            benchDrag.End(true);RestoreStripStart();
                             ShowTapePointerNotice(PatchLockReason(BenchIndex)??"Aim at an open, visible protection hole.");
                         }
                     }
-                    else if(benchGesture==BenchGesture.PullStrip){adhesiveStrip.gameObject.SetActive(false);workbenchVisuals?.CancelPull();}
+                    else if(benchGesture==BenchGesture.PullStrip){benchDrag.End(true);RestoreStripStart();}
                     benchDrag.End(false);
                     adhesiveRibbon.gameObject.SetActive(false);
                     benchGesture=benchRight?BenchGesture.WaitRelease:BenchGesture.None;house.SaveStableProgress();
@@ -293,7 +333,7 @@ namespace MemoryWhitebox
         }
         string NextTapeTask()
         {
-            if(Chapter.Completed)return "All 3 copies saved. RMB back to the desk, then RMB to stand up.";
+            if(Chapter.Completed)return "All 3 copies saved. Use the bottom return button to leave.";
             if(Selected<0 && Chapter.RecordingTapeIndex>=0 && transport.RecordedSeconds>0)
                 return "Open the box. Drag the recorded B tape into its finished compartment; reload B to revise.";
             if(!Chapter.SourceLoaded)return "Open the box. Choose Original "+(CurrentCopy+1).ToString("00")+" into A.";
@@ -325,36 +365,25 @@ namespace MemoryWhitebox
             if(benchGesture==BenchGesture.MoveTape && BenchIndex>=0 && OverFinishedCompartment(view.ScreenPointToRay(Input.mousePosition),tapes[BenchIndex].root))
                 return FinishedTapeGate(BenchIndex)??"Release LMB · Return copy for checking";
             if(benchDrag.AtEdge)return "Keep on this work area / Release LMB to place";
-            if(benchDrag.Blocked)return "Path blocked — move around the obstacle / RMB Cancel";
+            if(benchDrag.Blocked)return "Path blocked — move around the obstacle";
             if(benchGesture==BenchGesture.MoveTape && PreparationDrop(view.ScreenPointToRay(Input.mousePosition)))return "Release LMB · Place on preparation mat";
             if(movingOriginal || benchGesture==BenchGesture.MoveTape)
             {var slot=movingOriginal?sourceSlot:slotHit;return TapeDropHint(slot,view.ScreenPointToRay(Input.mousePosition),benchDrag);}
             if(benchGesture==BenchGesture.PullStrip)return "Drag down to tear off a strip";
             if(benchGesture==BenchGesture.MoveStrip)return "Release over a hole to cover";
-            if(benchGesture==BenchGesture.Rotate)return "LMB + RMB  Rotate";
+            if(benchGesture==BenchGesture.Rotate)return "RMB drag  Rotate";
             if(Time.unscaledTime<tapePointerNoticeUntil)return tapePointerNotice;
-            if(benchGesture==BenchGesture.Pending)return "Shell · Drag to move / LMB + RMB to rotate";
+            if(benchGesture==BenchGesture.Pending)return "Shell · Drag to move / RMB drag to rotate";
             return "";
         }
         void DrawWorkbench()
         {
             if(house==null || Chapter==null || house.safeInspection.Active)return;
-            var style=new GUIStyle(GUI.skin.label){fontSize=15,wordWrap=true};
-            style.normal.textColor=new Color(.94f,.94f,.88f);
             if(WorkbenchMode && !benchWaiting)
             {
                 var e=Event.current;
                 if(e.type==EventType.MouseDown || e.type==EventType.MouseUp || e.type==EventType.MouseDrag || e.type==EventType.ScrollWheel)
                     WorkbenchPointer(e.type,e.button,new Vector2(e.mousePosition.x,Screen.height-e.mousePosition.y),new Vector2(e.delta.x,-e.delta.y),-e.delta.y/3);
-                var hint=WorkbenchHint();
-                if(hint!="")GUI.Label(new Rect(24,76,Screen.width-48,30),hint,style);
-            }
-            if(WorkbenchMode || RecordingMode)
-            {
-                GUI.Label(new Rect(24,24,Mathf.Min(440,Screen.width-160),48),NextTapeTask(),style);
-                var exit=new GUIStyle(style){alignment=TextAnchor.UpperRight,fontSize=13};
-                exit.normal.textColor=new Color(.7f,.72f,.7f);
-                GUI.Label(new Rect(Screen.width-224,24,200,24),"E  Inspect   /   RMB  Back",exit);
             }
         }
         bool DirectTaskNearby()=>StationActive && Vector3.Distance(view.transform.position,transform.position)<2.5f;

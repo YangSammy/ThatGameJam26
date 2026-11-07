@@ -52,6 +52,8 @@ namespace MemoryWhitebox
             // Render a completely covered frame before any scene/object changes.
             int coverFrame=Time.frameCount;
             yield return null;
+            // Finish the writing view only after EasyTransition has covered the departing girl.
+            if(InStation && ChapterIndex==2 && Current.Completed)CompleteHouseExit();
             bedroomTrace.MarkFrameWait("covered-frame-wait",coverFrame);
             // Release the held load before UnloadSceneAsync; otherwise the async
             // queue can wait forever behind allowSceneActivation=false.

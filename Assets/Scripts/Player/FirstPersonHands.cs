@@ -136,8 +136,8 @@ namespace MemoryWhitebox
                     (house.safeInspection!=null && house.safeInspection.BlocksInput));
             // Keep animation targets and the camera's instruments alive; only hide hand meshes.
             bool joinedLeft=park!=null && isActiveAndEnabled && park.isActiveAndEnabled && handFocused && !handPaused &&
-                !GamePauseMenu.BlocksGameplay && (!park.HandPresentationBlocked || HandholdAutomaticRelease) && (skeletalRig!=null?HandholdVisible:park.HoldingPhotoHand) &&
-                (park.PhotoMode==ParkPhotoPrototype.PhotographyMode.Viewfinder || park.PhotoMode==ParkPhotoPrototype.PhotographyMode.Exploration);
+                (park.KeepJoinedHandForTransition || (!GamePauseMenu.BlocksGameplay && (!park.HandPresentationBlocked || HandholdAutomaticRelease))) && (skeletalRig!=null?HandholdVisible:park.HoldingPhotoHand) &&
+                HandholdViewAllowed;
             if(skeletalRig!=null)
             {
                 bool ready=skeletalRig.SetLeftArmOnly(joinedLeft);

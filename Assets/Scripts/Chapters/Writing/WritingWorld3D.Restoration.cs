@@ -5,7 +5,7 @@ namespace MemoryWhitebox
 {
     public sealed partial class WritingWorld3D
     {
-        AlbumWinterVisual memoryActor;
+        AutumnBoyVisual boyVisual;
         Transform memoryVase, memoryVeil;
         Material memoryVeilMaterial;
         float memoryFade, actorStep;
@@ -68,7 +68,7 @@ namespace MemoryWhitebox
             float travel=Vector3.Distance(actorPrevious,player.localPosition);
             actorPrevious=player.localPosition;
             if(travel>.001f && dt>0)actorStep=Mathf.Repeat(actorStep+travel*1.8f,1);
-            memoryActor.SetActorPose(travel>.001f && dt>0?"Walk":"Idle",actorStep);
+            boyVisual.Present(travel>.001f && dt>0,dt);
             // A little draft through the open doorway moves petals and the envelope edge;
             // these are object cues, without outline rings or recoloring the materials.
             collectionProps[1].localRotation=Quaternion.Euler(Mathf.Sin(time*1.35f)*2,0,Mathf.Cos(time*1.2f)*1.4f);
@@ -78,3 +78,4 @@ namespace MemoryWhitebox
         }
     }
 }
+

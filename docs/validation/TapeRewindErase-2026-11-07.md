@@ -1,0 +1,7 @@
+# B tape destructive rewind — 2026-11-07
+
+B winding remains audible at 2x. Each reverse audio frame reads the old sample, moves the cursor back two samples, then clears audio/provenance from the new cursor to the previous recording end and shortens recording length. A winding remains read-only. Recording starts at the current B cursor, including after a full-capacity recording is rewound. Save schema and submission rules are unchanged; Save serializes only the remaining length.
+
+Legacy rewind-to-start clears B; the compatibility ListenToCopy entry instead uses CueTargetPlayback, preserving audio for audition. If rewind starts from inside an existing recording, the tail after the new cursor is discarded as undo semantics.
+
+Validation: before change, real callback moved B from 10s to 8s but retained 10s recording (expected failing fixture). After change Unity compiled with zero Console errors. Inactive in-memory callback fixture passed truncation plus 13 checks: preserved prefix, cleared samples/provenance, shortened submission mapping, reverse sound before erase, cursor-based recording, correct replacement tail and accepted final copy, unchanged A samples, A-only rewind retaining B, non-destructive audition cue, full erase, recording after erase, legacy full rewind. No player save files written, no mouse operation or listening test. Fixture: output/validation/TapeRewindEraseRegression.cs.txt. Build not regenerated.

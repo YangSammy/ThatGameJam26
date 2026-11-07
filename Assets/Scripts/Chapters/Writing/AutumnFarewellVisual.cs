@@ -7,7 +7,7 @@ namespace MemoryWhitebox
     public sealed class AutumnFarewellVisual : MonoBehaviour
     {
         public Animator rig;
-        public AnimationClip idle, wave;
+        public AnimationClip idle, wave, walk;
         public Transform hips, head, chest;
         public Transform[] hair = new Transform[0];
         public Transform[] groundedBones = new Transform[0];
@@ -17,6 +17,8 @@ namespace MemoryWhitebox
         Quaternion[] groundedRotation;
         bool initialized;
         Transform pointingArm,pointingElbow;
+        Transform neck;
+        Quaternion headHome,neckHome,chestHome;
 
         void Initialize()
         {
@@ -24,6 +26,8 @@ namespace MemoryWhitebox
             rig.enabled=false;rig.applyRootMotion=false;
             idle.SamplePropAnimation(rig.gameObject,0);
             hipsHome=hips.localPosition;
+            neck=head.parent;
+            headHome=head.localRotation;neckHome=neck.localRotation;chestHome=chest.localRotation;
             hairHome=new Quaternion[hair.Length];
             groundedPosition=new Vector3[groundedBones.Length];groundedRotation=new Quaternion[groundedBones.Length];
             for(int i=0;i<hair.Length;i++)hairHome[i]=hair[i].localRotation;
@@ -57,25 +61,42 @@ namespace MemoryWhitebox
         public void Present(float clock,float farewellSeconds,bool departing)
         {
             Initialize();
+            // Sampling can skip channels on an inactive/transitioning rig. Never use
+            // the previous frame's procedural turn as the next frame's base pose.
+            chest.localRotation=chestHome;neck.localRotation=neckHome;head.localRotation=headHome;
             // The source take has two seconds of lead-in. Sample its raise/wave/lower
-            // section inside the chapter's existing two-second farewell, without root motion.
+            // section at its authored speed, without root motion.
             idle.SamplePropAnimation(rig.gameObject,Mathf.Repeat(clock,idle.length));
-            if(departing)
+            var idleHead=head.rotation;var idleNeck=neck.rotation;
+            bool waving=departing && farewellSeconds<WritingChapter.WaveSeconds;
+            if(waving)
             {
                 // Source wave includes a large leg lift. Preserve the existing grounded
                 // idle lower body while sampling its authored shoulder/arm/head gesture.
                 for(int i=0;i<groundedBones.Length;i++)
                 {groundedPosition[i]=groundedBones[i].localPosition;groundedRotation[i]=groundedBones[i].localRotation;}
-                wave.SamplePropAnimation(rig.gameObject,Mathf.Lerp(2.35f,4.65f,Mathf.Clamp01(farewellSeconds/2)));
+                wave.SamplePropAnimation(rig.gameObject,Mathf.Lerp(2.35f,4.65f,Mathf.Clamp01(farewellSeconds/WritingChapter.WaveSeconds)));
+                // The source wave includes its own head/neck gesture and snaps back
+                // at the cut. Keep idle breathing here; the bounded turn below owns
+                // farewell gaze. Shoulder, arm and hand tracks remain authored.
+                neck.rotation=idleNeck;head.rotation=idleHead;
                 for(int i=0;i<groundedBones.Length;i++)
                 {groundedBones[i].localPosition=groundedPosition[i];groundedBones[i].localRotation=groundedRotation[i];}
             }
+            if(departing && farewellSeconds>=WritingChapter.WaveSeconds+WritingChapter.TurnSeconds)
+                walk.SamplePropAnimation(rig.gameObject,Mathf.Repeat(farewellSeconds-WritingChapter.WaveSeconds-WritingChapter.TurnSeconds,walk.length));
             hips.localPosition=hipsHome;
-            float turn=departing?Mathf.Sin(Mathf.PI*Mathf.Clamp01(farewellSeconds/2)):0;
+            float turn=waving?Mathf.Sin(Mathf.PI*Mathf.Clamp01(farewellSeconds/WritingChapter.WaveSeconds)):0;
             chest.rotation=Quaternion.AngleAxis(8*turn,transform.up)*chest.rotation;
-            head.rotation=Quaternion.AngleAxis(16*turn,transform.up)*head.rotation;
+            if(waving)
+            {
+                // Also isolate gaze from the source clip's torso turn. Local-only
+                // restoration would still inherit that turn through the neck parent.
+                neck.rotation=idleNeck;
+                head.rotation=Quaternion.AngleAxis(16*turn,transform.up)*idleHead;
+            }
             // Existing weighted hair tips lag behind the head, rather than moving a hair sphere.
-            float lag=departing?Mathf.Sin(Mathf.PI*Mathf.Clamp01((farewellSeconds-.16f)/2))*-5:Mathf.Sin(clock*1.5f)*.7f;
+            float lag=waving?Mathf.Sin(Mathf.PI*Mathf.Clamp01((farewellSeconds-.16f)/2))*-5:Mathf.Sin(clock*1.5f)*.7f;
             for(int i=0;i<hair.Length;i++)hair[i].localRotation=hairHome[i]*Quaternion.Euler(0,lag,lag*.22f);
         }
     }

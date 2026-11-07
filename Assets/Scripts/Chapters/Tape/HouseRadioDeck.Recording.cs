@@ -210,7 +210,7 @@ namespace MemoryWhitebox
             lastFeedback="";
             UITransportCommand=-1;
             SubmissionSucceeded=false;
-            if(Chapter.Completed){SubmissionSucceeded=true;SubmissionMessage="All 3 copies saved. RMB to return.";return;}
+            if(Chapter.Completed){SubmissionSucceeded=true;SubmissionMessage="All 3 copies saved. Use the return button to leave.";return;}
             string gate=FinishedTapeGate(tapeIndex,false);
             if(gate!=null){SubmissionMessage=gate;return;}
             transport.StopAll();wasWriting=false;
@@ -232,9 +232,9 @@ namespace MemoryWhitebox
             }
             RestoreSource();
             SubmissionSucceeded=true;
-            SubmissionMessage=Chapter.Completed?"All 3 copies saved in the box. RMB to return.":"Copy "+finished+" saved in the box. Load Original "+(Chapter.CommissionIndex+1).ToString("00")+" and choose a NEW work tape.";
+            SubmissionMessage=Chapter.Completed?"All 3 copies saved in the box. Use the return button to leave.":"Copy "+finished+" saved in the box. Load Original "+(Chapter.CommissionIndex+1).ToString("00")+" and choose a NEW work tape.";
             if(!Chapter.Completed)RecordingMode=false;
-            transportPanel.ShowSuccess(Chapter.Completed?"All 3 copies saved in the box.":"Copy "+finished.ToString("00")+" saved. Choose a NEW work tape for the next copy.");
+            transportPanel.ShowSuccess(Chapter.Completed?"All 3 copies saved in the box.":"Copy "+finished.ToString("00")+" saved.");
             WBMain.Tone(660,.2f);
         }
         void RecordingPointerDown(Vector2 point)

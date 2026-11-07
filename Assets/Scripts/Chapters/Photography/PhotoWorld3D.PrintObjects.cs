@@ -181,7 +181,11 @@ namespace MemoryWhitebox
                 location=="print-developer" || location=="print-stop" || location=="print-fixer" || location=="print-wash")
                 container=Nodes[location].transform;
             else if(negative && printStage==ParkPrintStage.NegativeDrying)container=Nodes["tank"].transform;
-            objectDrag.Begin(item,ray,Vector3.up,.025f,1.8f,true,container);
+            // The freshly rinsed negative starts above the tank, not on the worktop.
+            // Keep its first carry in the view plane so dragging toward the clip
+            // cannot snap it down into the tabletop operation area.
+            bool fromTank=negative && location=="print-negative-home" && printStage==ParkPrintStage.NegativeDrying;
+            objectDrag.Begin(item,ray,fromTank?View.transform.forward:Vector3.up,fromTank?0:.025f,1.8f,!fromTank,container);
             SetColliders(item.gameObject,false);return true;
         }
         bool MovePhysicalPrint(Ray ray)
@@ -244,7 +248,22 @@ namespace MemoryWhitebox
         {
             if(printDrag==id || state==null)return;
             if(state.locationId!=null && state.locationId.StartsWith("area/") && OperationArea.RestorePose(Nodes[id].transform))return;
-            // At home, the material's own Inspector pose is authoritative, not an old duplicate anchor.
+            if(id=="print-negative" && state.locationId=="print-negative-home" &&
+                printObjectsState!=null && printObjectsState.negativeRemoved && printStage==ParkPrintStage.NegativeDrying)
+            {
+                var item=Nodes[id].transform;
+                var tank=Nodes["tank"].transform;
+                float top=tank.position.y;
+                foreach(var renderer in tank.GetComponentsInChildren<Renderer>())
+                    if(renderer.enabled && !renderer.forceRenderingOff && !(renderer is LineRenderer))
+                        top=Mathf.Max(top,renderer.bounds.max.y);
+                var clip=printObjects.Placement("print-negative-clip");
+                // Match the hanging station's height while clearing the open tank lid.
+                item.position=new Vector3(tank.position.x,Mathf.Max(top+.06f,clip!=null?clip.position.y:top+.06f),tank.position.z);
+                item.localRotation=negativeHomeRotation;
+                return;
+            }
+            // Other home materials retain their authored Inspector poses.
             if(state.locationId=="print-negative-home" || state.locationId=="print-paper-home" || (state.locationId!=null && state.locationId.StartsWith("area/")))
             {
                 var item=Nodes[id].transform;bool negative=id=="print-negative";

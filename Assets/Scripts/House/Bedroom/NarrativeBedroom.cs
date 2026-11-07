@@ -33,6 +33,7 @@ namespace MemoryWhitebox
             grade=host.Room.Camera.gameObject.AddComponent<BedroomColorResponse>();
             grade.Profile=cameraProfile;
             PresentStation(host,false);
+            LoadDevelopedPhotos();
             if(chapterEntry.chapter==2 && writingDesk!=null)
             {
                 var hit=writingDesk.paper;var t=hit.transform;
@@ -43,6 +44,40 @@ namespace MemoryWhitebox
             host.Room.EnableLook(true);host.SuspendHouseInput();
         }
 
+        readonly List<Texture2D> developedPhotos=new List<Texture2D>();
+        void LoadDevelopedPhotos()
+        {
+            ParkFilmRoll roll;
+            try{roll=ParkFilmStore.LoadActive();}catch(System.Exception e){Debug.LogWarning("Bedroom photos unavailable: "+e.Message);return;}
+            if(roll==null || roll.state!=ParkFilmState.Developed)return;
+            for(int i=0;i<roll.frames.Count;i++)
+            {
+                byte[] bytes;string reason;
+                Texture2D image=null;
+                if(ParkFilmStore.TryReadDevelopedFrame(roll.id,i+1,out bytes,out reason))
+                {image=new Texture2D(2,2,TextureFormat.RGB24,false);if(!image.LoadImage(bytes)){Destroy(image);image=null;}}
+                developedPhotos.Add(image);
+            }
+            foreach(var root in gameObject.scene.GetRootGameObjects())foreach(var surface in root.GetComponentsInChildren<Renderer>(true))
+            {
+                const string prefix="Photo_original_print_";
+                if(!surface.name.StartsWith(prefix))continue;
+                int index;string number=surface.name.Substring(prefix.Length).Split('.')[0];
+                if(!int.TryParse(number,out index) || index>=developedPhotos.Count || developedPhotos[index]==null)continue;
+                var props=new MaterialPropertyBlock();surface.GetPropertyBlock(props);
+                props.SetTexture("_MainTex",developedPhotos[index]);props.SetColor("_Color",Color.white);
+                // Fill the existing paper geometry, including its original aspect ratio.
+                var filter=surface.GetComponent<MeshFilter>();
+                if(filter!=null && filter.sharedMesh!=null)
+                {
+                    var uv=filter.sharedMesh.uv;var min=Vector2.one*float.MaxValue;var max=Vector2.one*float.MinValue;
+                    foreach(var point in uv){min=Vector2.Min(min,point);max=Vector2.Max(max,point);}
+                    var size=max-min;if(size.x>.00001f && size.y>.00001f)props.SetVector("_MainTex_ST",new Vector4(1/size.x,1/size.y,-min.x/size.x,-min.y/size.y));
+                }
+                surface.SetPropertyBlock(props);
+            }
+        }
+        void OnDestroy(){foreach(var image in developedPhotos)if(image!=null)Destroy(image);}
         public void TickDiscovery(float dt,bool muted){if(discovery)discovery.Step(dt,muted);}
 
         public void PresentStation(WBMain host,bool station)

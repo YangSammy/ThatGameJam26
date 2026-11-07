@@ -62,6 +62,8 @@ namespace MemoryWhitebox
             }
             if(winterSheet!=null)winterSheet.SetPageTexture(albumTexture);
             BindWard();
+            if(layout!=null)BuildPaperArt();
+            else { BuildTravelerSprites(); PaperHide(albumActor.transform); }
         }
 
         void BuildRoute()
@@ -104,6 +106,7 @@ namespace MemoryWhitebox
         }
         public override void Deactivate()
         {
+            RestorePaperArt();
             foreach(var ink in emptyShapeInk)ink.Clear();
             CancelPointerGesture();if(observedSeat!=null)observedSeat.SetSwingAngleRadians(0);
             EndWardImage();
@@ -113,7 +116,7 @@ namespace MemoryWhitebox
             if(View!=null){View.cullingMask=originalMask;View.rect=originalRect;View.backgroundColor=originalBackground;View.clearFlags=originalClearFlags;}
             base.Deactivate();
         }
-        public override void Dispose(){DisposeEmptyShapes();if(PagePendant)ReleaseObject(key.gameObject);StopWinterMotion();EndWardImage();if(wardImage!=null)ReleaseObject(wardImage);if(albumBacking!=null)ReleaseObject(albumBacking.gameObject);if(bridgeHover)ReleaseObject(bridgeHover.gameObject);if(pageCamera!=null)ReleaseObject(pageCamera.gameObject);if(Defocus!=null)Defocus.End();if(albumTexture!=null){albumTexture.Release();UnityEngine.Object.Destroy(albumTexture);}if(winterSheet!=null)winterSheet.SetPageTexture(null);base.Dispose();}
+        public override void Dispose(){DisposePaperArt();DisposeEmptyShapes();if(PagePendant)ReleaseObject(key.gameObject);StopWinterMotion();EndWardImage();if(wardImage!=null)ReleaseObject(wardImage);if(albumBacking!=null)ReleaseObject(albumBacking.gameObject);if(bridgeHover)ReleaseObject(bridgeHover.gameObject);if(pageCamera!=null)ReleaseObject(pageCamera.gameObject);if(Defocus!=null)Defocus.End();if(albumTexture!=null){albumTexture.Release();UnityEngine.Object.Destroy(albumTexture);}if(winterSheet!=null)winterSheet.SetPageTexture(null);base.Dispose();}
         bool PageRay(Ray ray,out Ray bookRay)
         {
             bookRay=ray;RaycastHit hit;
@@ -196,7 +199,7 @@ namespace MemoryWhitebox
             View.transform.position=fixedEye;View.transform.rotation=fixedRotation*Quaternion.Euler(pitch,yaw,0);
             if(State.Phase<2)GazeTarget=Pick(View.ViewportPointToRay(pointer));
             if(pointer.y>.16f && pointer.y<.84f)edgeArmed=true;
-            if(State.Phase<2 && edgeArmed && !HasPointerGesture && (State.BookOpen?pointer.y>.94f:pointer.y<.06f))
+            if(State.Phase<2 && edgeArmed && !HasPointerGesture && !(Host!=null && Host.PointerOverReturnButton) && (State.BookOpen?pointer.y>.94f:pointer.y<.06f))
             {TurnPageForInput();edgeArmed=false;Host?.InputContext.Handoff();Host?.SyncInputContext();}
             string[] ids={"shape-swing","shape-bridge","shape-luggage","shape-flower","shape-pendant"};
             int id=Array.IndexOf(ids,GazeTarget);if(State.Observe(id,focusHeld,dt)){ShapeRecorded(id);Host?.SaveStableProgress();}
@@ -222,7 +225,7 @@ namespace MemoryWhitebox
         void RefreshAlbum()
         {
             bool second=State.Phase==1;
-            if(emptyHanger!=null)emptyHanger.gameObject.SetActive(State.Phase==0 && !State.Painted[0]);
+            if(emptyHanger!=null)emptyHanger.gameObject.SetActive(State.Phase==0 && !State.Painted[0] && !outdoorLayersReady);
             foreach(string id in new[]{"ground-a","ground-mid","ground-end"})Nodes[id].SetActive(State.Phase==0);
             if(second){Nodes["ground-a"].SetActive(true);Nodes["ground-a"].transform.localPosition=new Vector3(3,-.15f,0);Nodes["ground-a"].transform.localScale=new Vector3(6,.3f,1);}
             Nodes["high-platform"].SetActive(second);
@@ -236,6 +239,7 @@ namespace MemoryWhitebox
             float y=State.Phase==0?sheetY:-.14f;
             paper.SetPositionAndRotation(fixedEye+View.transform.rotation*new Vector3(0,y,.85f),View.transform.rotation);
             observation.gameObject.SetActive(State.Phase<3);
+            RefreshPaperArt();
             RefreshWinterVisuals();
         }
     }

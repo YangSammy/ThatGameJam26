@@ -12,8 +12,29 @@ namespace MemoryWhitebox
         void RenderPhotographicFrame()
         {
             bool previous=focusEffect!=null && focusEffect.suppressFocusAid;
-            try{if(focusEffect!=null)focusEffect.suppressFocusAid=true;view.Render();}
-            finally{if(focusEffect!=null)focusEffect.suppressFocusAid=previous;}
+            var destination=view.targetTexture;var active=RenderTexture.active;
+            RenderTexture hdr=null;
+            try
+            {
+                if(focusEffect!=null)focusEffect.suppressFocusAid=true;
+                // Keep the solar highlight until post processing has finished. PNG/film
+                // storage stays LDR; only the intermediate camera render is HDR.
+                if(destination!=null && view.allowHDR && destination.format!=RenderTextureFormat.ARGBHalf &&
+                    destination.format!=RenderTextureFormat.ARGBFloat && SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.ARGBHalf))
+                {
+                    var descriptor=destination.descriptor;descriptor.colorFormat=RenderTextureFormat.ARGBHalf;
+                    descriptor.depthBufferBits=24;descriptor.msaaSamples=1;
+                    hdr=RenderTexture.GetTemporary(descriptor);view.targetTexture=hdr;
+                }
+                view.Render();
+                if(hdr!=null)Graphics.Blit(hdr,destination);
+            }
+            finally
+            {
+                view.targetTexture=destination;RenderTexture.active=active;
+                if(hdr!=null)RenderTexture.ReleaseTemporary(hdr);
+                if(focusEffect!=null)focusEffect.suppressFocusAid=previous;
+            }
         }
         Texture2D ReadExposureFrame(bool hideSubject)
         {

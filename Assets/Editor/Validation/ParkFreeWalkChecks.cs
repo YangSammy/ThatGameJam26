@@ -42,8 +42,13 @@ namespace MemoryWhitebox.Editor
             Call(p,"SetPhotographyMode",ParkPhotoPrototype.PhotographyMode.Body);
             Call(p,"OnApplicationFocus",false);Check(lines,!p.Paused,"focus loss is not manual pause");
             Call(p,"OnApplicationFocus",true);Check(lines,!p.Paused && p.PhotoMode==ParkPhotoPrototype.PhotographyMode.Body,"focus return retains instrument without pause menu");
-            Call(p,"PauseControls");Call(p,"OnApplicationFocus",false);Call(p,"OnApplicationFocus",true);
-            Check(lines,p.Paused && p.CurrentPauseReason==ParkPhotoPrototype.PauseReason.Manual,"manual pause survives focus round trip");
+            bool wasPaused=GamePauseMenu.Active;
+            try
+            {
+                GamePauseMenu.Active=true;Call(p,"OnApplicationFocus",false);Call(p,"OnApplicationFocus",true);
+                Check(lines,GamePauseMenu.Active && !p.Paused,"unified pause survives focus round trip without opening a legacy panel");
+            }
+            finally{GamePauseMenu.Active=wasPaused;}
             p.Resume();Call(p,"OnApplicationPause",true);Call(p,"OnApplicationPause",false);
             Check(lines,!p.Paused,"OS suspension returns without creating manual pause");
             var hands=p.view.GetComponent<FirstPersonHands>();hands.Advance(1);

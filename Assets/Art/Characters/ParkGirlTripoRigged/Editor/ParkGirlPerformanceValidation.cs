@@ -122,12 +122,12 @@ namespace MemoryWhitebox.Art.Editor
             {
                 if(Time.realtimeSinceStartup-stageTime<.5f)return;
                 float drift=Vector3.Distance(c.transform.position,pausePosition);pausePassed=drift<.005f;
-                events.Add(new{kind="pause_resume",drift_m=drift,pass=pausePassed});p.Resume();stage=2;
+                events.Add(new{kind="pause_resume",drift_m=drift,pass=pausePassed});UnityEngine.Object.FindObjectOfType<GamePauseMenu>().Resume();stage=2;
             }
             if(stage==3)
             {
                 if(Time.realtimeSinceStartup-stageTime<.7f)return;
-                Call(p,"PauseControls");stage=4;stageTime=Time.realtimeSinceStartup;
+                p.PreparePauseInput();stage=4;stageTime=Time.realtimeSinceStartup;
                 SceneManager.LoadScene("ParkScene");return;
             }
             if(stage==0||stage==2)
@@ -159,13 +159,13 @@ namespace MemoryWhitebox.Art.Editor
                         var record=p.Records[p.ExposedFrames-1];if(!record.accepted)throw new InvalidOperationException("Photo not accepted.");
                         File.Copy(Path.Combine(ParkFilmStore.Root,film,record.negativeFile),ParkGirlPrivacyBuild.Out+"/Preview/"+task+"-exposure.png",true);
                         events.Add(new{kind="exposure",record=Newtonsoft.Json.Linq.JObject.Parse(JsonUtility.ToJson(record))});readySince=-1;stageTime=Time.realtimeSinceStartup;
-                        if(p.ExposedFrames==1){Call(p,"PauseControls");pausePosition=c.transform.position;stage=1;}else stage=3;
+                        if(p.ExposedFrames==1){GamePauseMenu.Open();pausePosition=c.transform.position;stage=1;}else stage=3;
                     }
                 }
             }
             if(elapsed-lastSample<.12f)return;lastSample=elapsed;
             var visual=c.visualPresentation;
-            frames.Add(new{time=elapsed,task=((ParkFilmRoll)Get(p,"roll")).NextTask,stage,at_node=c.AtPhotoNode,paused=p.Paused,aiming=p.Aiming,ready=(bool)Get(p,"bridgeReady"),moment=c.CurrentMoment.ToString(),root=c.transform.position.ToString("F4"),root_yaw=c.transform.eulerAngles.y,head_yaw=visual.headBone.eulerAngles.y,shoulder_yaw=visual.ShoulderYaw,hair_lag=visual.HairLag,speed=c.animator.GetFloat("Speed"),left_foot=visual.leftFoot.position.ToString("F4"),right_foot=visual.rightFoot.position.ToString("F4")});
+            frames.Add(new{time=elapsed,task=((ParkFilmRoll)Get(p,"roll")).NextTask,stage,at_node=c.AtPhotoNode,paused=GamePauseMenu.Active || p.Paused,aiming=p.Aiming,ready=(bool)Get(p,"bridgeReady"),moment=c.CurrentMoment.ToString(),root=c.transform.position.ToString("F4"),root_yaw=c.transform.eulerAngles.y,head_yaw=visual.headBone.eulerAngles.y,shoulder_yaw=visual.ShoulderYaw,hair_lag=visual.HairLag,speed=c.animator.GetFloat("Speed"),left_foot=visual.leftFoot.position.ToString("F4"),right_foot=visual.rightFoot.position.ToString("F4")});
             if(review!=null)
             {
                 var target=c.transform.position+Vector3.up*.95f;review.transform.position=c.transform.position+c.transform.forward*2.8f+c.transform.right*1.6f+Vector3.up*1.5f;review.transform.LookAt(target);

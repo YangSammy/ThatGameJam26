@@ -11,7 +11,7 @@ namespace MemoryWhitebox
     public sealed class BrushSceneTransition : MonoBehaviour
     {
         static BrushSceneTransition instance;
-        TransitionSettings settings;
+        TransitionSettings settings,brushSettings;
         Canvas canvas;
         GameObject visual;
         Image blocker;
@@ -33,7 +33,7 @@ namespace MemoryWhitebox
                 throw new InvalidOperationException("BrushSceneTransition resource or Brush prefabs are missing.");
             var root=new GameObject("Brush scene transition",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));
             DontDestroyOnLoad(root);
-            instance=root.AddComponent<BrushSceneTransition>();instance.settings=config;
+            instance=root.AddComponent<BrushSceneTransition>();instance.settings=config;instance.brushSettings=config;
             instance.canvas=root.GetComponent<Canvas>();instance.canvas.renderMode=RenderMode.ScreenSpaceOverlay;
             instance.canvas.sortingOrder=32760;
             var scaler=root.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -44,7 +44,12 @@ namespace MemoryWhitebox
             instance.canvas.enabled=false;return instance;
         }
 
-        public static IEnumerator Cover(){return Ensure().CoverRoutine();}
+        public static IEnumerator Cover()
+        {
+            var owner=Ensure();
+            if(!owner.busy && !owner.covered)owner.settings=owner.brushSettings;
+            return owner.CoverRoutine();
+        }
         public static IEnumerator Reveal(){return Ensure().RevealRoutine();}
 
         IEnumerator CoverRoutine()
@@ -101,6 +106,10 @@ namespace MemoryWhitebox
             if(!Application.CanStreamedLevelBeLoaded(path))throw new ArgumentException("Scene is not in Build Settings: "+path);
             var owner=Ensure();
             if(owner.externalLoad || (owner.busy && string.IsNullOrEmpty(owner.failure)))return;
+            var config=owner.brushSettings;
+            if(config==null || config.transitionIn==null || config.transitionOut==null)
+                throw new InvalidOperationException("Scene transition settings or animation prefabs are missing.");
+            owner.settings=config;
             owner.destination=path;owner.failure=null;owner.externalLoad=true;owner.busy=true;
             owner.StartCoroutine(owner.LoadRoutine());
         }

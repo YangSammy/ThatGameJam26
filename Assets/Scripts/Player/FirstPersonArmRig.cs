@@ -110,13 +110,17 @@ namespace MemoryWhitebox
             model.localPosition=modelOffset+bodyReach;
             if(left.alignForearmToPalm)
             {
-                // Build the arm backwards from the contact frame. The forearm shares
-                // the palm axis; the shoulder absorbs the reach instead of the wrist.
+                // A relaxed first-person reach enters from below the left shoulder.
+                // Do not derive the elbow from the other hand's palm orientation:
+                // that puts the elbow in the middle of the view and kinks the arm.
                 var wrist=left.position;
                 float lower=Vector3.Distance(forearms[0].position,wrists[0].position);
                 float upper=Vector3.Distance(upperArms[0].position,forearms[0].position);
-                var elbow=wrist-left.rotation*Vector3.up*lower;
-                var shoulder=elbow+transform.TransformDirection(new Vector3(-.25f,-.9f,-.36f).normalized)*upper;
+                var entry=transform.TransformPoint(new Vector3(-.3f,-.38f,-.1f));
+                var reach=(wrist-entry).normalized;
+                var elbow=wrist-reach*lower;
+                var upperDirection=(reach+transform.up*.18f).normalized;
+                var shoulder=elbow-upperDirection*upper;
                 model.position+=shoulder-upperArms[0].position;
                 upperArms[0].rotation=Quaternion.FromToRotation(forearms[0].position-upperArms[0].position,elbow-shoulder)*upperArms[0].rotation;
                 forearms[0].rotation=Quaternion.FromToRotation(wrists[0].position-forearms[0].position,wrist-elbow)*forearms[0].rotation;

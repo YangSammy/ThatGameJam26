@@ -13,7 +13,7 @@ namespace MemoryWhitebox.Editor
         static void Set(object p,string name,object value)=>p.GetType().GetField(name,Private).SetValue(p,value);
         static object Get(object p,string name)=>p.GetType().GetField(name,Private).GetValue(p);
         static object Call(object p,string name,params object[] args)=>p.GetType().GetMethod(name,Private).Invoke(p,args);
-        public static string Run()
+        public static string Run(bool inputOnly=false)
         {
             if(EditorApplication.isPlaying)throw new Exception("Use Edit mode.");
             var lines=new System.Collections.Generic.List<string>();
@@ -29,9 +29,10 @@ namespace MemoryWhitebox.Editor
                 p.view=cameraObject.AddComponent<Camera>();p.view.enabled=false;p.view.scene=scene;p.view.pixelRect=new Rect(0,0,960,540);
                 Call(p,"SetPhotographyMode",ParkPhotoPrototype.PhotographyMode.Viewfinder);
                 Action<float,float,float,bool> edge=(x,y,dt,busy)=>{Set(p,"virtualPointer",new Vector2(x,y));Call(p,"TickCameraPointerEdge",dt,busy);};
-                edge(.01f,.5f,1,false);check(p.PhotoMode==ParkPhotoPrototype.PhotographyMode.Viewfinder,"Entry pointer at edge cannot auto-open a dial");
-                edge(.5f,.5f,.3f,false);edge(.01f,.5f,.1f,false);check(p.PhotoMode==ParkPhotoPrototype.PhotographyMode.Viewfinder,"Brief edge crossing does not open dial");
-                edge(.01f,.5f,.2f,false);check(p.PhotoMode==ParkPhotoPrototype.PhotographyMode.Aperture,"Left dwell opens aperture");
+                edge(.01f,.5f,0,false);check(p.PhotoMode==ParkPhotoPrototype.PhotographyMode.Aperture,"Stationary left edge opens immediately without movement or dwell");
+                edge(.5f,.5f,0,false);check(p.PhotoMode==ParkPhotoPrototype.PhotographyMode.Viewfinder,"Centre returns immediately");
+                edge(.5f,.5f,0,false);edge(.99f,.5f,0,false);check(p.PhotoMode==ParkPhotoPrototype.PhotographyMode.Shutter,"Stationary right edge opens immediately");
+                edge(.5f,.5f,0,false);edge(.5f,.5f,0,false);edge(.01f,.5f,0,false);
                 float focus=p.focusDistance,shutter=p.ShutterSeconds,aperture=p.Aperture;
                 Call(p,"StepInstrumentControl",1);Call(p,"StepFinderWheel",1f);
                 check(p.Aperture!=aperture && p.focusDistance==focus && p.ShutterSeconds==shutter,"Aperture wheel has one owner");
@@ -54,6 +55,7 @@ namespace MemoryWhitebox.Editor
                 var palm=new Vector3(.8f,0,3);var screen=p.view.WorldToScreenPoint(palm);
                 var hit=typeof(ParkPhotoPrototype).GetMethod("PalmHit",BindingFlags.Static|BindingFlags.NonPublic,null,new[]{typeof(Camera),typeof(Vector3),typeof(Vector2)},null);
                 check((bool)hit.Invoke(null,new object[]{p.view,palm,(Vector2)screen}) && !(bool)hit.Invoke(null,new object[]{p.view,palm,new Vector2(20,20)}),"Palm uses actual pointer instead of screen centre");
+                if(inputOnly){string inputReport=string.Join("\n",lines);File.WriteAllText(Path.Combine(path,"input-checks.txt"),inputReport);return inputReport;}
                 Call(p,"InitializePhotographyModes");
                 Set(p,"loadingStep",7); // Real dial use happens with film already loaded.
                 var startRotation=p.view.transform.rotation;var startPosition=p.view.transform.position;

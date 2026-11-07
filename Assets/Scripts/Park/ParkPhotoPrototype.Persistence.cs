@@ -50,25 +50,24 @@ namespace MemoryWhitebox
     public sealed partial class ParkPhotoPrototype
     {
         ParkExposurePersistence exposurePersistence;
-        bool leavingSavedOnly;
         ParkExposureEncoder exposureEncoder;
         bool exposureEncodingDisposed;
         bool HasPendingExposure=>shutterSampling || (exposurePersistence!=null && exposurePersistence.HasPending) || (exposureEncoder!=null && exposureEncoder.HasPending);
         void BeginExposureEncoding(ParkPhotoRecord record,byte[] rawRgb,int width,int height)
         {
-            if(exposureEncodingDisposed || leavingSavedOnly || changingScene)throw new InvalidOperationException("Photography is leaving.");
+            if(exposureEncodingDisposed || changingScene)throw new InvalidOperationException("Photography is leaving.");
             if(HasPendingExposure)throw new InvalidOperationException("An exposure is still pending.");
             if(exposureEncoder==null)exposureEncoder=new ParkExposureEncoder();
             exposureEncoder.Start(record,rawRgb,width,height);Notify("Saving exposure...",3);
         }
         void TickExposureEncoding()
         {
-            if(exposureEncodingDisposed || leavingSavedOnly || changingScene || exposureEncoder==null)return;
+            if(exposureEncodingDisposed || changingScene || exposureEncoder==null)return;
             ParkPhotoRecord record;byte[] png;Exception error;
             if(!exposureEncoder.TryTake(out record,out png,out error))return;
             if(error!=null)
             {
-                filmError="Encoding failed. Press shutter to retry, or leave with saved progress.";
+                filmError="Encoding failed. Press shutter to retry.";
                 Notify(filmError,7);Debug.LogWarning("Park exposure encoding: "+error.Message);return;
             }
             SavePendingExposure(record,png);
@@ -83,7 +82,7 @@ namespace MemoryWhitebox
         }
         bool RetryPendingExposure()
         {
-            if(exposureEncodingDisposed || leavingSavedOnly || changingScene)return false;
+            if(exposureEncodingDisposed || changingScene)return false;
             if(exposureEncoder!=null && exposureEncoder.HasPending)
             {
                 if(exposureEncoder.HasFailed)
@@ -97,7 +96,7 @@ namespace MemoryWhitebox
             ParkFilmRoll committed;ParkPhotoRecord record;Exception error;
             if(!exposurePersistence.TryCommit(roll,out committed,out record,out error))
             {
-                filmError="Save failed. Press shutter to retry, or leave with saved progress.";
+                filmError="Save failed. Press shutter to retry.";
                 Notify(filmError,7);Debug.LogWarning("Park film save: "+(error!=null?error.Message:"Exposure unavailable."));return false;
             }
             roll=committed;filmError="";ExposureCommitted(record);return true;
@@ -112,18 +111,6 @@ namespace MemoryWhitebox
                 roll=committed;return true;
             }
             catch(Exception ex){Notify("Return unavailable. Film progress kept.",6);Debug.LogWarning("Park memory return: "+ex.Message);return false;}
-        }
-        public bool LeaveWithSavedProgress()
-        {
-            if(!Paused || changingScene || returnUiGate || !InputContext.Allows(InputContextId.Paused))return false;
-            if(!Application.CanStreamedLevelBeLoaded(ParkFilmRoute.HouseScenePath))
-            {Notify("Return unavailable. Film files kept.",5);return false;}
-            // An explicit exit is allowed even if both metadata copies are unreadable.
-            // House will report that existing roll as unavailable rather than replacing it.
-            TryLoadCommittedForExit();leavingSavedOnly=true;changingScene=true;
-            ParkFilmRoute.EnterDarkroomOnLoad=false;SyncParkInput();InputContext.Handoff();
-            try{BrushSceneTransition.LoadScene(ParkFilmRoute.HouseScenePath);return true;}
-            catch(Exception ex){leavingSavedOnly=false;changingScene=false;Notify("Return unavailable. Film files kept.",5);Debug.LogWarning(ex.Message);return false;}
         }
     }
 }

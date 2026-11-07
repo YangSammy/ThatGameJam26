@@ -1,0 +1,8 @@
+# Tape ejection blocks return
+
+Cause: EjectDualDeck(1) calls PlaceTapeOnPreparationMat(false) after transfer. Successful placement unconditionally called FocusPreparation(true), setting preparationCameraMoving while RecordingMode remained active. TickRecording advances only TickRadioCamera, so the preparation transition never finishes. CanReturnFromWorkspace then remains false.
+
+Fix: separate placement from optional camera focus. Ejection passes focusView=false; normal preparation placement retains focusView=true. Keep the radio view after ejecting; the bottom button can then return through the normal close-view path. No weakening of navigation/drag guards.
+
+Evidence: code-driven reproduction showed preparationCameraMoving=True and CanReturn=False after 120 recording-camera ticks (2 seconds). After change, an isolated spring-scene fixture successfully places a tape on the actual mat with focus disabled, verifies return stays enabled, runs ExitTapeWorkspace and completes radio camera return, and verifies ordinary preparation placement still starts its focus animation. Fixture used an inactive, uninitialized host so SaveStableProgress cannot write user progress. Scene closed without saving. No mouse operation or player visual acceptance performed. Script compilation and scoped diff checks passed. Existing Build requires rebuild.
+`nFixture note: the first run logged an Editor assertion from SendMessage("OnEnable") on an inactive operation area. Replaced the fixture dispatch with direct reflection invocation and reran successfully; no production change was needed for that fixture issue.

@@ -1,0 +1,7 @@
+# Tape double-speed transport — 2026-11-07
+
+Changed TapeSampleTransport.OnAudioFilterRead: A and B winding now reads audible PCM at +/-2 samples per output frame. Reverse reads cursor-1, so reversing from the exact end starts with the last sample. Source A retains monitoring priority over B. Recording stores the actual audible source sample and its source index, including winding. Existing acceptance rules and save schema remain unchanged.
+
+Fast-forward end still completes audition through HouseRadioDeck.TickAudition. Full double-speed recordings retain roughly half of the original sample indices and fail current clean coverage thresholds (70–80%). Reverse recordings fail ordering. Partial use is judged by the existing coverage/noise/order rules; no blanket speed-based rejection was added. Existing UI restriction on starting shared winding during recording is unchanged; starting B recording while A is already winding records that audio.
+
+Validation: Unity script refresh succeeded; Console had zero errors. An inactive, in-memory fixture invoked the real audio callback and audition check; all 13 assertions passed (A/B forward/reverse samples and duration, exact-end reverse, mute, audition completion, recorded sample provenance, normal-speed acceptance, double-speed rejection, reverse rejection, odd-length boundary). Fixture: output/validation/TapeDoubleSpeedRegression.cs.txt. No Initialize call, save writes, mouse interaction, or live audio listening. Existing Build was not rebuilt.

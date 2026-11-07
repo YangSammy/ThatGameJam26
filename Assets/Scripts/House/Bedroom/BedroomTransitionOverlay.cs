@@ -12,7 +12,6 @@ namespace MemoryWhitebox
         Text message;
         Button retry;
         Action retryAction;
-        string loadingStatus;
         public float Alpha {get;private set;}
 
         public static BedroomTransitionOverlay Create(Transform owner,Font font)
@@ -43,16 +42,10 @@ namespace MemoryWhitebox
         }
         public void SetAlpha(float value)
         {Alpha=Mathf.Clamp01(value);shade.color=new Color(0,0,0,Alpha);message.color=new Color(1,1,1,Alpha);canvas.enabled=Alpha>0;}
-        public void ClearError(){loadingStatus=null;message.text="";retry.gameObject.SetActive(false);retryAction=null;}
+        public void ClearError(){message.text="";retry.gameObject.SetActive(false);retryAction=null;}
         public void ShowLoading(string status)
-        {loadingStatus=status;message.text=status+"…";}
-        void Update()
-        {
-            if(loadingStatus==null || Alpha<=0)return;
-            // A small pulse indicates that the loading screen is alive, not fake progress.
-            message.color=new Color(.9f,.9f,.9f,Alpha*(.7f+.3f*Mathf.Sin(Time.unscaledTime*2)*Mathf.Sin(Time.unscaledTime*2)));
-        }
+        {ClearError();}
         public void Fail(Action action)
-        {loadingStatus=null;SetAlpha(1);message.text="Could not load the bedroom.\nYour saved progress is kept.";retryAction=action;retry.gameObject.SetActive(true);}
+        {SetAlpha(1);message.text="Could not load the bedroom.\nYour saved progress is kept.";retryAction=action;retry.gameObject.SetActive(true);}
     }
 }

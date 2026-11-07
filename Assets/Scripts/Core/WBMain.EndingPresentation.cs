@@ -6,38 +6,39 @@ namespace MemoryWhitebox
     {
         float endingElapsed;
         bool endingMenuLoading;
+        float endingMenuRetryAt;
         string endingMenuError="";
         public float EndingFade=>Mathf.SmoothStep(0,1,Mathf.Clamp01((endingElapsed-.5f)/2));
-        public bool EndingCardVisible=>StoryFinished && endingElapsed>=3;
+        const float CreditsStart=EndingCreditsUI.StartSeconds;
+        EndingCreditsUI endingCredits;
+        float CreditsDuration=>endingCredits!=null?endingCredits.Duration:45f;
+        public bool EndingCardVisible=>StoryFinished && (endingCredits!=null?endingCredits.Finished:endingElapsed>=CreditsStart+CreditsDuration);
 
         void TickEndingPresentation(float dt)
         {
             Room.StopMotion();
             endingElapsed+=Mathf.Max(0,dt);
-            PlayerInputPolicy.SetCursor(EndingCardVisible);
+            if(endingCredits==null)endingCredits=Object.FindObjectOfType<EndingCreditsUI>(true);
+            if(endingCredits!=null){endingCredits.gameObject.SetActive(true);endingCredits.Present(endingElapsed,EndingFade,UIFont);}
+            PlayerInputPolicy.SetCursor(false);
+            if(EndingCardVisible && !endingMenuLoading && !BrushSceneTransition.IsBusy && endingElapsed>=endingMenuRetryAt)
+            {
+                // Retry failures at a bounded rate without asking for a final confirmation click.
+                endingMenuRetryAt=endingElapsed+2;
+                ReturnFromEnding();
+            }
         }
 
         void DrawEndingPresentation()
         {
+            // IMGUI renders after Canvas overlays; it must not hide the transition.
+            if(BrushSceneTransition.IsBusy)return;
             var old=GUI.color;
             GUI.color=new Color(1,.98f,.91f,EndingFade);
-            GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);
+            if(endingCredits==null)GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);
             GUI.color=old;
-            if(!EndingCardVisible)return;
-            PlayerInputPolicy.SetCursor(true);
-            bool enabledBefore=GUI.enabled;var contentBefore=GUI.contentColor;
-            GUI.enabled=true;GUI.contentColor=Color.white;GUI.color=Color.white;
-            float opacity=Mathf.Clamp01((endingElapsed-3)/.7f);
-            var title=new GUIStyle(GUI.skin.label){font=UIFont,fontSize=Mathf.Clamp(Screen.height/16,28,64),alignment=TextAnchor.MiddleCenter};
-            title.normal.textColor=new Color(.24f,.29f,.25f,opacity);
-            GUI.Label(new Rect(20,Screen.height*.38f,Screen.width-40,100),Application.productName,title);
-            var button=new GUIStyle(GUI.skin.button){font=UIFont,fontSize=18};
-            var before=GUI.enabled;GUI.enabled=!endingMenuLoading && opacity>=1;
-            if(GUI.Button(new Rect(Screen.width*.5f-110,Screen.height*.65f,220,44),"返回主菜单",button))ReturnFromEnding();
-            GUI.enabled=before;
             if(!string.IsNullOrEmpty(endingMenuError))
                 GUI.Label(new Rect(Screen.width*.5f-230,Screen.height*.65f+55,460,60),endingMenuError);
-            GUI.enabled=enabledBefore;GUI.contentColor=contentBefore;GUI.color=old;
         }
 
         public bool ReturnFromEnding()

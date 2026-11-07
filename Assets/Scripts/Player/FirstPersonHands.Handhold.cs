@@ -12,12 +12,13 @@ namespace MemoryWhitebox
         Quaternion handholdStartRotation, handholdRotation, releaseRotation;
         Transform[,] handholdFingers;
         Transform[] handholdThumb;
-        const float ReachSeconds=.28f, CloseSeconds=.16f, OpenSeconds=.14f, WithdrawSeconds=.28f;
+        const float ReachSeconds=.4f, CloseSeconds=.28f, OpenSeconds=.22f, WithdrawSeconds=.65f;
         bool HandholdVisible=>handholdPhase!=HandholdPhase.Hidden;
         bool HandholdAutomaticRelease=>HandholdVisible && park!=null && !park.HoldingPhotoHand && park.PhotoHandReleaseAllowed;
         public float PhotoHandGrip=>handholdGrip;
+        public float PhotoHandReachProgress=>handholdPhase==HandholdPhase.Hidden?0:handholdPhase==HandholdPhase.Reach?Mathf.Clamp01(handholdTime/ReachSeconds):1;
         bool HandholdViewAllowed=>park!=null && (park.PhotoMode==ParkPhotoPrototype.PhotographyMode.Viewfinder ||
-            park.PhotoMode==ParkPhotoPrototype.PhotographyMode.Exploration);
+            park.PhotoMode==ParkPhotoPrototype.PhotographyMode.Exploration || park.HandResponseLocked);
 
         void ResetHandhold()
         {handholdPhase=HandholdPhase.Hidden;handholdTime=handholdGrip=0;}
@@ -28,7 +29,6 @@ namespace MemoryWhitebox
         void ApplyHandholdFingers()
         {
             if(!HandholdVisible || skeletalRig==null || !skeletalRig.Valid)return;
-            PrepareHandClearance();
             var wrist=skeletalRig.wrists[0];
             if(handholdFingers==null)
             {
@@ -41,25 +41,24 @@ namespace MemoryWhitebox
                     for(int joint=0;joint<4;joint++)if(bone.name=="thumb"+(joint==3?".03.L_end":".0"+(joint+1)+".L"))handholdThumb[joint]=bone;
                 }
             }
-            // The generic grab clip is for objects. Straighten the open fingers, then
-            // curl them around the opposite palm rather than closing into a fist.
+            // Rest lightly with relaxed fingers; contact progress still drives the
+            // companion's existing timing, but does not close this hand into a fist.
             for(int finger=0;finger<4;finger++)for(int joint=0;joint<3;joint++)
             {
                 var bone=handholdFingers[finger,joint];var tip=handholdFingers[finger,joint+1];
                 if(bone==null || tip==null)continue;
-                float angle=(joint==0?12:joint==1?35:55)*handholdGrip*Mathf.Deg2Rad;
-                var direction=wrist.up*Mathf.Cos(angle)-wrist.right*Mathf.Sin(angle)+wrist.forward*((1.5f-finger)*.065f*(1-handholdGrip));
-                AimFingerWithClearance(bone,tip,wrist.up,direction);
+                float angle=(joint==0?6:joint==1?16:24)*Mathf.Lerp(.65f,1,handholdGrip)*Mathf.Deg2Rad;
+                var direction=wrist.up*Mathf.Cos(angle)-wrist.right*Mathf.Sin(angle)+wrist.forward*((1.5f-finger)*.035f);
+                bone.rotation=Quaternion.FromToRotation(tip.position-bone.position,direction)*bone.rotation;
             }
-            // Distribute opposition over the thumb chain; a free CCD tip target can
-            // fold the two distal joints back onto each other and create a ring.
+            // Keep the thumb relaxed beside the fingers, without opposition/grip.
             for(int joint=0;joint<3;joint++)
             {
                 var bone=handholdThumb[joint];var tip=handholdThumb[joint+1];
                 if(bone==null || tip==null)continue;
                 var open=(wrist.up*.65f+wrist.forward*.75f).normalized;
-                var closed=(wrist.up*.65f-wrist.forward*(.45f+joint*.12f)-wrist.right*.15f).normalized;
-                AimFingerWithClearance(bone,tip,open,Vector3.Slerp(open,closed,handholdGrip));
+                var relaxed=(wrist.up*.8f+wrist.forward*(.5f-joint*.08f)-wrist.right*.1f).normalized;
+                bone.rotation=Quaternion.FromToRotation(tip.position-bone.position,Vector3.Slerp(open,relaxed,handholdGrip))*bone.rotation;
             }
         }
         bool AnimateHandhold(float dt, bool blocked, out FirstPersonArmRig.Pose pose)
@@ -84,12 +83,10 @@ namespace MemoryWhitebox
                 // Approach from the lower left while keeping opposed palm normals.
                 var entry=transform.TransformPoint(new Vector3(-.38f,-.42f,.12f));
                 var fingers=Vector3.ProjectOnPlane(girl.PalmPosition-entry,normal).normalized;
-                fingers=Vector3.Slerp(fingers,Vector3.ProjectOnPlane(-girl.rightHand.up,normal).normalized,.75f).normalized;
                 if(fingers.sqrMagnitude<.01f)fingers=Vector3.ProjectOnPlane(-park.companion.transform.forward,normal).normalized;
                 rotation=Quaternion.LookRotation(Vector3.Cross(normal,fingers),fingers);
-                // Cover the open supporting palm from above, with room for the thumb.
-                // These are bone anchors, with skin thickness between their centres.
-                target=girl.PalmPosition+normal*.026f-fingers*.015f+rotation*Vector3.forward*.025f-rotation*Vector3.Scale(photoPalmLocal,skeletalRig.wrists[0].lossyScale);
+                // Rest toward the offered finger bases; no grasp or collision push.
+                target=girl.PalmPosition+girl.rightHand.up*.018f+normal*.024f+rotation*Vector3.forward*.004f-rotation*Vector3.Scale(photoPalmLocal,skeletalRig.wrists[0].lossyScale);
             }
             if(joined && handholdPhase==HandholdPhase.Hidden && !blocked)
             {
@@ -139,7 +136,7 @@ namespace MemoryWhitebox
                 handholdGrip=0;
                 if(handholdTime>=WithdrawSeconds){ResetHandhold();return false;}
             }
-            pose=FirstPersonArmRig.Pose.AtWrist(handholdWrist,handholdRotation,handholdGrip*.68f);
+            pose=FirstPersonArmRig.Pose.AtWrist(handholdWrist,handholdRotation,0);
             pose.bodyReachLimit=.6f;
             pose.alignForearmToPalm=girl!=null && girl.palmContact!=null;
             // Fallback without a girl rig retains the existing elbow solve.

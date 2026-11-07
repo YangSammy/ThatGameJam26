@@ -122,6 +122,13 @@ namespace MemoryWhitebox
                 else if(park!=null)target=park.InstrumentHoverVisual(hit);
                 outlineSurfaces=outline.Surfaces(target);
             }
+            // Keep hover/drop outlines above, but do not display text bubbles for
+            // the tape activity. Transport/status and submission UI are separate.
+            var tape=house!=null?house.radioDeck:null;
+            if(tape!=null && (tape.StationActive ||
+                (hit!=null && hit.transform.IsChildOf(tape.transform))))return;
+            // Photography keeps hover outlines and physical instrument displays, but no text bubbles.
+            if(park!=null || guidedPhoto!=null || (house!=null && house.CurrentDay==StoryDay.SummerPhoto))return;
             if(string.IsNullOrWhiteSpace(value))return;
             label.text=value;
             float width=Mathf.Min(320,Screen.width-32);float height=Mathf.Clamp(label.preferredHeight+24,42,180);

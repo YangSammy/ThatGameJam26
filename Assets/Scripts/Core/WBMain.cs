@@ -36,8 +36,8 @@ namespace MemoryWhitebox
             var clip=AudioClip.Create("procedural-memory-sound",n,1,44100,false);clip.SetData(samples,0);
             Instance.audioSource.PlayOneShot(clip);Destroy(clip,duration+1);
         }
-        void Update(){if(!GamePauseMenu.PollEscape())UpdateHouse();}
-        void OnGUI(){if(GamePauseMenu.BlocksGameplay || loadingSpringRoom)return;CaptureDarkroomPointerPress();CaptureWinterPointerPress();DrawHouse();}
+        void Update(){EnsureContextReturnButton();if(!GamePauseMenu.PollEscape())UpdateHouse();}
+        void OnGUI(){if(GamePauseMenu.BlocksGameplay || loadingSpringRoom)return;CaptureDarkroomPointerPress();DrawHouse();if(InStation && !ShowHelp && !IsTransitioning)(CurrentWorld as WritingWorld3D)?.DrawInteractionPrompt();}
         public void SetHelpVisible(bool visible)
         {
             if(ShowHelp==visible)return;

@@ -12,6 +12,7 @@ namespace MemoryWhitebox
         readonly List<RaycastResult> tapeUIHits=new List<RaycastResult>();
         bool TapeUIAt(Vector2 point)
         {
+            if(returnButton!=null && returnButton.ContainsScreenPoint(point))return true;
             if(EventSystem.current==null)return false;
             var pointer=new PointerEventData(EventSystem.current){position=point};
             tapeUIHits.Clear();EventSystem.current.RaycastAll(pointer,tapeUIHits);
@@ -47,7 +48,7 @@ namespace MemoryWhitebox
                 case DragReceiverProbe.Result.TooFar:return "Move closer to the recorder";
                 case DragReceiverProbe.Result.Occluded:return "Slot blocked. Find a clear angle";
                 case DragReceiverProbe.Result.Unavailable:return "Slot unavailable";
-                default:return "Drag to the slot / Release on desk / RMB Cancel";
+                default:return "Drag to the slot / Release on desk";
             }
         }
         void ShowTapeDropPreview(Transform receiver)

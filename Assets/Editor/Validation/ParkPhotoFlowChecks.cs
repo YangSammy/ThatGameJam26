@@ -175,9 +175,8 @@ namespace MemoryWhitebox.Editor
                     encoder.Start(frame,new byte[]{1,2,3},1,1);
                     var task=(System.Threading.Tasks.Task)typeof(ParkExposureEncoder).GetField("task",Hidden).GetValue(encoder);
                     Check(task.Wait(2000),"Fixture encoder did not finish");
-                    Set(p,"<CurrentPauseReason>k__BackingField",ParkPhotoPrototype.PauseReason.Manual);
-                    p.InputContext.Select(InputContextId.Paused,PlayerControlState.Paused);p.InputContext.ContinueGesture();
-                    Check(!p.LeaveParkMemory() && ((string)Get(p,"notice")).Contains("Photograph not saved yet"),"Ordinary exit silently discards pending exposure");
+                    Check(typeof(ParkPhotoPrototype).GetMethod("LeaveParkMemory")==null && typeof(ParkPhotoPrototype).GetMethod("LeaveWithSavedProgress")==null,"Early park exit API remains available");
+                    Check(!p.SaveForPauseMenu(),"Unified pause must not discard a pending exposure");
                     GamePauseMenu.Active=true;
                     Call(p,"Update");
                     Check(ParkFilmStore.Load(roll.id).frames.Count==1,"Completed encoding cannot commit while pause menu is open");

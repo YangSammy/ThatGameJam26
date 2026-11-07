@@ -8,7 +8,7 @@ namespace MemoryWhitebox.Editor
 {
     public static class WardDistanceRestoreChecks
     {
-        const string Output="output/QA/AutumnWinterRestore_20261105";
+        const string Output="output/QA/WardColdBottomReveal_20261107";
         static void Require(bool pass,string message){if(!pass)throw new Exception(message);}
         static WBInput Keys(params KeyCode[] keys){var input=new WBInput();foreach(var key in keys)input.Keys.Add(key);return input;}
         static PaintingChapter Ward(int version,float peak,float actor,float time)
@@ -29,11 +29,18 @@ namespace MemoryWhitebox.Editor
                 Require(p.WardProgress==0 && !p.Completed,"Idle revealed or completed ward");results.Add("PASS idle freezes");
                 p.Tick(2,Keys(KeyCode.D));float peak=p.WardDistance,progress=p.WardProgress;
                 Require(peak>0 && progress>0,"Forward did not reveal");
-                p.Tick(.5f,Keys(KeyCode.A));float retreat=p.Actor.x;
-                p.Tick(5,Keys());Require(p.WardDistance==peak && p.WardProgress==progress,"Retreat/idle erased or advanced image");
-                p.Tick(.2f,Keys(KeyCode.D));Require(p.WardDistance==peak,"Rewalking seen distance advanced reveal");results.Add("PASS forward/retreat/high-water mark");
+                foreach(var key in new[]{KeyCode.A,KeyCode.S,KeyCode.W,KeyCode.LeftArrow,KeyCode.RightArrow})
+                {
+                    p.Tick(2,Keys(key));
+                    Require(p.Actor.x==peak && p.WardProgress==progress,"Non-D key moved ward actor: "+key);
+                }
+                p.Tick(60,Keys());Require(p.Actor.x==peak && p.WardProgress==progress,"Idle advanced ward");
+                p.Tick(.2f,Keys(KeyCode.D,KeyCode.A));Require(p.Actor.x>peak,"A cancelled D forward input");
+                peak=p.WardDistance;progress=p.WardProgress;
+                Require(Mathf.Abs(progress-p.Actor.x/p.WardWalkDistance)<.0001f,"Reveal not tied to position");
+                results.Add("PASS D-only forward, no reverse, idle freeze, position-driven reveal");
                 var saved=p.CaptureCheckpoint();var copy=new PaintingChapter();copy.RestoreCheckpoint(saved);
-                Require(copy.Actor==p.Actor && copy.WardDistance==peak && copy.WardProgress==progress,"v5 roundtrip changed reveal/actor");results.Add("PASS v5 retreat roundtrip");
+                Require(copy.Actor==p.Actor && copy.WardDistance==peak && copy.WardProgress==progress,"v5 roundtrip changed reveal/actor");results.Add("PASS v5 roundtrip");
                 p=Ward(4,0,0,6);Require(Mathf.Abs(p.WardProgress-.5f)<.0001f && p.Actor.x==0,"v4 idle progress migration");
                 p.Tick(3,Keys());Require(p.WardProgress==.5f && !p.Completed,"v4 migrated save auto advanced");results.Add("PASS v4 idle progress preserved");
                 p=Ward(4,8,8,3);Require(Mathf.Abs(p.WardProgress-.25f)<.0001f && p.Actor.x==2,"v4 actor ahead of picture not rebased");
@@ -70,12 +77,15 @@ namespace MemoryWhitebox.Editor
         {
             Directory.CreateDirectory(Output);
             var template=Resources.Load<Material>("WardRuntimeReveal");Require(template!=null,"Missing runtime ward material");
-            var mat=new Material(template);WardImageReveal.ConfigureOrderedMaterial(mat);
+            var mat=new Material(template);WardImageReveal.ConfigureRevealMaterial(mat);
             mat.SetFloat("_SceneBlend",1);mat.SetFloat("_UsePageInk",0);
             var white=mat.GetColor("_WhiteColor");
             // White source makes reveal invisible, so use a dark probe through the actual
-            // production shader to measure alpha/ordering independently of picture colors.
+            // production shader to measure alpha independently of picture colors.
             var original=mat.mainTexture;mat.mainTexture=Texture2D.blackTexture;
+            // The base snow stays monotonic. The requested rolling veil may locally
+            // brighten/darken, so validate it separately from this erosion invariant.
+            float smoke=mat.GetFloat("_SmokeStrength");mat.SetFloat("_SmokeStrength",0);
             Color[] before=null;int frames=0;
             try
             {
@@ -83,12 +93,16 @@ namespace MemoryWhitebox.Editor
                 {
                     var im=Render(mat,320,180,i/40f);var pixels=im.GetPixels();
                     if(before!=null)for(int j=0;j<pixels.Length;j++)Require(pixels[j].r<=before[j].r+.012f,"Reveal erased a previously visible pixel");
-                    // Sample calibrated image-space face center, mouth and both eyes.
-                    foreach(var uv in new[]{new Vector2(.496f,.694f),new Vector2(.496f,.645f),new Vector2(.48f,.705f),new Vector2(.515f,.705f)})
+                    // Sample the v2 image eye region.
+                    foreach(var uv in new[]{new Vector2(.494f,.703f),new Vector2(.481f,.702f),new Vector2(.506f,.704f)})
                         Require(im.GetPixel((int)(uv.x*320),(int)(uv.y*180)).r>.90f,"Protected face leaked");
-                    if(i==20)Require(im.GetPixel(160,80).r>.9f,"Hands appeared before the torso stage");
+                    // Every pixel above the nose must remain covered, regardless of noise.
+                    for(int y=Mathf.CeilToInt(.688f*180);y<180;y++)
+                        for(int x=0;x<320;x++)
+                            Require(im.GetPixel(x,y).r>.90f,"Nose cutoff leaked");
                     before=pixels;UnityEngine.Object.DestroyImmediate(im);frames++;
                 }
+                mat.SetFloat("_SmokeStrength",smoke);
                 mat.mainTexture=original;
                 foreach(var size in new[]{new Vector2Int(1280,720),new Vector2Int(1280,576),new Vector2Int(960,720)})
                 {
@@ -96,18 +110,18 @@ namespace MemoryWhitebox.Editor
                 }
                 foreach(float u in new[]{0f,.2f,.38f,.56f,.74f,.83f,.98f})
                 {var im=Render(mat,1280,720,u);File.WriteAllBytes(Output+"/ward-stage-"+Mathf.RoundToInt(u*100)+".png",im.EncodeToPNG());UnityEngine.Object.DestroyImmediate(im);}
-                // Ink is composited after face protection/order; check it exists at zero reveal.
+                // Live ink must follow the same reveal as the paper.
                 var opaqueInk=new Texture2D(1,1,TextureFormat.RGBA32,false);
                 try
                 {
                     opaqueInk.SetPixel(0,0,new Color(0,0,0,1));opaqueInk.Apply();
                     mat.SetFloat("_UsePageInk",1);mat.SetTexture("_PageTex",opaqueInk);
                     var paper=Render(mat,320,180,0);
-                    try{Require(paper.GetPixel(160,23).r<.1f,"Live paper ink disappeared at zero reveal");}
+                    try{Require(paper.GetPixel(160,23).r>.9f,"Live paper ink leaked at zero reveal");}
                     finally{UnityEngine.Object.DestroyImmediate(paper);}
                 }
                 finally{UnityEngine.Object.DestroyImmediate(opaqueInk);}
-                string result="PASS ordered reveal: "+frames+" monotonic GPU frames, protected face, delayed hands, 3 aspect renders, live paper at zero progress";
+                string result="PASS unordered snow reveal: "+frames+" monotonic GPU frames, protected face, full-width nose cutoff, 3 aspect renders, paper/ink covered at zero progress";
                 File.WriteAllText(Output+"/ward-graphics.txt",result);return result;
             }
             finally{UnityEngine.Object.DestroyImmediate(mat);}

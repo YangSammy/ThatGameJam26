@@ -84,6 +84,7 @@ namespace MemoryWhitebox
         {
             if(gameObject.scene.path!=ParkFilmRoute.HouseScenePath)return;
             if(!story.Available){FailBedroomTransition("Story unavailable: "+story.Error);return;}
+            if(enterReturnedDarkroom){StartCoroutine(OpenSeasonBedroom(true,false));return;}
             if(CurrentDay==StoryDay.SpringDeparture){StartCoroutine(OpenDepartureBedroom(false,Vector3.zero,Quaternion.identity));return;}
             if(HasNarrativeBedroom(CurrentDay)){StartCoroutine(OpenNarrativeBedroom(CurrentDay));return;}
             bool summer=CurrentDay==StoryDay.SummerPhoto;
@@ -113,6 +114,7 @@ namespace MemoryWhitebox
                         if(root.TryGetComponent<SummerPhotoRoom>(out summerPhotoRoom))break;
                     if(summerPhotoRoom==null)throw new System.InvalidOperationException("Missing summer room bindings.");
                     summerPhotoRoom.Enter(this,keepView);
+                    EnterReturnedDarkroom();
                     yield break;
                 }
                 foreach(var root in scene.GetRootGameObjects())
@@ -188,7 +190,7 @@ namespace MemoryWhitebox
             if(DepartureRoom!=null)
                 return !StoryFinished && !DepartureDoorOpen && DepartureRoom.HitHandle(ray)?DepartureRoom.handle.transform:null;
             if(!hit)return null;
-            if(summerPhotoRoom!=null && hit==summerPhotoRoom.curtainHit)return summerPhotoRoom.curtain;
+            if(summerPhotoRoom!=null && hit==summerPhotoRoom.curtainHit)return summerPhotoRoom.CanOpenDarkroom(this)?summerPhotoRoom.curtain:null;
             if(radioDeck!=null && radioDeck.StationActive && radioDeck.IsEntryHit(hit))
             {
                 if(radioDeck.dualDeck && radioDeck.dualDeck.Command(hit)!=null)return hit.transform;

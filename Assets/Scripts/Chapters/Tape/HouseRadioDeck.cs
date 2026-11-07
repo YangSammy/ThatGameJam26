@@ -34,6 +34,7 @@ namespace MemoryWhitebox
         public int AudioStarts { get; private set; }
         public string Hint { get; private set; }
         bool initialized;
+        TapeReturnButton returnButton;
         float hiddenAudioPosition;
         bool restoreHiddenAudio;
         Renderer[] proxyRenderers;
@@ -54,6 +55,7 @@ namespace MemoryWhitebox
             }
             animator.keepAnimatorStateOnDisable=true;
             initialized=true;ResetDeck(false);InitializeRecording();RestoreSource();InitializeSfx();
+            returnButton=TapeReturnButton.Create(this);
         }
         void OnEnable()
         {
@@ -154,21 +156,8 @@ namespace MemoryWhitebox
         public string GetHint(Ray ray)
         {
             var hit=Pick(ray);
-            var sourceHint=SourceHint(hit);if(sourceHint!=null)return sourceHint;
-            if(!StationActive)return IsEntryHit(hit)?"LMB  Interact   /   E  Inspect":null;
-            if(State==Phase.Dragging)return draggingTape?(hit==slotHit?"Release LMB to insert   /   RMB  Cancel":"LMB drag to slot. Release to insert."):"LMB drag shell to slot   /   RMB  Cancel";
-            if(State==Phase.Loading)return "Loading tape...";
-            if(State==Phase.Returning)return string.IsNullOrEmpty(Notice)?"Returning tape...":Notice;
-            if(hit==radioHit || hit==slotHit)
-            {
-                if(RecordingError!="")return "Recording unavailable  /  LMB  Retry";
-                if(State==Phase.Playing)return "LMB  Pause   /   RMB  Eject";
-                if(State==Phase.Paused)return "LMB  Play   /   RMB  Eject";
-                return "Drag tape to slot   /   E  Inspect radio";
-            }
-            for(int i=0;i<tapes.Length;i++)if(hit==tapes[i].hit || hit==tapes[i].leftSpindleHit || hit==tapes[i].rightSpindleHit)
-                return Selected<0 || Selected==i?"LMB  Check tape   /   E  Inspect":"Eject the loaded tape first";
-            return null;
+            // Empty suppresses the room's fallback interaction prompt for tape objects.
+            return StationActive || IsEntryHit(hit) || WorkbenchObjectTooltip(hit)!=null?"":null;
         }
         // Called by the existing house input owner; no second competing input loop.
         public bool HandleInput(Ray ray,bool left,bool right,bool inspect)

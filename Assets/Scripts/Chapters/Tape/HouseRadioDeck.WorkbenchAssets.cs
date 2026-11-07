@@ -135,7 +135,7 @@ namespace MemoryWhitebox
             !TapeUIAt(view.WorldToScreenPoint(ray.GetPoint(1))) && DragReceiverProbe.Accepts(ray,workMat.transform,tapes[BenchIndex].root,.015f,3f,c=>c==workMat,workMat);
         Rect PreparationButtonRect=>new Rect(24,100,150,30);
         bool PreparationButtonVisible=>PreparationIdle && OnPreparationMat(tapes[BenchIndex].root);
-        public bool PlaceTapeOnPreparationMat(bool showTabs)
+        public bool PlaceTapeOnPreparationMat(bool showTabs,bool focusView=true)
         {
             if(BenchIndex<0 || workAnchor==null || !PreparationAvailable(tapes[BenchIndex].root))return false;
             var tape=tapes[BenchIndex];var oldPosition=tape.root.position;var oldRotation=tape.root.rotation;
@@ -150,7 +150,9 @@ namespace MemoryWhitebox
             var area=OperationArea.For(tape.root);
             if(area==null || !area.Place(tape.root,workMat,preparationMatClearance)){tape.root.SetPositionAndRotation(oldPosition,oldRotation);ShowTapePointerNotice("Clear the preparation mat first");return false;}
             Chapter.WorkbenchEuler=(Quaternion.Inverse(tape.homeParent.rotation*tape.homeRotation)*tape.root.rotation).eulerAngles;
-            FocusPreparation(true);house.SaveStableProgress();return true;
+            // Ejection can place a tape here while the recording view still owns the camera.
+            if(focusView)FocusPreparation(true);
+            house.SaveStableProgress();return true;
         }
         string tapePointerNotice;
         float tapePointerNoticeUntil;
@@ -218,7 +220,7 @@ namespace MemoryWhitebox
                 if(hit==tape.leftSpindleHit || hit==tape.rightSpindleHit)
                     return "Tape · LMB drag to move";
                 if(hit==tape.hit || (candidate<workbenchVisuals.candidateGrips.Length && hit==workbenchVisuals.candidateGrips[candidate]))
-                    return "Shell · LMB drag to move · LMB + RMB to rotate";
+                    return "Shell · LMB drag to move · RMB drag to rotate";
             }
             if(hit==workMat)return "Preparation mat · Drop a work tape here";
             if(hit==adhesiveTab)return "Tape tab · Hold LMB and drag down";

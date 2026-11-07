@@ -142,7 +142,7 @@ namespace MemoryWhitebox
             if(PhotoHandPointerActive)
             {
                 Vector3 palm=view.WorldToScreenPoint(PhotoHandPosition);
-                float r=PalmRadiusPixels(view,PhotoHandPosition);Color color=PointerOnHand?good:calm;
+                float r=PalmRadiusPixels(view,PhotoHandPosition);Color color=PointerOnHand?Color.white:new Color(1,.65f,.12f,1);
                 var centre=new Vector2(palm.x,Screen.height-palm.y);
                 FeedbackRing(centre,r,color);
                 if(PointerOnHand)FeedbackRing(centre,r*.65f,good);

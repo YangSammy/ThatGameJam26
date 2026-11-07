@@ -33,7 +33,9 @@ namespace ThatGamejam.Art
         {
             RequireReferences();
             progress = ClampFinite(progress, nameof(progress));
-            motionPivot.localPosition = new Vector3(0f, .14f * progress, -.035f * progress);
+            // The adapter uses metres; imported Visual parents can retain FBX unit scale.
+            var offset = transform.TransformVector(new Vector3(0f, .14f * progress, -.035f * progress));
+            motionPivot.localPosition = motionPivot.parent.InverseTransformVector(offset);
             motionPivot.localRotation = Quaternion.Euler(-18f * progress, 0f, 0f);
         }
 

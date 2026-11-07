@@ -12,6 +12,8 @@ namespace MemoryWhitebox
         public bool CameraHeld { get; private set; }
         public bool Rewinding { get; private set; }
         public bool RewoundBackOpen { get; private set; }
+        bool liftingCameraBack;
+        Vector3 cameraBackPullStart;
         public float RewindTurns { get; private set; }
         public string DraggedId => printDrag??dragged;
         public int NativeActionCount { get; private set; }
@@ -279,7 +281,7 @@ namespace MemoryWhitebox
             SettleToolReturn();
             base.Deactivate();
         }
-        public bool HasActiveGesture=>returningVisual!=null || printLanding!=null || dragged!=null || printDrag!=null || Rewinding || bagHeld || tankHeld || printHeld;
+        public bool HasActiveGesture=>returningVisual!=null || printLanding!=null || dragged!=null || printDrag!=null || Rewinding || liftingCameraBack || bagHeld || tankHeld || printHeld;
         public override bool HasPointerGesture=>HasActiveGesture;
         public override void CancelPointerGesture()=>CancelInteraction();
         public void CancelInteraction()
@@ -289,7 +291,7 @@ namespace MemoryWhitebox
             CancelPrintExposure();
             CancelPhysicalPrint();
             EndToolDrag(dragged);
-            looking=Rewinding=bagHeld=tankHeld=false;
+            looking=Rewinding=liftingCameraBack=bagHeld=tankHeld=false;
             if(dragged!=null && Nodes.ContainsKey(dragged) && homes.ContainsKey(dragged))
             {SetColliders(Nodes[dragged],true);}
             dragged=null;filmStrip.gameObject.SetActive(false);pour.gameObject.SetActive(false);SyncProps();
@@ -440,8 +442,6 @@ namespace MemoryWhitebox
             if (id == "back")
             {
                 if (Photo.Phase == PhotoChapter.FilmPhase.LoadedOpen && Photo.FilmThreaded) Photo.Phase = PhotoChapter.FilmPhase.Closed;
-                else if (Photo.Phase == PhotoChapter.FilmPhase.Exposed) { Photo.Fogged = true; Photo.Phase = PhotoChapter.FilmPhase.Rewound; RewoundBackOpen = true; ReturnToBench();PhotographySound(23,"back"); }
-                else if (Photo.Phase == PhotoChapter.FilmPhase.Rewound && !RewoundBackOpen) {RewoundBackOpen = true;PhotographySound(23,"back");}
             }
             else if (id == "advance" && Photo.Phase == PhotoChapter.FilmPhase.Closed) { Photo.Phase = PhotoChapter.FilmPhase.Ready; WBMain.Tone(160, .07f); }
             else if (id == "finder" && Photo.Phase == PhotoChapter.FilmPhase.Ready)
@@ -451,6 +451,8 @@ namespace MemoryWhitebox
             }
             else if (id == "shutter" && Photo.Phase == PhotoChapter.FilmPhase.Ready) ExposeNative();
             else if (id == "rewind" && Photo.Phase == PhotoChapter.FilmPhase.Exposed) { Rewinding = true; }
+            else if (id == "rewind" && Photo.Phase == PhotoChapter.FilmPhase.Rewound && !RewoundBackOpen)
+            { liftingCameraBack=true;cameraBackPullStart=ray.GetPoint(.55f); }
             else if (id == "exposed-film" && Photo.Phase == PhotoChapter.FilmPhase.Rewound && (cameraVisual==null || cameraVisual.BackOpen)) BeginDrag(id, ray);
             else if (id == "bag" && Photo.Phase == PhotoChapter.FilmPhase.DarkBag) bagHeld = true;
             else if (id == "tank" && Photo.Phase == PhotoChapter.FilmPhase.Processing) { tankHeld = true; agitationTravel = 0; lastDrag = Point(ray, 1.2f); }
@@ -462,10 +464,20 @@ namespace MemoryWhitebox
             SyncProps();Photo.Assess();SaveProgress();
         }
 
+        void PullCameraBack(Ray ray)
+        {
+            if(!liftingCameraBack || Photo.Phase!=PhotoChapter.FilmPhase.Rewound || RewoundBackOpen)return;
+            // Same view-relative upward pull and threshold as the park camera.
+            if(Vector3.Dot(ray.GetPoint(.55f)-cameraBackPullStart,View.transform.up)<=.025f)return;
+            liftingCameraBack=false;RewoundBackOpen=true;
+            PhotographySound(23,"back");SyncProps();SaveProgress();
+        }
+
         public override void Move(Ray ray)
         {
             if(parkGallery || parkFilmUnavailable)return;
             lastRay = ray;
+            if(liftingCameraBack){PullCameraBack(ray);return;}
             if(MovePhysicalPrint(ray))return;
             if (Photo.InViewfinder)
             {
@@ -527,7 +539,11 @@ namespace MemoryWhitebox
             if(parkGallery || parkFilmUnavailable)return;
             if(!Input.GetMouseButton(1))looking=false;
             if(HasActiveGesture && Input.GetMouseButton(0))return;
+            var releasedAt=View.WorldToScreenPoint(ray.GetPoint(1));
+            if(PointerOverUIAt(new Vector2(releasedAt.x,Screen.height-releasedAt.y)))
+            {CancelInteraction();SaveProgress();return;}
             StopPhotographyMotion();
+            PullCameraBack(ray);liftingCameraBack=false;
             Rewinding = false; bagHeld = false; tankHeld = false;
             bool wasExposing=printHeld;
             CancelPrintExposure();
@@ -570,7 +586,7 @@ namespace MemoryWhitebox
                 OperationArea.ClearPlacement(Nodes[item].transform);
                 Photo.Phase = PhotoChapter.FilmPhase.DarkBag; Photo.BagTurns = 0; Photo.Chemistry = 0;PhotographySound(129,"bag");
             }
-            else if(Printing && item.StartsWith("chemical-") && target=="developed-photo")
+            else if(Printing && item.StartsWith("chemical-") && CanCommitDarkroom(ray,"developed-photo"))
                 PourPrintChemical(int.Parse(item.Substring(9)));
             else if (!Printing && item.StartsWith("chemical-"))
             {

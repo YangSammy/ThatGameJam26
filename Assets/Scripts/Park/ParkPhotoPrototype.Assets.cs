@@ -53,7 +53,7 @@ namespace MemoryWhitebox
                 var go=Instantiate(PhotographyVisualAssets.Load().Film(iso),proxy);go.transform.localScale=Vector3.one*2.5f;
                 PhotographyCameraVisual.PrepareVisual(go,FirstPersonHands.HandLayer);PhotographyCameraVisual.SampleFilm(PhotographyVisualAssets.Load(),go,0,0);
             }
-            instrumentMeter=PhotographyMeterDisplay.Create(meterRoot,new Vector3(0,-.4f,.60f),2,FirstPersonHands.HandLayer);instrumentMeter.transform.localRotation=Quaternion.Euler(0,180,0);
+            instrumentMeter=PhotographyMeterDisplay.Create(meterRoot,new Vector3(0,-.4f,.60f),3.4f,FirstPersonHands.HandLayer);instrumentMeter.transform.localRotation=Quaternion.Euler(0,180,0);
             var meter=AssetProxy("meter",meterRoot,new Vector3(0,0,.55f),new Vector3(.14f,.24f,.08f));
             meterReadout=Numeric(meter,"",Vector3.zero,.02f);cameraReadout=Numeric(bodyRoot,"",Vector3.zero,.02f);
             SetPhotographyMode(PhotographyMode.Exploration);
@@ -62,6 +62,8 @@ namespace MemoryWhitebox
         {
             bool meter=photoMode==PhotographyMode.Meter;
             meterHeld=Mathf.MoveTowards(meterHeld,meter?1:0,Time.deltaTime*4);
+            // Bring the display, hit target and hand grip closer together as it opens.
+            meterRoot.localPosition=Vector3.back*(.24f*Mathf.SmoothStep(0,1,meterHeld));
             meterRoot.gameObject.SetActive(meter || meterHeld>0);
             bodyRoot.gameObject.SetActive(photoMode==PhotographyMode.Body || photoMode==PhotographyMode.Aperture || photoMode==PhotographyMode.Shutter);
             instrumentMeter.Apply(filmIsos[meterIsoIndex],MeterEv100,meter && meterReadingValid,meterHeld,MeterSuggestedAperture);
@@ -69,8 +71,12 @@ namespace MemoryWhitebox
             SyncInstrumentPresentation();
             if(dragPart=="leader")
             {
-                var start=instrumentCamera.insert.TransformPoint(new Vector3(.039f,.0015f,-.0134f));var end=instrumentCamera.takeUp.position;
-                assetPull=Mathf.Clamp01(Vector3.Dot(instrumentParts["leader"].position-start,end-start)/Mathf.Max(.00001f,(end-start).sqrMagnitude));
+                // Cursor and spool must be measured in the same projected plane.
+                // A fixed world-depth drag otherwise disagrees with the visible receiver.
+                var start=(Vector2)view.WorldToScreenPoint(leaderDragOrigin);
+                var end=(Vector2)view.WorldToScreenPoint(instrumentCamera.takeUp.position);
+                var pointer=(Vector2)view.WorldToScreenPoint(instrumentParts["leader"].position);
+                assetPull=Mathf.Clamp01(Vector2.Dot(pointer-start,end-start)/Mathf.Max(.00001f,(end-start).sqrMagnitude));
             }
             int stage=loadingStep>=7?3:loadingStep>=4?2:dragPart=="leader"?1:0;
             instrumentCamera.Apply(loadingStep>0 && loadingStep<6,loadingStep>=2,FilmIso,stage,assetPull,focusDistance,Aperture,ShutterSeconds,flash,Time.deltaTime,smoothDials:true);

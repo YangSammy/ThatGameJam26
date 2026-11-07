@@ -6,19 +6,35 @@ namespace MemoryWhitebox
         public PhotoWorld3D DarkroomWorld=>worlds[1] as PhotoWorld3D;
         public bool DirectDarkroomActive=>!InStation && DarkroomWorld!=null && DarkroomWorld.DirectDarkroom;
         Transform darkroomReachTarget;
+        bool enterReturnedDarkroom;
+        void EnterReturnedDarkroom()
+        {
+            if(!enterReturnedDarkroom)return;
+            if(summerPhotoRoom==null || summerPhotoRoom.darkroomView==null || DarkroomWorld==null || !DarkroomWorld.DirectDarkroomAvailable)
+                throw new System.InvalidOperationException("Returned film has no available darkroom entry.");
+            PrepareContinuousDarkroom();
+            Room.Camera.transform.SetPositionAndRotation(summerPhotoRoom.darkroomView.position,summerPhotoRoom.darkroomView.rotation);
+            Room.EnableLook(true); // Adopt the new heading before free-pointer control.
+            darkroomReachTarget=DarkroomWorld.Nodes["bag"].transform;
+            DarkroomWorld.SetDirectDarkroom(true);Room.EnableLook(false);
+            enterReturnedDarkroom=false;ParkFilmRoute.EnterDarkroomOnLoad=false;
+            SuspendHouseInput();SyncInputContext();
+        }
         readonly PointerGestureBuffer photoPointer = new PointerGestureBuffer();
         // Input.mousePosition contains the latest position, not necessarily the
         // position where this frame's press began. Preserve the native event ray.
         void CaptureDarkroomPointerPress()
         {
-            var photo=DirectDarkroomActive?DarkroomWorld:InStation?CurrentWorld as PhotoWorld3D:null;
-            if(photo==null || !houseFocused || !InputContext.Ready || ShowHelp || transition>0 || awaitRelease ||
+            var world=DirectDarkroomActive?DarkroomWorld:InStation?CurrentWorld:null;
+            var photo=world as PhotoWorld3D;
+            if(world==null || !houseFocused || !InputContext.Ready || ShowHelp || transition>0 || awaitRelease ||
                 (safeInspection!=null && safeInspection.BlocksInput))
             {photoPointer.Clear();return;}
             var e=Event.current;
             if(e==null || e.button!=0 || (e.type!=EventType.MouseDown && e.type!=EventType.MouseUp))return;
-            if(e.type==EventType.MouseDown && photo.PointerOverUIAt(e.mousePosition))return;
-            var ray=photo.PointerRay(new Vector2(e.mousePosition.x,Screen.height-e.mousePosition.y));
+            if(e.type==EventType.MouseDown && contextReturnButton!=null && contextReturnButton.ContainsScreenPoint(new Vector2(e.mousePosition.x,Screen.height-e.mousePosition.y)))return;
+            if(e.type==EventType.MouseDown && photo!=null && photo.PointerOverUIAt(e.mousePosition))return;
+            var ray=world.PointerRay(new Vector2(e.mousePosition.x,Screen.height-e.mousePosition.y));
             photoPointer.Capture(e.type==EventType.MouseDown,ray);
         }
         public void PrepareContinuousDarkroom()

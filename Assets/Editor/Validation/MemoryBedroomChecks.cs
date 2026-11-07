@@ -38,13 +38,54 @@ namespace MemoryWhitebox.EditorTools
             {if(i%2==0){x+=1;s.PointerMove(new Vector2(x,200));}s.Tick(dt,e);}
             Require(s.Phase=="farewell","Sparse valid writing + held E must finish farewell hold");
             Require(s.Remaining==remaining,"Farewell hold must not restart countdown");
-            s.Tick(2.1f,new WBInput());Require(s.Completed,"Farewell animation completes chapter");
+            s.Tick(WritingChapter.FarewellDuration+.1f,new WBInput());Require(s.Completed,"Farewell animation completes chapter");
             var stopped=new WritingChapter{Draft=2,Phase="arrival",Collected=15};
             Stroke(stopped);stopped.Tick(dt,e);float progress=stopped.FarewellProgress;
             stopped.Tick(.05f,e);Require(stopped.FarewellProgress==progress,"Idle frame cannot advance farewell");
-            stopped.Tick(.3f,e);Require(stopped.FarewellProgress==0 && stopped.Phase=="arrival","Long stopped pen resets hold, E alone cannot finish");
+            stopped.Tick(3f,e);Require(stopped.FarewellProgress==progress && stopped.Phase=="arrival","Paused writing preserves progress without advancing");
             Stroke(stopped);stopped.Tick(dt,e);stopped.Tick(dt,new WBInput());Require(stopped.FarewellProgress==0,"Releasing E resets hold");
             return "PASS arrival preserves drag; sparse ink completes; idle cannot advance; E release resets; animation completes at dt="+dt;
+        }
+        public static string FullRowFarewell(float dt=1f/60)
+        {
+            var e=new WBInput();e.Keys.Add(KeyCode.E);
+            var s=new WritingChapter{Draft=2,Phase="collect",Started=true,Collected=15,Player=new Vector2(330,560)};
+            s.PointerDown(new Vector2(700,200),0);s.PointerMove(new Vector2(1125,200));
+            Require(s.AwaitingReturn,"Fixture must enter with full row");s.Tick(dt,e);
+            Require(s.Phase=="arrival" && !s.AwaitingReturn,"Arrival must prepare a new row");
+            s.PointerMove(new Vector2(1130,200));s.Tick(dt,e);
+            Require(s.FarewellProgress>0,"Held stroke must continue after automatic row");
+            s.PointerMove(new Vector2(700,200));s.PointerMove(new Vector2(1125,200));s.Tick(dt,e);
+            Require(s.AwaitingReturn,"Farewell row must fill");
+            float progress=s.FarewellProgress, remaining=s.Remaining;
+            s.PointerUp(Vector2.zero);s.Tick(2,e);
+            Require(s.FarewellProgress==progress && s.Phase=="arrival","Row-return pause must preserve progress");
+            s.PointerDown(new Vector2(700,200),0);
+            for(int i=0;i<Mathf.CeilToInt(1.4f/dt) && s.Phase=="arrival";i++)
+            {s.PointerMove(new Vector2(701+i,200));s.Tick(dt,e);}
+            Require(s.Phase=="farewell" && s.Remaining==remaining,"Resumed writing must finish hold with frozen timer");
+            s.Tick(WritingChapter.FarewellDuration+.1f,new WBInput());Require(s.Completed,"Full-row route must complete chapter");
+            return "PASS full-row arrival, held stroke, two-second row-return pause, resumed farewell and completion at dt="+dt;
+        }
+        public static string DepartureSequence(float dt=1f/60)
+        {
+            var s=new WritingChapter();s.EditorBeginFarewell();
+            for(int i=0;i<Mathf.CeilToInt(WritingChapter.FarewellDuration/dt)+2 && !s.Completed;i++)
+            {
+                s.Tick(dt,new WBInput());
+                if(s.FarewellElapsed<WritingChapter.WaveSeconds)
+                    Require(s.DepartureTurn==0 && s.DepartureWalk==0 && !s.Completed,"Wave must remain stationary and unfinished");
+                else if(s.FarewellElapsed<WritingChapter.WaveSeconds+WritingChapter.TurnSeconds)
+                    Require(s.DepartureTurn>0 && s.DepartureWalk==0 && !s.Completed,"Turn must precede walking");
+                else if(s.FarewellElapsed<WritingChapter.FarewellDuration)
+                    Require(s.DepartureTurn==1 && !s.Completed,"Walking cannot finish early");
+            }
+            Require(s.Completed && s.DepartureWalk==1,"Finish only outside the door");
+            s.Tick(10,new WBInput());Require(s.FarewellElapsed==WritingChapter.FarewellDuration,"Completed sequence must stay latched");
+            var resumed=new WritingChapter();s=new WritingChapter();s.EditorBeginFarewell();s.Tick(3,new WBInput());
+            resumed.RestoreCheckpoint(s.CaptureCheckpoint());
+            Require(resumed.Phase=="arrival" && !resumed.Completed,"Interrupted farewell restores safely");
+            return "PASS wave -> turn -> walk -> completion; interrupted restore; dt="+dt;
         }
         public static string CarryPresentation()
         {

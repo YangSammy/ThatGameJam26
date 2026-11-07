@@ -95,14 +95,44 @@ namespace MemoryWhitebox
             if(storageDelivery==null)return;
             storageDelivery.SetPositionAndRotation(deliveryStart,deliveryStartRotation);storageDelivery=null;deliveryCandidate=-1;
         }
+        bool TryDeskLanding(Transform item,OperationArea area,Vector3 position,Quaternion rotation)
+        {
+            item.SetPositionAndRotation(position,rotation);
+            Vector3 constrained;bool edge;
+            if(!area.Constrain(item,position,0,out constrained,out edge))return false;
+            item.position=constrained;
+            // The box floor intentionally has no solid collider. Test its footprint
+            // after area clamping, before Place can save a pose underneath it.
+            if(OverStorageFootprint(item))return false;
+            return area.Place(item);
+        }
         void ReturnTapeToDesk(Transform item,int landing)
         {
-            if(landing<0 || landing>=storageDeskLandings.Length || storageDeskLandings[landing]==null)return;
-            var pose=storageDeskLandings[landing];var position=item.position;var rotation=item.rotation;
-            item.SetPositionAndRotation(pose.position,pose.rotation);
+            var position=item.position;var rotation=item.rotation;
             var area=OperationArea.For(item);
-            if(area==null || !area.Place(item))
-            {item.SetPositionAndRotation(position,rotation);ShowTapePointerNotice("Desk landing blocked. Tape returned to its box slot.");}
+            if(area!=null)
+            {
+                Physics.SyncTransforms();
+                var pose=landing>=0 && landing<storageDeskLandings.Length?storageDeskLandings[landing]:null;
+                var preferred=pose!=null?pose.position:workAnchor!=null?workAnchor.position:area.Surface;
+                var facing=pose!=null?pose.rotation:workAnchor!=null?workAnchor.rotation:rotation;
+                if(TryDeskLanding(item,area,preferred,facing))return;
+                // Use the closest clear point on this operation area. Never move
+                // another cassette or accept the non-solid storage footprint.
+                var points=new System.Collections.Generic.List<Vector3>();
+                int columns=Mathf.Max(1,Mathf.CeilToInt(area.size.x/.06f));
+                int rows=Mathf.Max(1,Mathf.CeilToInt(area.size.y/.06f));
+                for(int z=0;z<=rows;z++)for(int x=0;x<=columns;x++)
+                    points.Add(area.transform.TransformPoint(new Vector3(
+                        area.center.x-area.size.x*.5f+area.size.x*x/columns,
+                        area.surfaceHeight,area.center.y-area.size.y*.5f+area.size.y*z/rows)));
+                points.Sort((a,b)=>(a-preferred).sqrMagnitude.CompareTo((b-preferred).sqrMagnitude));
+                foreach(var point in points)if(TryDeskLanding(item,area,point,facing))return;
+            }
+            item.SetPositionAndRotation(position,rotation);
+            ShowTapePointerNotice("No clear desk landing. Tape returned to its box slot.");
+            if(workbenchVisuals!=null && workbenchVisuals.InStorage(item) && !workbenchVisuals.LidOpen)
+                ToggleStorageLidWithSound();
         }
     }
 }

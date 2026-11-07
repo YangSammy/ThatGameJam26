@@ -14,15 +14,7 @@ namespace MemoryWhitebox
         readonly PlayerInputReleaseGate release;
         public PlayerInputContext(bool ignoreLocomotionForRelease=false){release=new PlayerInputReleaseGate(ignoreLocomotionForRelease);}
         bool initialized;
-        int consumedFrame=-1,backSampleFrame=-1,backClickFrame=-1;
-        bool backHeld,backChord; Vector2 backStart;
-        void SampleBackClick()
-        {
-            if(backSampleFrame==Time.frameCount)return;backSampleFrame=Time.frameCount;
-            if(Input.GetMouseButtonDown(1)){backHeld=true;backChord=Current==InputContextId.Inspection && Input.GetMouseButton(0);backStart=Input.mousePosition;}
-            if(backHeld && ((Current==InputContextId.Inspection && Input.GetMouseButton(0)) || Vector2.Distance(backStart,Input.mousePosition)>8))backChord=true;
-            if(Input.GetMouseButtonUp(1)){if(backHeld && !backChord)backClickFrame=Time.frameCount;backHeld=false;}
-        }
+        int consumedFrame=-1;
         public InputContextId Current {get;private set;}
         public bool Ready=>initialized && !BrushSceneTransition.IsBusy && Current!=InputContextId.Unfocused && Current!=InputContextId.Transition && consumedFrame!=Time.frameCount && release.Ready;
         public bool Allows(InputContextId context)=>Current==context && Ready;
@@ -30,20 +22,20 @@ namespace MemoryWhitebox
         {
             if(!initialized || Current!=context)
             {
-                backHeld=backChord=false;backClickFrame=-1;
                 initialized=true;Current=context;
                 if(continueGesture)release.AdoptGesture();else release.Arm();
             }
             PlayerInputPolicy.ApplyCursor(cursorState,mouseLook);
         }
-        public void Handoff(){backHeld=backChord=false;backClickFrame=-1;release.Arm();PlayerInputPolicy.SuppressLook();}
+        public void Handoff(){release.Arm();PlayerInputPolicy.SuppressLook();}
         // Only call from the same press that deliberately began a scene drag.
         public void ContinueGesture(){release.AdoptGesture();}
-        public bool ExitPressed(InputContextId owner,Func<bool> cancelGesture,Action leave,bool inspectionKey=false)
+        public bool ExitPressed(InputContextId owner,Func<bool> hasGesture,Action leave,bool inspectionKey=false)
         {
-            SampleBackClick();
-            if(GamePauseMenu.BlocksGameplay || !Allows(owner) || !(backClickFrame==Time.frameCount || (inspectionKey && Input.GetKeyDown(KeyCode.E))))return false;
-            return RequestExit(owner,inspectionKey && Input.GetKeyDown(KeyCode.E)?null:cancelGesture,leave);
+            // Navigation is explicit: UI buttons use RequestExit; inspection also uses E.
+            // Mouse buttons are reserved for manipulating objects and looking around.
+            if(!inspectionKey || !Input.GetKeyDown(KeyCode.E) || GamePauseMenu.BlocksGameplay || !Allows(owner))return false;
+            return RequestExit(owner,null,leave);
         }
         public bool RequestExit(InputContextId owner,Func<bool> cancelGesture,Action leave)
         {

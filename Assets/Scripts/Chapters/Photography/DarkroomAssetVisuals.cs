@@ -55,6 +55,25 @@ namespace MemoryWhitebox
             var root=ModelRoot(id);if(root==null)return;
             foreach(var c in clips)if(c!=null && c.name=="AN_"+clip){c.SamplePropAnimation(root.gameObject,Mathf.Clamp01(progress)*c.length);return;}
         }
+        // Committed hanging is a state, not an optional animation result. Explicitly
+        // clear progressive poses so a failed/restored clip cannot leave a flat card.
+        public void SetMaterialHanging(string id,bool hanging)
+        {
+            var root=ModelRoot(id);if(root==null)return;
+            foreach(var skin in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                var mesh=skin.sharedMesh;if(mesh==null)continue;
+                int shape=mesh.GetBlendShapeIndex("Hanging");if(shape<0)continue;
+                if(hanging)
+                    for(int i=0;i<mesh.blendShapeCount;i++)
+                    {
+                        string name=mesh.GetBlendShapeName(i);
+                        if(name.StartsWith("Hang_") || name.StartsWith("Flatten_") || name.StartsWith("Unroll_") || name=="Coiled" || name=="Wet" || name=="CornerLift")
+                            skin.SetBlendShapeWeight(i,0);
+                    }
+                skin.SetBlendShapeWeight(shape,hanging?100:0);
+            }
+        }
         public void ResetModels()
         {
             foreach(var m in models)foreach(var c in clips)

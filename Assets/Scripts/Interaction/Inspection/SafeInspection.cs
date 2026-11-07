@@ -6,6 +6,8 @@ namespace MemoryWhitebox
     public sealed class SafeInspection : MonoBehaviour
     {
         public const int DisplayLayer=29;
+        // Temporarily disabled without removing subjects or inspection behavior.
+        public static bool EnabledForGameplay {get;set;} = false;
         public Camera view,displayCamera;
         public Light inspectionLight;
         public AudioSource feedback;
@@ -68,6 +70,7 @@ namespace MemoryWhitebox
         SafeInspectionPart hovered;
         readonly HoverOutline outline=new HoverOutline();
         Font font;
+        TapeReturnButton returnButton;
 
         public SafeInspectionSubject ForSource(Transform source)
         {foreach(var s in subjects)if(s.source==source)return s;return null;}
@@ -81,7 +84,11 @@ namespace MemoryWhitebox
         }
         public bool Open(SafeInspectionSubject subject)
         {
-            if(!isActiveAndEnabled || BlocksInput || subject==null || view==null || displayCamera==null || !focused)return false;
+            if(!EnabledForGameplay || !isActiveAndEnabled || BlocksInput || subject==null || view==null || displayCamera==null || !focused)return false;
+            if(returnButton==null)returnButton=TapeReturnButton.Create(transform,
+                ()=>Active && focused && !GamePauseMenu.BlocksGameplay,
+                ()=>InputContext.Allows(InputContextId.Inspection) && !entryGate,
+                ()=>InputContext.RequestExit(InputContextId.Inspection,null,Close));
             Current=subject;HeldPart=hovered=null;spin=Quaternion.identity;Distance=DefaultDistance;elapsed=0;resetSeconds=-1;
             eye=view.transform.position;rotation=view.transform.rotation;fov=view.fieldOfView;viewport=view.rect;mask=view.cullingMask;
             cursor=Cursor.lockState;cursorVisible=Cursor.visible;
@@ -143,7 +150,7 @@ namespace MemoryWhitebox
         public void DragPart(Vector2 delta)
         {
             if(HeldPart==null)return;
-            if(tapeSession!=null)return; // Tape reels accept wheel input only; whole-object rotation requires the two-button chord.
+            if(tapeSession!=null)return; // Tape reels accept wheel input only; shell rotation is handled separately by either mouse button.
             if(HeldPart.Drag(delta.x-delta.y))Sound(HeldPart);
         }
         public void ReleasePart(){if(HeldPart==null)return;var part=HeldPart;part.Release();HeldPart=null;Sound(part);}
@@ -160,6 +167,7 @@ namespace MemoryWhitebox
         {if(!Active && allReleased && Time.frameCount>closeFrame+1)releaseGate=false;}
         void Update()
         {
+            if(!EnabledForGameplay && Active){Close();return;}
             if(GamePauseMenu.PollEscape() || !focused)return;
             if(!Active)
             {
@@ -167,7 +175,7 @@ namespace MemoryWhitebox
             }
             if(entryGate){if(handoff.Ready)entryGate=false;return;}
             if(!InputContext.Allows(InputContextId.Inspection))return;
-            if(InputContext.ExitPressed(InputContextId.Inspection,CancelGesture,Close,true))return;
+            if(InputContext.ExitPressed(InputContextId.Inspection,()=>HeldPart!=null || gesture!=Gesture.None || leftHeld || (tapeSession!=null && tapeSession.Preparing),Close,true))return;
             if(Input.GetKeyDown(KeyCode.F))Flip();
             if(Input.GetKeyDown(KeyCode.R))ResetView();
             UpdateHover(Input.mousePosition);
@@ -183,7 +191,7 @@ namespace MemoryWhitebox
         public bool PointerOverUI(Vector2 point)
         {
             var gui=new Vector2(point.x,Screen.height-point.y);
-            return ResetButtonRect.Contains(gui) || ExitButtonRect.Contains(gui);
+            return ResetButtonRect.Contains(gui) || (returnButton!=null && returnButton.ContainsScreenPoint(point));
         }
         public void UpdateHover(Vector2 point)
         {
@@ -196,7 +204,7 @@ namespace MemoryWhitebox
             if(gesture!=Gesture.PendingPart)return;
             gesture=Gesture.Part;HoldPart(pendingPart);pendingPart=null;DragPart(pendingDelta);pendingDelta=Vector2.zero;
         }
-        // Own one complete gesture. A chord can claim a pending press, never an already committed part drag.
+        // Own one complete gesture. Rotation cannot steal an already committed part drag.
         // Event positions also preserve fast down/drag/up sequences arriving within one frame.
         public void PointerEvent(EventType type,int button,Vector2 screenPoint,Vector2 delta,float wheel=0)
         {
@@ -204,7 +212,7 @@ namespace MemoryWhitebox
             bool overUI=PointerOverUI(screenPoint);
             if(tapeSession!=null && tapeSession.Preparing)
             {
-                if(overUI && type==EventType.MouseUp){tapeSession.Cancel();return;}
+                if(overUI && type==EventType.MouseUp && button==0){tapeSession.Cancel();return;}
                 tapeSession.Handle(type,button,displayCamera.ScreenPointToRay(screenPoint),displayCamera);return;
             }
             if(tapeSession!=null && !overUI && !Resetting && gesture==Gesture.None && tapeSession.Handle(type,button,displayCamera.ScreenPointToRay(screenPoint),displayCamera))return;
@@ -227,11 +235,18 @@ namespace MemoryWhitebox
                 if(leftHeld && rightHeld)
                 {gesture=Gesture.Rotate;pendingPart=null;pendingDelta=Vector2.zero;SetHover(null);return;}
                 if(button==0)
-                {gesture=Gesture.PendingPart;pendingSeconds=0;pendingDelta=Vector2.zero;pendingPart=Current.Pick(displayCamera.ScreenPointToRay(screenPoint));}
+                {
+                    pendingPart=Current.Pick(displayCamera.ScreenPointToRay(screenPoint));
+                    gesture=pendingPart!=null?Gesture.PendingPart:Gesture.Rotate;
+                    pendingSeconds=0;pendingDelta=Vector2.zero;
+                }
             }
             else if(type==EventType.MouseDrag)
             {
-                if(gesture==Gesture.Rotate && leftHeld && rightHeld)Rotate(delta);
+                if(button==1 && rightHeld && gesture==Gesture.None && !overUI && !Resetting)
+                    {gesture=Gesture.Rotate;SetHover(null);}
+                if(gesture==Gesture.Rotate && ((button==0 && leftHeld) || (button==1 && rightHeld)))
+                {Rotate(delta);}
                 else if(gesture==Gesture.Part && leftHeld && button==0)DragPart(delta);
                 else if(gesture==Gesture.PendingPart && leftHeld && button==0)pendingDelta+=delta;
             }
@@ -343,7 +358,7 @@ namespace MemoryWhitebox
             button.normal.textColor=new Color(.88f,.88f,.85f);
             button.hover.textColor=button.active.textColor=Color.white;
             if(DrawInspectionButton(ResetButtonRect,"Reset View   R",button))ResetView();
-            if(DrawInspectionButton(ExitButtonRect,"Exit     E / RMB",button)){InputContext.RequestExit(InputContextId.Inspection,null,Close);return;}
+            if(tapeSession!=null)return; // Keep tape controls, omit instructional text.
             string hint=Resetting?"Resetting...":tapeSession!=null?tapeSession.ActionHint:hovered==null?"":
                 hovered.motion==SafeInspectionPart.Motion.Button?"Hold LMB to press":
                 hovered.motion==SafeInspectionPart.Motion.Dial?"LMB drag / Hold LMB + Scroll to turn":"LMB drag to move";
@@ -352,7 +367,7 @@ namespace MemoryWhitebox
             controls.normal.textColor=new Color(.62f,.62f,.6f);
             GUI.Label(new Rect(24,Screen.height-42,Screen.width-48,24),Current.fixedDevice?
                 "LMB  Interact     /     Scroll  Zoom":
-                "LMB  Interact     /     LMB + RMB drag  Rotate     /     F  Flip     /     Scroll  Zoom",controls);
+                "LMB  Interact     /     LMB or RMB drag  Rotate     /     F  Flip     /     Scroll  Zoom",controls);
         }
     }
 }

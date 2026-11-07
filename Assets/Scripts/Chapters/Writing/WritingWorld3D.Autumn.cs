@@ -64,7 +64,7 @@ namespace MemoryWhitebox
             player.localPosition=next;lastMemoryPlayer=next;
             float departure=State.Phase=="farewell" || State.Completed?1:0;
             var before=npc.localPosition;
-            npc.localPosition=Vector3.Lerp(before,new Vector3(3.3f,0,departure>0?-.45f:.28f),Mathf.Clamp01(dt*.7f));
+            npc.localPosition=Vector3.Lerp(new Vector3(3.3f,0,.28f),new Vector3(3.3f,0,-.45f),departure>0?State.DepartureWalk:0);
             if(State.Phase=="farewell" && farewellTravel>=0)
             {
                 farewellTravel+=Vector3.Distance(before,npc.localPosition);
@@ -74,9 +74,16 @@ namespace MemoryWhitebox
                     StorySfx.Shot(136,MemorySoundPosition);
                 }
             }
-            npc.localRotation=Quaternion.Euler(0,180,0);
-            farewellSeconds=departure>0?Mathf.Min(2,farewellSeconds+dt):0;
-            if(farewellVisual!=null)farewellVisual.Present(time,farewellSeconds,departure>0);
+            var toPlayer=player.localPosition-npc.localPosition;toPlayer.y=0;
+            var facing=toPlayer.sqrMagnitude>.0001f?Quaternion.LookRotation(toPlayer):Quaternion.identity;
+            npc.localRotation=departure>0?Quaternion.Slerp(facing,Quaternion.Euler(0,180,0),Mathf.SmoothStep(0,1,State.DepartureTurn)):Quaternion.identity;
+            farewellSeconds=departure>0?State.FarewellElapsed:0;
+            if(farewellVisual!=null)
+            {
+                // The miniature set ends at the doorway; do not walk into its unbuilt exterior.
+                farewellVisual.gameObject.SetActive(!(departure>0 && State.DepartureWalk>=1));
+                farewellVisual.Present(time,farewellSeconds,departure>0);
+            }
             UpdateMemoryRestoration(dt);
             for(int i=0;i<4;i++)collectionProps[i].gameObject.SetActive(!State.HasItem(i));
             scarf.gameObject.SetActive(false);npcBox.gameObject.SetActive(false);doorHand.gameObject.SetActive(false);

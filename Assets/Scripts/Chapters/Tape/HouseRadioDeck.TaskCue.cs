@@ -28,7 +28,7 @@ namespace MemoryWhitebox
         void ShowNextTapeTask()
         {
             HideTaskHoles();
-            if(!focused || Chapter==null || Chapter.Completed || workbenchVisuals==null ||
+            if(!focused || Chapter==null || Chapter.CommissionIndex>0 || Chapter.Completed || workbenchVisuals==null ||
                 house.safeInspection.BlocksInput || radioCameraMoving || preparationCameraMoving ||
                 storageDelivery!=null || State==Phase.Loading || DeckBusy(0) || DeckBusy(1))return;
             Transform target=null;Renderer[] surfaces=null;

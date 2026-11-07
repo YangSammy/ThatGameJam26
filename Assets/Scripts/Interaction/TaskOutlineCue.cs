@@ -7,13 +7,13 @@ namespace MemoryWhitebox
     {
         readonly HoverOutline outline=new HoverOutline();
         Camera view; Renderer[] surfaces; int requested=-10;
-        public static void Show(Transform owner,Camera camera,Renderer[] renderers)
+        public static void Show(Transform owner,Camera camera,Renderer[] renderers,bool afterEffects=false)
         {
             if(!owner)return;
             var cue=owner.GetComponent<TaskOutlineCue>();
             if(!cue)cue=owner.gameObject.AddComponent<TaskOutlineCue>();
             cue.view=camera;cue.surfaces=renderers;cue.requested=Time.frameCount;
-            cue.outline.Show(camera,renderers,color:new Color(1,.65f,.12f,1));
+            cue.outline.Show(camera,renderers,color:new Color(1,.65f,.12f,1),afterEffects:afterEffects);
         }
         void LateUpdate(){if(requested!=Time.frameCount || GamePauseMenu.BlocksGameplay)outline.Clear();}
         void OnDisable(){outline.Clear();}

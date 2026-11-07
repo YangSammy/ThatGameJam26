@@ -134,7 +134,7 @@ namespace MemoryWhitebox
             MemoryCamera = cameraObject.AddComponent<Camera>(); MemoryCamera.orthographic = false;
             MemoryCamera.transform.position = World(memoryOffset + new Vector3(3.0f, 9.5f, -5.8f));
             MemoryCamera.transform.LookAt(World(memoryOffset + new Vector3(3f, .55f, 2.6f)));
-            MemoryCamera.fieldOfView = 46; MemoryCamera.nearClipPlane = .05f; MemoryCamera.farClipPlane = 25;
+            MemoryCamera.fieldOfView = 2*Mathf.Atan(Mathf.Tan(23*Mathf.Deg2Rad)/1.2f)*Mathf.Rad2Deg; MemoryCamera.nearClipPlane = .05f; MemoryCamera.farClipPlane = 25;
             MemoryCamera.clearFlags = CameraClearFlags.SolidColor; MemoryCamera.backgroundColor = new Color(.12f, .17f, .18f); MemoryCamera.cullingMask = 1 << MemoryLayer;
             MemoryCamera.depth = View != null ? View.depth + 1 : 1; MemoryCamera.rect = new Rect(.5f, 0, .5f, 1); MemoryCamera.enabled = false;
             BuildAutumnProps();BuildWritingVisuals();UpdateActors(.02f);
@@ -334,7 +334,10 @@ namespace MemoryWhitebox
             string phase=State.Phase;
             bool clockRunning=State.Started && phase=="collect";
             float remaining=State.Remaining;
+            bool fullRowBeforeTick=State.AwaitingReturn;
             State.Tick(elapsed, input);
+            if(phase!="arrival" && State.Phase=="arrival" && fullRowBeforeTick && !State.AwaitingReturn)
+                RestoreInk();
             pickupIntent=input.Keys.Contains(KeyCode.E) || State.PickupPrepared;
             PlayWritingStateEdges(collected,phase,clockRunning,remaining);
             bool reachBlocked=input.Keys.Contains(KeyCode.E) && State.NearPickup && !State.InkFresh

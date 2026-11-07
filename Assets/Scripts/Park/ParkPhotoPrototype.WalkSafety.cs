@@ -52,7 +52,7 @@ namespace MemoryWhitebox
             if(needsWalkRecovery && !Paused)
             {
                 var rect=new Rect(Screen.width*.5f-180,Screen.height*.5f-70,360,135);
-                GUI.Box(rect,"");InteractionUI.Label(new Rect(rect.x+18,rect.y+12,324,50),"The path is blocked. Continue from the photo spot; film progress is kept.",text);
+                GUI.Box(rect,"");
                 if(InputContext.Ready && InteractionUI.Button(new Rect(rect.x+30,rect.y+78,300,40),"Return to current photo spot",button))
                 {needsWalkRecovery=false;recoverCurrentPhoto=true;recoveryFade=0;InputContext.Handoff();}
             }

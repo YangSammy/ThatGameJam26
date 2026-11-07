@@ -10,6 +10,7 @@ namespace MemoryWhitebox
         public Light stationLight;
         public bool DraggingTape=>draggingTape;
         bool draggingTape,dropReady;
+        int dragLoadedReturn=-1;
         Ray dragRay;
         readonly ObjectDragSession tapeDrag=new ObjectDragSession();
         bool TapeReceiver(Collider receiver,Ray ray)=>TapeDropAllowed(receiver,ray,tapeDrag.Item);
@@ -36,6 +37,7 @@ namespace MemoryWhitebox
         }
         public bool TryInspect(Ray ray)
         {
+            if(!SafeInspection.EnabledForGameplay)return false;
             bool workspace=WorkbenchMode || RecordingMode;
             if(storageDelivery!=null || radioCameraMoving || preparationCameraMoving || house==null || house.safeInspection==null || waitingForRelease || draggingTape || movingOriginal || benchDrag.Active || tapeDrag.Active ||
                 benchGesture!=BenchGesture.None || benchLeft || benchRight || (!workspace && (leftWasDown || rightWasDown)) || heldSpindle>=0 ||
@@ -87,18 +89,20 @@ namespace MemoryWhitebox
         void BeginTapeDrag(Ray ray)
         {
             if(State!=Phase.Dragging)return;
-            ReleaseSpindle();draggingTape=true;dropReady=false;dragRay=ray;
+            ReleaseSpindle();dragLoadedReturn=-1;draggingTape=true;dropReady=false;dragRay=ray;
             tapeDrag.BeginScreenCarry(tapes[Selected].root,ray,view.transform.forward);
             // The held cassette must not intercept the cursor ray aimed at the slot.
             SetHeldHits(false);
         }
-        void CancelTapeDrag(){tapeDrag.End(false);ShowTapeDropPreview(null);if(draggingTape)SetHeldHits(true);draggingTape=dropReady=false;}
+        void CancelTapeDrag(){tapeDrag.End(false);ShowTapeDropPreview(null);if(draggingTape)SetHeldHits(true);draggingTape=dropReady=false;dragLoadedReturn=-1;}
         void EndTapeDrag(bool overSlot)
         {
-            if(!overSlot && tapeDrag.TryPlaceInArea()){CancelTapeDrag();PutBack();return;}
-            CancelTapeDrag();
+            if(!PointerOverUI(view.WorldToScreenPoint(dragRay.GetPoint(1))) && !overSlot && tapeDrag.TryPlaceInArea()){CancelTapeDrag();PutBack();return;}
+            int loaded=dragLoadedReturn;
             if(overSlot && InsertDragged())return;
-            PutBack();
+            // A rejected extraction returns to its original slot, not the storage box.
+            if(loaded>=0 && Selected==loaded && InsertDragged())return;
+            tapeDrag.End(true);CancelTapeDrag();PutBack();
         }
         public void PoseDraggedTape(float dt)
         {
@@ -165,6 +169,7 @@ namespace MemoryWhitebox
         }
         public bool PointerOverUI(Vector2 point)
         {
+            if(returnButton!=null && returnButton.ContainsScreenPoint(point))return true;
             if(house!=null && !house.InStation)return false;
             var gui=new Vector2(point.x,Screen.height-point.y);
             // The footer is passive help text, not a control. It must not make
@@ -177,7 +182,7 @@ namespace MemoryWhitebox
             if(Selected<0 || State==Phase.Loading)return;
             int index=Selected;var root=tapes[index].root;
             var position=root.position;var rotation=root.rotation;
-            ResetDeck();SelectForDrag(index);root.SetPositionAndRotation(position,rotation);BeginTapeDrag(ray);
+            ResetDeck();SelectForDrag(index);root.SetPositionAndRotation(position,rotation);BeginTapeDrag(ray);dragLoadedReturn=index;
         }
         public void TakeOut(){if(dualDeck!=null)EjectDualDeck(1);else ResetDeck();}
         public void PutBack(){if(State==Phase.Dragging){CancelTapeDrag();ReleaseSpindle();State=Phase.Returning;}}
@@ -194,14 +199,6 @@ namespace MemoryWhitebox
         {
             if(RecordingMode || WorkbenchMode)return;
             if(!StationActive)return;
-            string status=draggingTape?(dropReady?"Release LMB to insert   /   RMB  Return":"Drag to slot; release to insert."):
-                State==Phase.Dragging?"Drag to slot; release outside to return.":
-                Chapter.Completed?"Tape restored. Playing.":"Hold LMB to pick up; drag to slot.";
-            if(State==Phase.Loading)status="Loading tape...";if(State==Phase.Returning)status="Returning tape...";
-            if(Selected>=0)status+="\nTape "+(Selected+1)+"  /  Checked "+Mathf.RoundToInt(Chapter.Tape.InspectionProgress*100)+"%";
-            if(Notice!="")status+="\n"+Notice;
-            float textWidth=Mathf.Min(716,Screen.width-274);statusHeight=Mathf.Clamp(style.CalcHeight(new GUIContent(status),textWidth)+16,46,108);
-            InteractionUI.Label(new Rect(24,20,textWidth,statusHeight-16),status,style);
             if(waitingForRelease || house.ShowHelp)return;
             if(State==Phase.Playing || State==Phase.Paused)
             {

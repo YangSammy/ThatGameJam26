@@ -79,7 +79,7 @@ namespace MemoryWhitebox.Editor
             var ink=(Material)outline.GetType().GetField("material",flags).GetValue(outline);
             Check(ink.GetColor("_InkColor")==new Color(1,.65f,.12f,1),"Next-step ink is orange");
             world.Press("rewind",At("rewind"),0);world.Scroll("rewind",8,At("rewind"));world.Release("rewind",At("rewind"));
-            Click("back");Check(world.Photo.Phase==PhotoChapter.FilmPhase.Rewound && world.RewoundBackOpen,"Rewind and open moved camera back");
+            var openingRay=At("rewind");world.Press("rewind",openingRay,0);world.Move(new Ray(openingRay.origin+world.View.transform.up*.04f,openingRay.direction));world.Release("rewind",openingRay);Check(world.Photo.Phase==PhotoChapter.FilmPhase.Rewound && world.RewoundBackOpen,"Rewind and open moved camera back");
             world.Press("exposed-film",At("exposed-film"),0);
             Check(world.CarryingExposedFilm,"Extract film from moved camera");yield return settle;
             world.Move(At("bag"));world.Release("bag",At("bag"));

@@ -59,7 +59,7 @@ namespace MemoryWhitebox
                 if(Time.unscaledTime<darkroomNoticeUntil)return darkroomNotice+"\n"+DarkroomTask;
                 string task=DarkroomTask;if(!string.IsNullOrEmpty(task))return task;
                 if(Printing)return PrintHint;
-                if(Photo.Completed)return "Photo saved  /  RMB  Back";
+                if(Photo.Completed)return "Photo saved";
                 switch(Photo.Phase){
                     case PhotoChapter.FilmPhase.Empty:return "Drag film into the left chamber";
                     case PhotoChapter.FilmPhase.LoadedOpen:return Photo.FilmThreaded?"Close the camera back":"Drag leader to the take-up spool";
@@ -102,9 +102,7 @@ namespace MemoryWhitebox
             if(parkLoading){DrawParkLoading(style);return;}
             if(Photo.InViewfinder){var r=View.pixelRect;var old=GUI.color;GUI.color=Color.black;GUI.DrawTexture(new Rect(0,0,r.x,Screen.height),Texture2D.whiteTexture);GUI.DrawTexture(new Rect(r.xMax,0,Screen.width-r.xMax,Screen.height),Texture2D.whiteTexture);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height-r.yMax),Texture2D.whiteTexture);GUI.DrawTexture(new Rect(0,Screen.height-r.y,Screen.width,r.y),Texture2D.whiteTexture);GUI.color=old;}
 
-            InteractionUI.Label(new Rect(28,Screen.height-ProgressUIHeight+6,Mathf.Min(900,Screen.width-55),42),ProgressHint,style);
             if(CanRetake && Photo.FailureReason!="") {
-                InteractionUI.Label(new Rect(28,Screen.height-70,Mathf.Min(720,Screen.width-220),55),Photo.FailureReason,style);
                 if(InteractionUI.Button(new Rect(Mathf.Min(760,Screen.width-180),Screen.height-58,155,32),"Reload film"))RetakePhoto();
             }
         }

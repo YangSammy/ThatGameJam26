@@ -53,6 +53,8 @@ namespace MemoryWhitebox
             PoseDarkroomMaterial("print-paper",pl,printDrag=="print-paper");
             v.Sample("print-negative",nl=="print-negative-clip"?"C06_Hanging":"C06_Flat");
             v.Sample("print-paper",pl=="print-photo-clip"?"C09_Hanging":pl!=null && (pl=="print-developer" || pl=="print-stop" || pl=="print-fixer" || pl=="print-wash")?"C09_Wet":"C09_Flat");
+            v.SetMaterialHanging("print-negative",nl=="print-negative-clip" && printDrag!="print-negative");
+            v.SetMaterialHanging("print-paper",pl=="print-photo-clip" && printDrag!="print-paper");
             float wet=printStage>=ParkPrintStage.PaperDeveloper && printStage<ParkPrintStage.Complete?1:0;
             if(printStage==ParkPrintStage.PaperDrying && printProcessing)wet=Mathf.Clamp01(printRemaining/PrintDuration(printStage));
             if(printDrag=="print-paper" && wet>0)v.Sample("print-paper","C09_Drip");

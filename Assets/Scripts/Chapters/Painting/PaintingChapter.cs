@@ -74,6 +74,7 @@ namespace MemoryWhitebox
         public float BridgeGrowth,WhiteTime,WardDistance,WardRevealHeight;
         // Retained only to migrate the previous automatic-reveal save format.
         public const float WardRevealSeconds=12;
+        bool wardDWasDown;
         public float WardTime {get;private set;}
         public float WardProgress=>Phase==4?1:Mathf.Clamp01(WardDistance/WardWalkDistance);
         public float NoseHeight=1.55f;
@@ -189,9 +190,11 @@ namespace MemoryWhitebox
             if(Phase==2){WhiteTime+=dt;if(WhiteTime>=(NarrativeDefinition.Resolve(this)?.whiteTransitionSeconds??1.2f)){Phase=3;Actor=Vector2.zero;WardDistance=WardTime=0;UpdateWardReveal();}return;}
             if(Phase==3)
             {
-                float axis=(input.Keys.Contains(KeyCode.D)||input.Keys.Contains(KeyCode.W)?1:0)-(input.Keys.Contains(KeyCode.A)||input.Keys.Contains(KeyCode.S)?1:0);
+                // Ward movement is deliberate, D-only forward travel.
+                float axis=input.Keys.Contains(KeyCode.D)?1:0;
                 float limit=WardWalkDistance;
-                Actor.x=Mathf.Clamp(Actor.x+axis*WardWalkSpeed*dt,0,limit);
+                bool press=axis>0 && !wardDWasDown;wardDWasDown=axis>0;
+                Actor.x=Mathf.Clamp(Actor.x+axis*Mathf.Min(WardWalkSpeed,.35f)*dt+(press?.06f:0),0,limit);
                 WardDistance=Mathf.Max(WardDistance,Actor.x);
                 WardTime=WardProgress*WardRevealSeconds;
                 bool reachedCutoff=WardDistance>=limit;
@@ -216,7 +219,8 @@ namespace MemoryWhitebox
                 if(Mathf.Abs(SwingAngle)>limit){SwingAngle=Mathf.Clamp(SwingAngle,-limit,limit);SwingSpeed=0;}
                 Actor=SwingSeat;
                 if(!jump)return;
-                Velocity=new Vector2(Mathf.Cos(SwingAngle)*SwingSpeed*3+axis*Speed*.6f,Mathf.Sin(SwingAngle)*SwingSpeed*3+Jump);Riding=-1;Grounded=false;remount=.45f;
+                // Jump from the current seat position without inheriting swing momentum.
+                Velocity=new Vector2(axis*Speed,Jump);Riding=-1;Grounded=false;remount=.45f;
             }
             else if(Riding>=1)
             {
@@ -234,7 +238,12 @@ namespace MemoryWhitebox
             if(Phase==1)
             {
                 if(Painted[2] && !HighCheckpoint && Mathf.Abs(next.x-CrateX)<.62f && next.y<.5f)
-                {CrateX=Mathf.Clamp(CrateX+axis*Speed*dt,1.3f,plateX+.2f);next.x=CrateX-Mathf.Sign(axis==0?1:axis)*.62f;}
+                {
+                    // Resolve on the side occupied before the step, never the input side.
+                    float side=before.x<CrateX?-1:1;
+                    if(Grounded && axis*side<0)CrateX=Mathf.Clamp(CrateX+axis*Speed*dt,1.3f,plateX+.2f);
+                    next.x=CrateX+side*.62f;Velocity.x=0;
+                }
                 if(!PlatePressed && before.x<plateX+2.2f && next.x>=plateX+1.9f && next.y<2.5f)next.x=plateX+1.9f;
             }
             Grounded=false;
@@ -245,17 +254,22 @@ namespace MemoryWhitebox
             if(Phase==0)
             {
                 if(Grounded && Actor.x>=6 && Actor.x<=9)MiddleCheckpoint=true;
-                if(Painted[0] && remount<=0 && !MiddleCheckpoint && Vector2.Distance(Actor,SwingSeat)<.8f){Riding=0;Actor=SwingSeat;Velocity=Vector2.zero;}
+                if(Painted[0] && remount<=0 && !MiddleCheckpoint && CanBoard(SwingSeat,.8f)){Riding=0;Actor=SwingSeat;Velocity=Vector2.zero;}
                 if(Actor.x>=15.3f && Grounded && Painted[0] && Painted[1]){Phase=1;MiddleCheckpoint=false;Respawn();SetBook(false);}
             }
             else
             {
                 if(Grounded && Actor.x>=10.3f && Actor.y>=3.1f)HighCheckpoint=true;
-                if(Painted[3] && remount<=0 && !HighCheckpoint)for(int i=0;i<6;i++)if(Vector2.Distance(Actor,FlowerSeat(i))<.52f){Riding=i+1;Actor=FlowerSeat(i);Velocity=Vector2.zero;break;}
+                if(Painted[3] && remount<=0 && !HighCheckpoint)for(int i=0;i<6;i++)if(CanBoard(FlowerSeat(i),.52f)){Riding=i+1;Actor=FlowerSeat(i);Velocity=Vector2.zero;break;}
                 if(Actor.x>=doorX+.8f && Grounded && KeyInserted){Phase=2;WhiteTime=0;Riding=-1;Velocity=Vector2.zero;}
                 // Wait beside the missing piece, not directly in front of its silhouette.
                 else if(!KeyInserted && Actor.x>doorX-.5f)Actor.x=doorX-.5f;
             }
+        }
+        bool CanBoard(Vector2 seat,float radius)
+        {
+            // Ground approaches remain usable; airborne boarding is a landing from above.
+            return Velocity.y<=0 && (Grounded || Actor.y>=seat.y-.1f) && Vector2.Distance(Actor,seat)<radius;
         }
         float Floor(float x)
         {

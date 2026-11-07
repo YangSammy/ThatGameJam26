@@ -11,3 +11,4 @@ All hit suggestions and separate physics proxy disabled.
 Textures: BaseColor sRGB; normals NormalMap; MetallicSmoothness linear R=metallic,A=1-roughness.
 Editable Blender, source PBR layers, actual Unity previews, drive table and checks:
 output/B03_FilmCartridge_v1/ at project root. Preserve Bfont-License.txt.
+Gameplay-sampled clips referenced by PhotographyVisualAssets must stay Legacy before building; player builds strip non-Legacy float curves, so converting a runtime copy is insufficient.

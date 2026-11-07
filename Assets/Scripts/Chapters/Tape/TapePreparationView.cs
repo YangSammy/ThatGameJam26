@@ -15,13 +15,13 @@ namespace MemoryWhitebox
         readonly Vector3 stripScale;
         int held=-1;
         Vector3 start;
-        bool torn;
+        bool torn,startHoleA,startHoleB;
         Vector2 previousPointer;
         float size;
         public bool Busy=>held>=0;
         public string Hint=>
             Busy?(torn?"Move to an upper-edge hole and release LMB":"Pull the strip across CUT HERE"):
-            data.Prepared?"E / RMB to return  /  Drag tape into cassette slot":
+            data.Prepared?"E to return  /  Drag tape into cassette slot":
             "Pull TAPE TAB across CUT HERE / Rotate tape to see both upper-edge holes";
 
         void PlaceTool(Camera camera)
@@ -69,7 +69,7 @@ namespace MemoryWhitebox
                 GUI.color=tint;
                 GUI.Label(new Rect(x-140,y-43,280,24),label,style);
             }
-            if(hiddenHoles>0)GUI.Label(new Rect(24,80,Screen.width-48,24),"Tilt tape with LMB + RMB to see the upper edge",style);
+            if(hiddenHoles>0)GUI.Label(new Rect(24,80,Screen.width-48,24),"Drag with LMB or RMB to see the upper edge",style);
         }
         public TapePreparationView(SafeInspectionSubject subject,TapeInspectionState.Candidate candidate)
         {
@@ -86,12 +86,13 @@ namespace MemoryWhitebox
         public bool Handle(EventType type,int button,Ray ray,Camera camera)
         {
             PlaceTool(camera);
-            if(button!=0 && !Busy)return false;
+            if(button!=0)return Busy;
             int hit=-1;float nearest=float.MaxValue;
             for(int i=0;i<3;i++){float hitDistance;if(Visible(i,ray,out hitDistance) && hitDistance<nearest){nearest=hitDistance;hit=i;}}
             if(type==EventType.MouseDown && button==0 && hit>=0)
             {
                 if(hit<2 && !(hit==0?data.HoleA:data.HoleB))return false;
+                startHoleA=data.HoleA;startHoleB=data.HoleB;
                 held=hit;torn=hit<2;
                 if(hit==0)data.HoleA=false;if(hit==1)data.HoleB=false;
                 start=pieces[hit].transform.position;previousPointer=camera.WorldToScreenPoint(start);pieces[3].SetActive(true);pieces[3].transform.position=start;Sync();return true;
@@ -120,7 +121,7 @@ namespace MemoryWhitebox
             }
             if(type==EventType.MouseUp && button==0)
             {
-                if(torn && hit<2 && hit>=0){if(hit==0)data.HoleA=true;else data.HoleB=true;WBMain.Tone(330,.06f);}
+                if(torn && hit<2 && hit>=0 && !(hit==0?data.HoleA:data.HoleB)){if(hit==0)data.HoleA=true;else data.HoleB=true;held=-1;WBMain.Tone(330,.06f);}
                 Cancel();WBMain.Instance?.SaveStableProgress();
             }
             return true;
@@ -128,6 +129,7 @@ namespace MemoryWhitebox
         public void Sync(){bindings.ShowState(data);}
         public void Cancel()
         {
+            if(Busy){data.HoleA=startHoleA;data.HoleB=startHoleB;}
             held=-1;torn=false;previousPointer=Vector2.zero;pieces[3].SetActive(false);
             if(bindings.ribbon!=null)bindings.ribbon.gameObject.SetActive(false);
             pieces[3].transform.localPosition=stripPosition;pieces[3].transform.localRotation=stripRotation;pieces[3].transform.localScale=stripScale;Sync();

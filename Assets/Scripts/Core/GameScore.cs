@@ -82,7 +82,7 @@ namespace MemoryWhitebox
         {
             if(wardNarrativeOwner!=null && (wardNarrativeOwner.Phase!=3 || house==null || !house.InStation || house.Current!=wardNarrativeOwner))
             {wardNarrativeOwner=null;StopWardVoices();}
-            PauseVoices(!focused || (park!=null && park.Paused) || (house!=null && (house.ShowHelp || house.Muted)));
+            PauseVoices(!focused || (!InMainMenu && ((park!=null && park.Paused) || (house!=null && (house.ShowHelp || house.Muted)))));
             if(paused)
             {
                 // A cut during pause must not resume an obsolete ward tail later.
@@ -94,6 +94,13 @@ namespace MemoryWhitebox
             gainScale=1;
             var next=Select(out loop);
             var previous=beds[active].clip;
+            // Day five, ending and menu share the same looping MUS01.
+            // A scene change can keep the same clip, so update its mode separately.
+            if(previous==next && next!=null)
+            {
+                beds[active].loop=loop;
+                if(InMainMenu && !beds[active].isPlaying && AudioSettings.dspTime>=scheduledStart)beds[active].Play();
+            }
             bool cut=previous==score.ward || next==null;
             if(previous!=next)
             {
@@ -114,27 +121,26 @@ namespace MemoryWhitebox
             }
             if(park==null && response.isPlaying)response.Stop();
         }
+        bool InMainMenu=>SceneManager.GetActiveScene().path=="Assets/Scenes/MainMenuScene.unity";
         bool IsRoom(AudioClip clip)=>System.Array.IndexOf(score.roomSeasons,clip)>=0 || clip==score.springWaiting;
         AudioClip Select(out bool loop)
         {
             loop=true;
+            if(InMainMenu)return score.theme;
+            // The ending-to-menu load can temporarily have no active house owner.
+            // Keep its already-playing theme through that gap; do not stop/reschedule it.
+            if(BrushSceneTransition.IsBusy && beds[active].clip==score.theme)return score.theme;
             if(park!=null)return score.parkLoop;
             if(house==null || !house.HouseReady)return null;
             if(house.StoryFinished)
             {
-                // Only score a live crossing. A cold load of an already-finished save stays quiet.
-                if(!finishedObserved)return null;
-                loop=false;
-                if(!finale && beds[active].clip==score.springDoor && (beds[active].isPlaying || AudioSettings.dspTime<scheduledStart))return score.springDoor;
                 finale=true;return score.theme;
             }
             finishedObserved=true;finale=false;
             if(house.CurrentDay==StoryDay.SpringDeparture)
             {
-                if(house.DepartureRoom==null)return null;
-                if(!house.DepartureDoorOpen){waitingAtDoor=true;return score.springWaiting;}
-                loop=false;
-                return waitingAtDoor?score.springDoor:null;
+                // Same clip and loop through the doorway, white hold and credits.
+                return score.theme;
             }
             waitingAtDoor=false;
             var deck=house.radioDeck;

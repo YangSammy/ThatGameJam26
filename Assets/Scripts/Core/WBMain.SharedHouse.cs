@@ -87,7 +87,8 @@ namespace MemoryWhitebox
             ParkFilmRoute.RestoreHouseView(Room.Camera);
             story.ClearReturn();
             Room.EnableLook(true);houseReady=true;SuspendHouseInput();
-            if(ParkFilmRoute.EnterDarkroomOnLoad){ParkFilmRoute.EnterDarkroomOnLoad=false;if(Curtain!=null && !Curtain.IsOpen){Curtain.Toggle();Curtain.Advance(1);}}
+            enterReturnedDarkroom=ParkFilmRoute.EnterDarkroomOnLoad;
+            if(enterReturnedDarkroom){if(Curtain!=null && !Curtain.IsOpen){Curtain.Toggle();Curtain.Advance(1);}}
             PrepareContinuousDarkroom();
             startupTrace.Mark("restore-and-presentation");startupTrace.End();
             StartSeasonBedroom(returnedView);
@@ -107,7 +108,7 @@ namespace MemoryWhitebox
         public bool TryEnterHouseStation(int index)
         {
             if((index==0 && !tapeDeskView) || DirectTapeHandling)return false;
-            if(deskStudy && index==5 && !InStation && transition<=0){var curtainEntry=StudyEntry.Pick(Room.Camera);if(curtainEntry==null || curtainEntry.chapter!=5)return false;Curtain.Toggle();return true;}
+            if(deskStudy && index==5 && !InStation && transition<=0){var curtainEntry=StudyEntry.Pick(Room.Camera);if(curtainEntry==null || curtainEntry.chapter!=5)return false;if(DarkroomWorld!=null && DarkroomWorld.PhotographyCompleteForDarkroom)Curtain.Toggle();return true;}
             if(!houseReady || loadingSpringRoom || InStation || transition>0 || index<0 || index>=5)return false;
             if(!CanEnterDay(index))
             {
@@ -133,7 +134,7 @@ namespace MemoryWhitebox
         }
         public bool TryInspectStudyEntry()
         {
-            if(!houseReady || !deskStudy || InStation || transition>0 || safeInspection==null || safeInspection.BlocksInput)return false;
+            if(!SafeInspection.EnabledForGameplay || !houseReady || !deskStudy || InStation || transition>0 || safeInspection==null || safeInspection.BlocksInput)return false;
             var ray=Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f));
             var subject=safeInspection.ForHit(StudyEntry.PickVisible(ray));
             if(subject==null)
@@ -216,7 +217,7 @@ namespace MemoryWhitebox
         public bool TryToggleStudyCurtain(Ray ray)
         {
             RaycastHit hit;if(!deskStudy || Curtain==null || !Physics.Raycast(ray,out hit,2.5f,1<<25))return false;
-            var entry=hit.collider.GetComponent<StudyEntry>();if(entry==null || entry.chapter!=5)return false;Curtain.Toggle();return true;
+            var entry=hit.collider.GetComponent<StudyEntry>();if(entry==null || entry.chapter!=5)return false;if(DarkroomWorld!=null && DarkroomWorld.PhotographyCompleteForDarkroom)Curtain.Toggle();return true;
         }
         void BeginHouseTransition(Vector3 eye,Quaternion rotation,float fov)
         {
@@ -389,29 +390,27 @@ namespace MemoryWhitebox
                 }
                 Done[0]=story.IsComplete(0);return;
             }
-            if(Input.GetKeyDown(KeyCode.H)){SetHelpVisible(!ShowHelp);return;}
+            if(ChapterIndex!=1 && Input.GetKeyDown(KeyCode.H)){SetHelpVisible(!ShowHelp);return;}
             if(Input.GetKeyDown(KeyCode.M))Muted=!Muted;
             if(ShowHelp)return;
             if(CurrentWorld.WantsMouseLook){var look=PlayerInputPolicy.LookDelta;var controls=PlayerControlSettings.Current;lookYaw+=look.x*controls.lookSensitivity;lookPitch=controls.ClampPitch(lookPitch-look.y*controls.lookSensitivity);Room.Camera.transform.rotation=Quaternion.Euler(lookPitch,lookYaw,0);}
             InputState.Keys.Clear();foreach(var key in keys)if(Input.GetKey(key))InputState.Keys.Add(key);
-            bool down=Input.GetMouseButton(0),right=Input.GetMouseButton(1);InputState.Down=down;InputState.Time=Time.unscaledTime;
+            bool down=Input.GetMouseButton(0),right=Input.GetMouseButton(1);InputState.Down=down && !PointerOverReturnButton;InputState.Time=Time.unscaledTime;
             Vector2 pointer=CurrentWorld.WantsMouseLook?new Vector2(Screen.width*.5f,Screen.height*.5f):(Vector2)Input.mousePosition;
             pointerRay=CurrentWorld.PointerRay(pointer);string id=CurrentWorld.Pick(pointerRay);CurrentWorld.HoverId=id;
             var photoWorld=CurrentWorld as PhotoWorld3D;
-            bool photoUI=deskStudy && photoWorld!=null && photoWorld.PointerOverUI;
-            bool winterPress=CurrentWorld is PaintingWorld3D && ((PaintingWorld3D)CurrentWorld).BeginCapturedPointerPress();
+            bool photoUI=PointerOverReturnButton || (deskStudy && photoWorld!=null && photoWorld.PointerOverUI);
             Ray capturedRay;
-            if(photoWorld!=null && photoPointer.TryBegin(out capturedRay))
+            if(photoPointer.TryBegin(out capturedRay))
             {
-                bool curtainClick=deskStudy && !photoWorld.Photo.InViewfinder && !photoWorld.Photo.MeterVisible && TryToggleStudyCurtain(capturedRay);
-                if(!curtainClick)photoWorld.Press(photoWorld.Pick(capturedRay),capturedRay,0);
+                bool curtainClick=photoWorld!=null && deskStudy && !photoWorld.Photo.InViewfinder && !photoWorld.Photo.MeterVisible && TryToggleStudyCurtain(capturedRay);
+                if(!curtainClick)CurrentWorld.Press(CurrentWorld.Pick(capturedRay),capturedRay,0);
             }
-            if(photoWorld==null && down&&!wasDown && !winterPress)CurrentWorld.Press(id,pointerRay,0);
             if(right&&!wasRightDown && !photoUI)CurrentWorld.Press(id,pointerRay,1);
             CurrentWorld.Move(pointerRay);
-            if(photoWorld!=null && photoPointer.TryEnd(down,out capturedRay))
-            {photoWorld.Move(capturedRay);photoWorld.Release(photoWorld.Pick(capturedRay),capturedRay);}
-            else if((photoWorld==null && !down&&(wasDown||winterPress)) || (!down&&!right&&wasRightDown))CurrentWorld.Release(id,pointerRay);
+            if(photoPointer.TryEnd(down,out capturedRay))
+            {CurrentWorld.Move(capturedRay);CurrentWorld.Release(CurrentWorld.Pick(capturedRay),capturedRay);}
+            else if(!down&&!right&&wasRightDown && !CurrentWorld.HasPointerGesture)CurrentWorld.Release(id,pointerRay);
             if(!photoUI && Mathf.Abs(Input.mouseScrollDelta.y)>.01f)CurrentWorld.Scroll(id,Input.mouseScrollDelta.y,pointerRay);
             CurrentWorld.Tick(ChapterIndex==2?Time.unscaledDeltaTime:dt,InputState);if(!InStation)return;if(!CurrentWorld.WantsMouseLook)CurrentWorld.ApplyPose();
             Done[ChapterIndex]=story.IsComplete(ChapterIndex);wasDown=down;wasRightDown=right;
@@ -452,42 +451,47 @@ namespace MemoryWhitebox
             var style=new GUIStyle(GUI.skin.label){font=UIFont,fontSize=18,wordWrap=true};
             if(DirectDarkroomActive)
             {
-                if(ShowHelp)InteractionUI.Label(new Rect(28,60,Screen.width-56,80),"Paused / Esc: resume\nWASD: move / RMB: look / LMB: interact",style);
-                else {DarkroomWorld.DrawProgress(style);if(!DarkroomWorld.ParkGalleryOpen)InteractionUI.Label(new Rect(28,20,Screen.width-56,30),"WASD  Move / RMB  Look / RMB click  Cancel / Esc  Settings",style);}
+                if(!ShowHelp)DarkroomWorld.DrawProgress(style);
                 return;
             }
-            if(InStation && Time.unscaledTime<cameraRouteNoticeUntil)
+            if(InStation && ChapterIndex!=1 && Time.unscaledTime<cameraRouteNoticeUntil)
                 InteractionUI.Label(new Rect(28,60,Screen.width-56,60),cameraRouteNotice,style);
             if(!InStation && transition<=0)
             {
                 if(DirectTapeHandling || (radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode)))return;
                 InteractionUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"·",style);
-                string hint=Room.AimedStation>=0?"LMB  "+InteractionUI.ChapterName(Room.AimedStation)+(safeInspection!=null && Room.AimedStation!=5?"  /  E  Inspect":""):null;
+                string hint=Room.AimedStation>=0?"LMB  "+InteractionUI.ChapterName(Room.AimedStation)+(SafeInspection.EnabledForGameplay && safeInspection!=null && Room.AimedStation!=5?"  /  E  Inspect":""):null;
                 if(radioDeck!=null)hint=radioDeck.GetHint(Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f)))??hint;
-                if(safeInspection!=null && Room.AimedStation<0)
+                if(SafeInspection.EnabledForGameplay && safeInspection!=null && Room.AimedStation<0)
                 {
                     var item=safeInspection.ForHit(StudyEntry.PickVisible(Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f))));
                     if(item!=null)hint="E  Inspect";
                 }
                 if(deskStudy && Room.AimedStation==1)
-                    hint=((PhotoWorld3D)worlds[1]).HouseCameraEntryHint+(safeInspection!=null?"  /  E  Inspect":"");
+                    hint=((PhotoWorld3D)worlds[1]).HouseCameraEntryHint+(SafeInspection.EnabledForGameplay && safeInspection!=null?"  /  E  Inspect":"");
                 if(Room.AimedStation>=0 && Room.AimedStation<5 && !CanEnterDay(Room.AimedStation))
-                    hint=ChapterEntryBlockReason(Room.AimedStation)+(safeInspection!=null?"  /  E  Inspect":"");
+                    hint=ChapterEntryBlockReason(Room.AimedStation)+(SafeInspection.EnabledForGameplay && safeInspection!=null?"  /  E  Inspect":"");
                 if(summerPhotoRoom!=null)hint=summerPhotoRoom.HoverHint(this,Room.Camera.ViewportPointToRay(new Vector3(.5f,.5f)))??hint;
                 if(narrativeBedroom!=null)
                     hint=narrativeBedroom.IsEntry(StudyEntry.Pick(Room.Camera))
-                        ?(narrativeBedroom.chapterEntry.chapter==2?"LMB  Sit and write":"LMB  Enter the drawing")+(narrativeInspection!=null?"  /  E  Inspect":"")
+                        ?(narrativeBedroom.chapterEntry.chapter==2?"LMB  Sit and write":"LMB  Enter the drawing")+(SafeInspection.EnabledForGameplay && narrativeInspection!=null?"  /  E  Inspect":"")
                         :null;
                 if(Time.unscaledTime<cameraRouteNoticeUntil)hint=cameraRouteNotice;
                 if(SpringActive)hint=((EndingChapter)chapters[4]).DoorOpen?"Walk through the doorway":"LMB  Open the entrance door";
-                if(!string.IsNullOrEmpty(hint))InteractionUI.Label(new Rect(28,24,Screen.width-56,48),hint,style);
+                if(CurrentDay!=StoryDay.SummerPhoto && Room.AimedStation!=1 && !string.IsNullOrEmpty(hint))InteractionUI.Label(new Rect(28,24,Screen.width-56,48),hint,style);
             }
             else if(InStation)
             {
+                if(ChapterIndex==1)
+                {
+                    if(deskStudy && transition<=0 && !awaitRelease && !ShowHelp)
+                    {bool enabled=GUI.enabled;GUI.enabled=enabled && InputContext.Ready;((PhotoWorld3D)CurrentWorld).DrawProgress(style);GUI.enabled=enabled;}
+                    return;
+                }
                 if(ChapterIndex==3 && Current is PaintingChapter winter && winter.Phase>=2)return;
                 if(ChapterIndex==0 && radioDeck!=null && (radioDeck.RecordingMode || radioDeck.WorkbenchMode))return;
                 if(ChapterIndex==0 && radioDeck!=null){radioDeck.DrawStation(style);if(ShowHelp){InteractionUI.Label(new Rect(32,140,Mathf.Min(826,Screen.width-64),170),CurrentWorld.Help,style);}}
-                InteractionUI.Label(new Rect(Screen.width-230,12,220,30),"RMB  Back",style);
+
                 if(awaitRelease && transition<=0)InteractionUI.Label(new Rect(20,70,600,40),"Release controls to continue",style);
                 if(ChapterIndex!=0)
                 {
@@ -495,18 +499,16 @@ namespace MemoryWhitebox
                     if(ShowHelp){InteractionUI.Label(new Rect(32,72,Mathf.Min(870,Screen.width-64),210),CurrentWorld.Help,style);}
                     else if(ChapterIndex>=2)InteractionUI.Label(new Rect(20,48,Screen.width-56,52),OperationHint(),style);
                     if(CurrentWorld.WantsMouseLook)InteractionUI.Label(new Rect(Screen.width*.5f-8,Screen.height*.5f-14,24,28),"·",style);
-                    if(deskStudy && ChapterIndex==1 && transition<=0 && !awaitRelease && !ShowHelp)
-                    {bool enabled=GUI.enabled;GUI.enabled=enabled && InputContext.Ready;((PhotoWorld3D)CurrentWorld).DrawProgress(style);GUI.enabled=enabled;}
                 }
             }
         }
         string OperationHint()
         {
-            if(Current.Completed)return "Complete  /  RMB  Back";
+            if(Current.Completed)return "Complete";
             var writing=Current as WritingChapter;if(writing!=null)return writing.TaskHint;
             var album=CurrentWorld as PaintingWorld3D;if(album!=null)return album.Guidance;
             if(Current is EndingChapter)return "LMB  Open door / Walk through";
-            return "LMB  Interact  /  RMB  Back";
+            return "LMB  Interact";
         }
     }
 }

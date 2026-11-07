@@ -23,20 +23,36 @@ namespace MemoryWhitebox
         float pickupExpires=-1;
         public bool PickupPrepared=>bufferedItem>=0 && clock<=pickupExpires && InPickupRange(bufferedItem);
         public float FarewellProgress=>handover;
+        public float FarewellFill=>Mathf.Clamp01(handover/Mathf.Max(.001f,NarrativeDefinition.Resolve(this)?.farewellHold??1.2f));
+        public int PromptItem
+        {
+            get
+            {
+                if(Phase!="tutorial" && Phase!="collect")return -1;
+                for(int i=0;i<ItemPositions.Length;i++)if(InPickupRange(i))return i;
+                return -1;
+            }
+        }
+        public const float WaveSeconds=2.3f, TurnSeconds=.65f, WalkOutSeconds=2f;
+        public const float FarewellDuration=WaveSeconds+TurnSeconds+WalkOutSeconds;
+        public float FarewellElapsed=>farewellTime;
+        public float DepartureTurn=>Mathf.Clamp01((farewellTime-WaveSeconds)/TurnSeconds);
+        public float DepartureWalk=>farewellTime>=FarewellDuration?1:Mathf.Clamp01((farewellTime-WaveSeconds-TurnSeconds)/WalkOutSeconds);
         public readonly Vector2[] ItemPositions={new Vector2(200,320),new Vector2(330,240),new Vector2(485,505),new Vector2(485,360)};
         public static readonly string[] ItemIds={"pendant","flower","luggage","letter"};
         public bool HasItem(int i)=>(Collected&(1<<i))!=0;
         readonly Rect paper=new Rect(685,165,535,445);
         readonly List<float> rows=new List<float>{0};
-        float clock,handover,farewellTime,farewellInkGap;
+        float clock,handover,farewellTime;
         bool pressed,havePointer,dragging;
         Vector2 pointer;
-        public override string Help=>"LMB drag  Write / WASD  Move / Hold E while writing  Pick up\nCrumple the stalled draft into the bin. The formal draft clock keeps running when you stop writing.";
+        public override string Help=>"LMB drag  Write / WASD  Move / E while writing  Pick up\nCrumple the stalled draft into the bin. The formal draft clock keeps running when you stop writing.";
         public IReadOnlyList<float> InkRows=>rows;
         public bool InPickupRange(int i)=>!HasItem(i) && Vector2.Distance(Player,ItemPositions[i])<46;
         public bool NearPickup=>InPickupRange(0)||InPickupRange(1)||InPickupRange(2)||InPickupRange(3);
-        string TutorialHint=>NearPickup?"Keep writing + hold E":WritingProgress<=0?"Drag right across the letter":"WASD  Approach an object";
-        public string TaskHint=>Phase=="crumple"?"Drag paper to the bin":Phase=="tutorial"?TutorialHint:Phase=="arrival"?"Keep writing + hold E to say goodbye":Phase=="farewell"?"": "Write + hold E to collect / Return to the entrance";
+        string TutorialHint=>NearPickup?"Keep writing on the left paper":WritingProgress<=0?"Drag right across the letter":"WASD  Approach an object";
+        public string TaskHint=>Phase=="crumple"?"Drag paper to the bin":Phase=="tutorial"?TutorialHint:Phase=="arrival"?FarewellHint:Phase=="farewell"?"":Collected==15?"Return to the entrance":"Write + E to collect";
+        string FarewellHint=>AwaitingReturn?"Return to the left edge of the paper":"Keep writing on the left paper";
         public override string DebugState=>CaptureCheckpoint();
         [Serializable] sealed class Checkpoint
         {
@@ -61,9 +77,10 @@ namespace MemoryWhitebox
             if(!CanStand(Player))Player=new Vector2(330,450); // Older room checkpoints may now lie inside furniture.
             rows.Clear();if(n.rows!=null && n.rows.Length>0 && n.rows.Length<=9)foreach(var amount in n.rows){if(!Finite(amount))throw new System.IO.InvalidDataException("Invalid ink.");rows.Add(Mathf.Clamp(amount,0,425));}else rows.Add(0);
             Row=Mathf.Clamp(n.row,0,rows.Count-1);WritingProgress=Mathf.Max(0,n.writingProgress);AwaitingReturn=n.awaitingReturn;
+            if(Phase=="arrival" && AwaitingReturn)NextRow();
         }
         static bool Finite(float v)=>!float.IsNaN(v)&&!float.IsInfinity(v);
-        public void CancelInput(){pressed=havePointer=dragging=false;inkPending=inkThisTick=eWasHeld=false;bufferedItem=-1;pickupExpires=-1;handover=0;farewellInkGap=0;}
+        public void CancelInput(){pressed=havePointer=dragging=false;inkPending=inkThisTick=eWasHeld=false;bufferedItem=-1;pickupExpires=-1;handover=0;}
         public void EditorBeginFarewell()
         {
             if(Completed || Phase=="farewell")return;
@@ -123,14 +140,14 @@ namespace MemoryWhitebox
             if(bufferedItem>=0 && (clock>pickupExpires || !InPickupRange(bufferedItem)))bufferedItem=-1;
             if(Phase=="complete"){Finish();return;}
             if(Phase=="crumple")return;
-            if(Phase=="farewell"){farewellTime+=dt;if(farewellTime>=2){Phase="complete";Finish();}return;}
+            if(Phase=="farewell"){farewellTime=Mathf.Min(FarewellDuration,farewellTime+dt);if(farewellTime>=FarewellDuration){Phase="complete";Finish();}return;}
             if(Phase=="arrival")
             {
-                // Input events need not occur on every rendered frame. Brief gaps pause
-                // progress; only fresh ink adds time, so a stopped pen cannot finish.
-                if(!eHeld){handover=0;farewellInkGap=0;}
-                else if(InkFresh){handover+=dt;farewellInkGap=0;}
-                else {farewellInkGap+=dt;if(farewellInkGap>.25f)handover=0;}
+                // Holding E preserves progress during pen lifts and row returns.
+                // Only fresh ink advances the hold; releasing E resets it.
+                if(!eHeld){handover=0;}
+                else if(InkFresh){handover+=dt;}
+
                 if(handover>=(NarrativeDefinition.Resolve(this)?.farewellHold??1.2f)){Phase="farewell";farewellTime=0;}
                 return;
             }
@@ -150,7 +167,8 @@ namespace MemoryWhitebox
             // Arrival wins an exact deadline tie; movement is limited to the remaining time.
             if(Collected==15 && Player.y>=555 && Player.x>=260 && Player.x<=410){Remaining=Mathf.Max(0,Remaining-step);Phase="arrival";
                 // Preserve pressed/pointer so an ongoing drag continues into farewell.
-                bufferedItem=-1;pickupExpires=-1;handover=0;farewellInkGap=0;
+                bufferedItem=-1;pickupExpires=-1;handover=0;
+                if(AwaitingReturn)NextRow();
                 inkPending=inkThisTick=false;return;}
             Remaining=Mathf.Max(0,Remaining-dt);
             if(Remaining<=0){Phase="crumple";CancelInput();}

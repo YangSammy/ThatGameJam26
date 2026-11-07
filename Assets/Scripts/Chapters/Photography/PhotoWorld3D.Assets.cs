@@ -104,8 +104,9 @@ namespace MemoryWhitebox
             Nodes["camera-body"].GetComponent<Collider>().enabled=false;
             Nodes["chamber"].GetComponent<Collider>().enabled=Photo.Phase==PhotoChapter.FilmPhase.Empty;
             Nodes["spool"].GetComponent<Collider>().enabled=Photo.Phase==PhotoChapter.FilmPhase.LoadedOpen && !Photo.FilmThreaded;
-            Nodes["back"].GetComponent<Collider>().enabled=ParkMode?!RewoundBackOpen && (Photo.Phase==PhotoChapter.FilmPhase.Exposed || Photo.Phase==PhotoChapter.FilmPhase.Rewound):
-                open || Photo.Phase==PhotoChapter.FilmPhase.Exposed || Photo.Phase==PhotoChapter.FilmPhase.Rewound;
+            Nodes["back"].GetComponent<Collider>().enabled=!ParkMode && Photo.Phase==PhotoChapter.FilmPhase.LoadedOpen && Photo.FilmThreaded;
+            Nodes["rewind"].GetComponent<Collider>().enabled=Photo.Phase==PhotoChapter.FilmPhase.Exposed ||
+                (Photo.Phase==PhotoChapter.FilmPhase.Rewound && !RewoundBackOpen);
             if(looseFilm.activeSelf && dragged!="exposed-film" && !OperationArea.RestorePose(looseFilm.transform))
                 looseFilm.transform.SetPositionAndRotation(cameraVisual.insert.position,cameraVisual.insert.rotation);
             if(looseFilm.activeSelf && dragged!="exposed-film")SetColliders(looseFilm,cameraVisual.BackOpen);

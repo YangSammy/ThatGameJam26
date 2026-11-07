@@ -24,7 +24,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 24bab3c78f210194f8495d82f2241ee0, type: 3}
+        m_Texture: {fileID: 2800000, guid: 9f432382cef83054793a8376b6539df9, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _PageTex:
@@ -41,19 +41,27 @@ Material:
     - _Feather: 0.12
     - _FlowAmount: 0.8
     - _ImageAspect: 1.7768332
-    - _MeltScale: 8
-    - _MeltSoftness: 0.06
+    - _MeltEase: 2.8
+    - _MeltScale: 5
+    - _MeltSoftness: 0.008
     - _MeltSpread: 0.58
+    - _SnowRelief: 0.35
+    - _SmokeStrength: 0.88
+    - _SmokeWidth: 0.24
+    - _SmokeScale: 1.7
+    - _SmokeSpeed: 0.144
+    - _SmokeShadow: 0.9
+    - _SmokeGrain: 0.085
     - _NoiseAmount: 0.17
     - _NoiseScale: 4.3
     - _Progress: 0
     - _RevealStyle: 1
-    - _RevealTop: 0.78
+    - _RevealTop: 0.688
     - _SceneBlend: 1
     - _UsePageInk: 1
     - _ViewportAspect: 1.7768332
     m_Colors:
-    - _FaceEllipse: {r: 0.496, g: 0.78, b: 0.065, a: 0.092}
+    - _FaceEllipse: {r: 0.494, g: 0.703, b: 0.037, a: 0.022}
     - _PageRect: {r: 0.1, g: 0.055, b: 0.8, a: 0.15}
-    - _WhiteColor: {r: 0.973, g: 0.957, b: 0.925, a: 1}
+    - _WhiteColor: {r: 0.955, g: 0.969, b: 0.985, a: 1}
   m_BuildTextureStacks: []

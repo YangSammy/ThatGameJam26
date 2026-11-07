@@ -79,7 +79,7 @@ namespace MemoryWhitebox
                 }
             }
             skeletalRig.Evaluate(left,right,dt,immediate);
-            if(park!=null){ApplyHandholdFingers();SeparateHandholdSkin();}
+            if(park!=null)ApplyHandholdFingers();
         }
         static FirstPersonArmRig.Pose TargetPose(Transform[] targets,int side,float grip)
         {

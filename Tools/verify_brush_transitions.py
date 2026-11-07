@@ -13,16 +13,16 @@ def check(condition, description):
 
 
 def main():
-    settings = ASSETS / "Resources/BrushSceneTransition.asset"
-    check(settings.is_file(), "Brush settings included through Resources")
-    content = settings.read_text(encoding="utf-8-sig")
-    for field, filename in (("transitionIn", "BrushIN"), ("transitionOut", "BrushOUT")):
-        prefab = ASSETS / f"EasyTransitions/Transitions/Brush/{filename}.prefab"
-        guid = re.search(r"^guid: (\w+)", Path(str(prefab) + ".meta").read_text(), re.M)[1]
-        check(re.search(rf"{field}: .*guid: {guid}\b", content), f"{field} references imported {filename}")
-    for clip in ("BrushIn", "BrushOut"):
-        anim = (ASSETS / f"EasyTransitions/Transitions/Brush/{clip}.anim").read_text()
-        check("m_LoopTime: 0" in anim, f"{clip} is non-looping and can hold its last frame")
+    for style in ("Brush", "Noise"):
+        settings = ASSETS / f"Resources/{style}SceneTransition.asset"
+        check(settings.is_file(), f"{style} settings included through Resources")
+        content = settings.read_text(encoding="utf-8-sig")
+        for field, suffix in (("transitionIn", "IN"), ("transitionOut", "OUT")):
+            prefab = ASSETS / f"EasyTransitions/Transitions/{style}/{style}{suffix}.prefab"
+            guid = re.search(r"^guid: (\w+)", Path(str(prefab) + ".meta").read_text(), re.M)[1]
+            check(re.search(rf"{field}: .*guid: {guid}\b", content), f"{field} references imported {style}{suffix}")
+        for anim_path in (ASSETS / f"EasyTransitions/Transitions/{style}").glob("*.anim"):
+            check("m_LoopTime: 0" in anim_path.read_text(), f"{anim_path.stem} is non-looping and can hold its last frame")
 
     allowed = {"BrushSceneTransition.cs", "WBMain.SpringBedroom.cs", "WBMain.BedroomPreload.cs"}
     for path in (ASSETS / "Scripts").rglob("*.cs"):

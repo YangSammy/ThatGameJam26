@@ -77,6 +77,8 @@ MonoBehaviour:
   elbowHints:
   - {x: -0.5, y: -0.35, z: 0.05}
   - {x: 0.5, y: -0.35, z: 0.05}
+  visibilitySkin: {fileID: 5354755387046128102}
+  bothArmsMesh: {fileID: 4300000, guid: a8961c0bcb4ab8d48a072c2c2173cdf9, type: 2}
 --- !u!1001 &5667547071744553987
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -169,6 +171,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: -145.55338
       objectReference: {fileID: 0}
+    - target: {fileID: -8869622106520953371, guid: 0e7c2f52386c7f946805f950258c1d31, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 4300000, guid: a8961c0bcb4ab8d48a072c2c2173cdf9, type: 2}
     - target: {fileID: -8869622106520953371, guid: 0e7c2f52386c7f946805f950258c1d31, type: 3}
       propertyPath: m_CastShadows
       value: 0
@@ -2402,6 +2408,11 @@ Transform:
 --- !u!4 &5346121381609150116 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8892901606739369305, guid: 0e7c2f52386c7f946805f950258c1d31, type: 3}
+  m_PrefabInstance: {fileID: 5667547071744553987}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &5354755387046128102 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -8869622106520953371, guid: 0e7c2f52386c7f946805f950258c1d31, type: 3}
   m_PrefabInstance: {fileID: 5667547071744553987}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &5813090690224927510 stripped

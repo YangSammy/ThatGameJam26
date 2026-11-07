@@ -78,7 +78,7 @@ namespace MemoryWhitebox
         bool StepInstrumentControl(int direction)
         {
             if(photoMode==PhotographyMode.Meter)
-            {if(MeterLockedToFilm)return false;int next=Mathf.Clamp(meterIsoIndex+direction,0,filmIsos.Length-1);bool changed=next!=meterIsoIndex;meterIsoIndex=next;return changed;}
+            {int next=Mathf.Clamp(meterIsoIndex+direction,0,filmIsos.Length-1);bool changed=next!=meterIsoIndex;meterIsoIndex=next;return changed;}
             if(photoMode==PhotographyMode.Aperture)
             {int next=Mathf.Clamp(apertureIndex+direction,0,apertures.Length-1);bool changed=next!=apertureIndex;apertureIndex=next;return changed;}
             if(photoMode==PhotographyMode.Shutter)

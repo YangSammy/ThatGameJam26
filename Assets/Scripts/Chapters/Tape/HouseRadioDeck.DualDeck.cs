@@ -91,7 +91,24 @@ namespace MemoryWhitebox
             if(Selected<0)return dualDeck.Door(1,!dualDeck.IsOpen(1));
             transferB=true;
             int removed=Selected;
-            return dualDeck.Transfer(1,false,()=>{transferB=false;ResetDeck();ReturnTapeToDesk(tapes[removed].root,3+removed);dualDeck.Snap(1,false,true);house.SaveStableProgress();});
+            return dualDeck.Transfer(1,false,()=>
+            {
+                transferB=false;ResetDeck();
+                var tape=tapes[removed];
+                tape.root.gameObject.SetActive(true);VisibleCassette(tape.root,true);
+                Chapter.WorkbenchTapeIndex=removed;
+                // Keep the recording view: its tick does not advance preparation camera motion.
+                if(!PlaceTapeOnPreparationMat(false,false))
+                {
+                    Chapter.WorkbenchTapeIndex=-1;
+                    ReturnTapeToDesk(tape.root,3+removed);
+                    // A blocked/missing legacy landing falls back to the box. Make
+                    // that fallback accessible instead of hiding the recorded tape.
+                    if(workbenchVisuals!=null && workbenchVisuals.InStorage(tape.root) && !workbenchVisuals.LidOpen)
+                        ToggleStorageLidWithSound();
+                }
+                dualDeck.Snap(1,false,true);house.SaveStableProgress();
+            });
         }
         public bool ToggleDualDoor(int deck)
         {

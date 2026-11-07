@@ -41,7 +41,7 @@ namespace MemoryWhitebox.Editor
             Check(world.DebugPrepareDarkroom(out var message),"Debug roll created without entering park");
             if(host.Curtain!=null&&!host.Curtain.IsOpen){host.Curtain.Toggle();host.Curtain.Advance(1);}
             host.PrepareContinuousDarkroom();world.SetDirectDarkroom(true);host.SyncInputContext();host.InputContext.ContinueGesture();
-            Press("rewind");world.Scroll("rewind",8,At("rewind"));world.Release("rewind",At("rewind"));Click("back");
+            Press("rewind");world.Scroll("rewind",8,At("rewind"));world.Release("rewind",At("rewind"));var openingRay=At("rewind");world.Press("rewind",openingRay,0);world.Move(new Ray(openingRay.origin+world.View.transform.up*.04f,openingRay.direction));world.Release("rewind",openingRay);
             Check(world.Photo.Phase==PhotoChapter.FilmPhase.Rewound,"Rewind exposed roll");
             CarryFilmThroughSummerDoor();Check(world.Photo.Phase==PhotoChapter.FilmPhase.DarkBag,"Exposed roll enters dark bag");
             Press("bag");world.Scroll("bag",10,At("bag"));world.Release("bag",At("bag"));Click("tank-lid");

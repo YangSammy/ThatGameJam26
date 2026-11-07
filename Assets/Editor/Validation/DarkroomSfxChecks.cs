@@ -23,6 +23,17 @@ namespace MemoryWhitebox.Editor
                 world.Press("rewind",rewind,0);world.Scroll("rewind",8,rewind);
                 Check(photo.Phase==PhotoChapter.FilmPhase.Rewound,"rewind completes through real scroll interaction");
                 count=cues.Count;world.Press("back",world.QARayTo("back"),0);
+                Check(!world.RewoundBackOpen && cues.Count==count,"clicking back no longer opens it");
+                rewind=world.QARayTo("rewind");world.Press("rewind",rewind,0);
+                world.Scroll("rewind",8,rewind);
+                Check(!world.RewoundBackOpen,"scroll after rewind does not open the back");
+                world.Move(new Ray(rewind.origin+world.View.transform.up*.01f,rewind.direction));
+                Check(!world.RewoundBackOpen,"short pull keeps back shut");
+                world.Release("rewind",rewind);
+                Check(!world.HasActiveGesture && !world.RewoundBackOpen,"release cancels unfinished opening");
+                world.Press("rewind",rewind,0);
+                world.Move(new Ray(rewind.origin+world.View.transform.up*.04f,rewind.direction));
+                Check(world.RewoundBackOpen && !world.HasActiveGesture,"upward pull opens after rewinding");
                 Check(cues.Count==count+1 && cues[cues.Count-1]==23,"real camera back opening requests cue");
                 world.Press("back",world.QARayTo("back"),0);Check(cues.Count==count+1,"already open back is silent");
                 photo.Phase=PhotoChapter.FilmPhase.DarkBag;photo.BagTurns=0;

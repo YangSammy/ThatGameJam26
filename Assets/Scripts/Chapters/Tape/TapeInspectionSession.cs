@@ -14,10 +14,10 @@ namespace MemoryWhitebox
         public bool Preparing=>preparation.Busy;
         public bool Handle(EventType type,int button,Ray ray,Camera camera)=>preparation.Handle(type,button,ray,camera);
         public void Cancel()=>preparation.Cancel();
-        public string ActionHint=>preparation.Hint;
-        public void DrawPreparationHints(Camera camera,GUIStyle style)=>preparation.DrawHints(camera,style);
+        public string ActionHint=>"";
+        public void DrawPreparationHints(Camera camera,GUIStyle style){}
         TapeInspectionState.Candidate Data=>deck.Chapter.Tape.Candidates[index];
-        public string Status=>Data.Prepared?"Ready to insert":"Seal both holes on the preparation mat.";
+        public string Status=>"";
         public static TapeInspectionSession Create(SafeInspectionSubject subject)
         {
             var house=WBMain.Instance;var deck=house!=null?house.radioDeck:null;

@@ -29,6 +29,10 @@ namespace MemoryWhitebox
         public string HouseCameraEntryHint=>parkFilmUnavailable?"Film unavailable":ParkMode?
             (ParkPrintsReady?"LMB  View prints":"LMB  Continue developing"):"LMB  Return to the park memory";
         bool ParkMode=>parkFilm!=null;
+        // A returned, durably saved roll unlocks the darkroom; chapter completion
+        // itself includes developing and would create a circular prerequisite.
+        public bool PhotographyCompleteForDarkroom=>parkFilm!=null && !parkFilmUnavailable &&
+            parkFilm.state!=ParkFilmState.Loaded && parkFilm.frames!=null && parkFilm.frames.Count>=parkFilm.Capacity;
         bool ParkPrintsReady=>ParkMode && parkFilm.state==ParkFilmState.Developed;
         public string DevelopedRollId=>ParkPrintsReady?parkFilm.id:null;
         public void OpenDevelopedFrame(int number)
@@ -99,7 +103,6 @@ namespace MemoryWhitebox
         }
         void DrawParkLoading(GUIStyle style)
         {
-            InteractionUI.Label(new Rect(28,Screen.height-100,Screen.width-56,42),LoadingHelp,style);
             if(InteractionUI.Button(ProgressActionRect,"Enter memory"))
             {CancelInteraction();if(SaveProgress())Host.TryStartParkPhotography();}
         }
@@ -229,14 +232,6 @@ namespace MemoryWhitebox
             if(!parkGallery)
             {
 
-                string hint=ProgressHint;
-                if(ParkPrintsReady && saveNotice=="")hint="Roll: " + parkFilm.Capacity + (DirectDarkroom?" frames developed / Click the print to view.":" frames developed  /  RMB  Back");
-                string text="Film  " + parkFilm.Capacity + " / " + parkFilm.Capacity + " frames\n"+hint;
-                float width=Mathf.Max(1,Screen.width-56);
-                float height=InteractionUI.Text().CalcHeight(new GUIContent(text),width);
-                // Grow upwards when a failure/restoration notice adds wrapped lines.
-                float bottom=ParkPrintsReady?Screen.height-66:Screen.height-22;
-                InteractionUI.Label(new Rect(28,Mathf.Max(12,bottom-height),width,height),text,style);
                 if(ParkPrintsReady && InteractionUI.Button(ProgressActionRect,"View prints"))OpenParkGallery();
                 return;
             }
@@ -254,13 +249,11 @@ namespace MemoryWhitebox
                 }
                 else GUI.DrawTexture(bounds,exposedTexture,ScaleMode.ScaleToFit);
             }
-            else InteractionUI.Label(bounds,frameNotice,style);
             InteractionUI.Label(new Rect(36,61,Screen.width-72,30),"Print  "+parkFrame+" / " + parkFilm.Capacity + " frames",style);
             bool enabled=GUI.enabled;
             GUI.enabled=parkFrame>1;if(InteractionUI.Button(new Rect(36,Screen.height-70,140,36),"< Previous"))TurnParkFrame(-1);
             GUI.enabled=parkFrame<parkFilm.Capacity;if(InteractionUI.Button(new Rect(188,Screen.height-70,140,36),"Next >"))TurnParkFrame(1);
             GUI.enabled=enabled;
-            if(InteractionUI.Button(new Rect(Screen.width-204,Screen.height-70,168,36),"Close  /  Esc"))Host.InputContext.RequestExit(InputContextId.Gallery,null,()=>{CloseParkGallery();Host.SuspendHouseInput();});
         }
     }
 }

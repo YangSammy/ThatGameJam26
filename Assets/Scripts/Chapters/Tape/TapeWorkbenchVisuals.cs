@@ -51,6 +51,7 @@ namespace MemoryWhitebox
         {UsedLength+=PullLength;PullLength=0;dispenser.Sample("A05_Pull_Sample",0);dispenser.Sample("A05_CutState",1);UpdateRoll();strip.gameObject.SetActive(true);recoil=1;}
         public void CancelPull()
         {PullLength=0;dispenser.Sample("A05_Pull_Sample",0);dispenser.Sample("A05_CutState",0);UpdateRoll();strip.gameObject.SetActive(true);}
+        public void RestorePull(float usedLength){UsedLength=Mathf.Max(0,usedLength);recoil=0;CancelPull();}
         void UpdateRoll(){roll.localRotation=Quaternion.AngleAxis(-(UsedLength+PullLength)/.026f*Mathf.Rad2Deg,Vector3.right);}
         public bool InStorage(Transform tape)
         {

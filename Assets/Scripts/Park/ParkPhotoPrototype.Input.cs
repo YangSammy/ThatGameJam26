@@ -34,12 +34,13 @@ namespace MemoryWhitebox
         }
         bool ExitParkContext()
         {
-            return InputContext.ExitPressed(InputContext.Current,Paused?null:(System.Func<bool>)CancelParkGesture,LeaveParkContext);
+            // A completed roll must keep its return-to-darkroom action available.
+            if(Paused)return false;
+            return InputContext.ExitPressed(InputContext.Current,()=>dragPart!=null,LeaveParkContext);
         }
         void LeaveParkContext()
         {
-            if(Paused)Resume();
-            else if(CameraDetailMode)SetPhotographyMode(PhotographyMode.Viewfinder);
+            if(CameraDetailMode)SetPhotographyMode(PhotographyMode.Viewfinder);
             else if(photoMode!=PhotographyMode.Exploration)SetPhotographyMode(PhotographyMode.Exploration);
         }
     }

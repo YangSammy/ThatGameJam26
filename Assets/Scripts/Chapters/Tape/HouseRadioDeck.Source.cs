@@ -106,14 +106,17 @@ namespace MemoryWhitebox
         {
             float position=transport.SourceSeconds,delta=position-lastAuditionPosition;
             lastAuditionPosition=position;
-            if(!Chapter.SourceLoaded || Chapter.AuditionComplete || house.Muted)return;
+            if(!Chapter.SourceLoaded || Chapter.AuditionComplete)return;
+            // Reaching the end also completes audition after silent fast-forward.
+            bool reachedEnd=transport.SourceStatus=="END";
+            if(house.Muted && !reachedEnd)return;
             // The audio thread keeps playing during slow render frames. Count its
             // actual forward travel, not only frames shorter than half a second.
             // Initialize/rewind rebases the cursor; muted ticks still advance the baseline.
-            if(delta>0 && (transport.SourcePlaying || transport.SourceStatus=="END"))Chapter.AuditionSeconds+=Mathf.Min(delta,Time.unscaledDeltaTime+.1f);
+            if(!house.Muted && delta>0 && (transport.SourcePlaying || reachedEnd))Chapter.AuditionSeconds+=Mathf.Min(delta,Time.unscaledDeltaTime+.1f);
             float duration=Mathf.Max(0,transport.SourceDuration-.1f);
             if(CurrentCopy==0)duration=Mathf.Min(auditionDuration,duration);
-            if(Chapter.AuditionSeconds>=duration)
+            if(reachedEnd || Chapter.AuditionSeconds>=duration)
             {Chapter.AuditionComplete=true;RestoreSource();house.SaveStableProgress();}
         }
         bool SourcePointer(EventType type,int button,Ray ray)
@@ -136,7 +139,7 @@ namespace MemoryWhitebox
                 bool over=CanReceive(sourceSlot,ray);benchDrag.MoveScreenCarry(ray);ShowTapeDropPreview(null);
                 bool insert=!benchDrag.Blocked && over;
                 string rejection=insert?null:TapeDropHint(sourceSlot,ray,benchDrag);
-                bool placed=!insert && !OverStorageFootprint(originalTape) && benchDrag.TryPlaceInArea();benchDrag.End(!insert && !placed);movingOriginal=false;originalHit.enabled=true;
+                bool placed=!TapeUIAt(view.WorldToScreenPoint(ray.GetPoint(1))) && !insert && !OverStorageFootprint(originalTape) && benchDrag.TryPlaceInArea();benchDrag.End(!insert && !placed);movingOriginal=false;originalHit.enabled=true;
                 if(insert)LoadOriginal();else RestoreSource();
                 if(!insert && !placed)ShowTapePointerNotice(rejection);
                 if(placed){TapeSound(5,originalTape.position);house.SaveStableProgress();}
@@ -151,7 +154,7 @@ namespace MemoryWhitebox
             if(!RecordingMode || recordingWait || Selected<0 || transport.RecordedSeconds<=0)return;
             // Compatibility entry for older authored UI: prepare B only, never
             // stop A or latch PLAY on the player's behalf.
-            UITransportCommand=-1;transport.RewindTarget();
+            UITransportCommand=-1;transport.CueTargetPlayback();
             SubmissionMessage="Stop A with '. Click B PLAY to listen to your copy.";
         }
     }

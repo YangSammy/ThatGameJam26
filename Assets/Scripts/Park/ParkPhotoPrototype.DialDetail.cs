@@ -36,6 +36,8 @@ namespace MemoryWhitebox
             FrameCameraFromAbove(instrumentCamera!=null?instrumentCamera.body:bodyRoot);
             if(photoMode==PhotographyMode.Shutter)FrameShutterDial(target);
             dialDetailFrame=Time.frameCount;
+            if(!HandPresentationBlocked)
+                TaskOutlineCue.Show(target,dialDetailCamera,target.GetComponentsInChildren<Renderer>(true));
             dialDetailCamera.Render();
         }
         void FrameShutterDial(Transform dial)

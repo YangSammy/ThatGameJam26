@@ -110,16 +110,16 @@ namespace MemoryWhitebox.Editor
                     var pixels=decoded.GetPixels32();
                     for(int i=0;i<pixels.Length;i++)Check(pixels[i].r==raw[i*3] && pixels[i].g==raw[i*3+1] && pixels[i].b==raw[i*3+2],"production stored PNG preserves exact pixels "+i);
                     Invoke(prototype,"BeginExposureEncoding",new ParkPhotoRecord{id=Guid.NewGuid().ToString("N"),taskId="bridge"},raw,3,2);
-                    Set(prototype,"leavingSavedOnly",true);
+                    Set(prototype,"changingScene",true);
                     for(int i=0;i<5;i++){Invoke(prototype,"TickExposureEncoding");Thread.Sleep(1);}
-                    Check(ParkFilmStore.Load(roll.id).frames.Count==1 && notifications==1,"explicit saved-only exit suppresses later encoding writes");
+                    Check(ParkFilmStore.Load(roll.id).frames.Count==1 && notifications==1,"scene departure suppresses later encoding writes");
                     Invoke(prototype,"CancelExposureEncoding");
                 }
-                return "Production async integration passed: hidden inactive prototype -> BeginExposureEncoding -> polling -> real store -> success handler once; settings guarded, duplicate retry blocked, PNG dimensions/pixels preserved, saved-only exit prevents writes. Fixture RGB pixels; live camera/companion/input/scene state untouched.";
+                return "Production async integration passed: hidden inactive prototype -> BeginExposureEncoding -> polling -> real store -> success handler once; settings guarded, duplicate retry blocked, PNG dimensions/pixels preserved, scene departure prevents writes. Fixture RGB pixels; live camera/companion/input/scene state untouched.";
             }
             finally
             {
-                if(prototype!=null){Set(prototype,"leavingSavedOnly",true);Invoke(prototype,"CancelExposureEncoding");}
+                if(prototype!=null){Set(prototype,"changingScene",true);Invoke(prototype,"CancelExposureEncoding");}
                 if(isolated!=null)UnityEngine.Object.DestroyImmediate(isolated);
                 if(reference!=null)UnityEngine.Object.DestroyImmediate(reference);
                 if(decoded!=null)UnityEngine.Object.DestroyImmediate(decoded);
